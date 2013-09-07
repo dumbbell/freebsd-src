@@ -1498,7 +1498,7 @@ extern drm_ioctl_desc_t i915_compat_ioctls[];
 extern int i915_compat_ioctls_nr;
 #endif
 
-struct drm_driver_info i915_driver_info = {
+struct drm_driver i915_driver_info = {
 	.driver_features =   DRIVER_USE_AGP | DRIVER_REQUIRE_AGP |
 	    DRIVER_USE_MTRR | DRIVER_HAVE_IRQ | DRIVER_LOCKLESS_IRQ |
 	    DRIVER_GEM /*| DRIVER_MODESET*/,
