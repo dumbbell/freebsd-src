@@ -90,6 +90,7 @@ typedef int32_t __be32;
 static inline unsigned long
 roundup_pow_of_two(unsigned long x)
 {
+
 	return (1UL << flsl(x - 1));
 }
 
@@ -100,8 +101,10 @@ roundup_pow_of_two(unsigned long x)
  *
  * Source: include/linux/bitops.h
  */
-static inline uint32_t ror32(uint32_t word, unsigned int shift)
+static inline uint32_t
+ror32(uint32_t word, unsigned int shift)
 {
+
 	return (word >> shift) | (word << (32 - shift));
 }
 
@@ -114,28 +117,43 @@ static inline uint32_t ror32(uint32_t word, unsigned int shift)
 /* Taken from linux/include/linux/unaligned/le_struct.h. */
 struct __una_u32 { u32 x; } __packed;
 
-static inline u32 __get_unaligned_cpu32(const void *p)
+static inline u32
+__get_unaligned_cpu32(const void *p)
 {
 	const struct __una_u32 *ptr = (const struct __una_u32 *)p;
-	return ptr->x;
+
+	return (ptr->x);
 }
 
-static inline u32 get_unaligned_le32(const void *p)
+static inline u32
+get_unaligned_le32(const void *p)
 {
-	return __get_unaligned_cpu32((const u8 *)p);
+
+	return (__get_unaligned_cpu32((const u8 *)p));
 }
 #else
 /* Taken from linux/include/linux/unaligned/le_byteshift.h. */
-static inline u32 __get_unaligned_le32(const u8 *p)
+static inline u32
+__get_unaligned_le32(const u8 *p)
 {
-	return p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24;
+
+	return (p[0] | p[1] << 8 | p[2] << 16 | p[3] << 24);
 }
 
-static inline u32 get_unaligned_le32(const void *p)
+static inline u32
+get_unaligned_le32(const void *p)
 {
-	return __get_unaligned_le32((const u8 *)p);
+
+	return (__get_unaligned_le32((const u8 *)p));
 }
 #endif
+
+static inline unsigned long
+ilog2(unsigned long x)
+{
+
+	return (flsl(x) - 1);
+}
 
 #define KIB_NOTYET()							\
 do {									\
