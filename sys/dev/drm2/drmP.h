@@ -220,7 +220,6 @@ SYSCTL_DECL(_hw_drm);
 } while (0)
 #define DRM_SPINUNLOCK_IRQRESTORE(u, irqflags) mtx_unlock(u)
 #define DRM_SPINLOCK_ASSERT(l)	mtx_assert(l, MA_OWNED)
-#define DRM_CURRENTPID		curthread->td_proc->p_pid
 #define DRM_LOCK(dev)		sx_xlock(&(dev)->dev_struct_lock)
 #define DRM_UNLOCK(dev) 	sx_xunlock(&(dev)->dev_struct_lock)
 #define	DRM_LOCK_SLEEP(dev, chan, flags, msg, timeout)			\
@@ -251,7 +250,6 @@ enum {
 
 #define PAGE_ALIGN(addr) round_page(addr)
 /* DRM_SUSER returns true if the user is superuser */
-#define DRM_SUSER(p)		(priv_check(p, PRIV_DRIVER) == 0)
 #define DRM_AGP_FIND_DEVICE()	agp_find_device()
 #define DRM_MTRR_WC		MDF_WRITECOMBINE
 #define jiffies			ticks
@@ -259,40 +257,6 @@ enum {
 #define	msecs_to_jiffies(x)	(((int64_t)(x)) * hz / 1000)
 #define	time_after(a,b)		((long)(b) - (long)(a) < 0)
 #define	time_after_eq(a,b)	((long)(b) - (long)(a) <= 0)
-#define drm_msleep(x, msg)	pause((msg), ((int64_t)(x)) * hz / 1000)
-
-/* DRM_READMEMORYBARRIER() prevents reordering of reads.
- * DRM_WRITEMEMORYBARRIER() prevents reordering of writes.
- * DRM_MEMORYBARRIER() prevents reordering of reads and writes.
- */
-#define DRM_READMEMORYBARRIER()		rmb()
-#define DRM_WRITEMEMORYBARRIER()	wmb()
-#define DRM_MEMORYBARRIER()		mb()
-
-#define DRM_READ8(map, offset)						\
-	*(volatile u_int8_t *)(((vm_offset_t)(map)->virtual) +		\
-	    (vm_offset_t)(offset))
-#define DRM_READ16(map, offset)						\
-	le16toh(*(volatile u_int16_t *)(((vm_offset_t)(map)->virtual) +	\
-	    (vm_offset_t)(offset)))
-#define DRM_READ32(map, offset)						\
-	le32toh(*(volatile u_int32_t *)(((vm_offset_t)(map)->virtual) +	\
-	    (vm_offset_t)(offset)))
-#define DRM_READ64(map, offset)						\
-	le64toh(*(volatile u_int64_t *)(((vm_offset_t)(map)->virtual) +	\
-	    (vm_offset_t)(offset)))
-#define DRM_WRITE8(map, offset, val)					\
-	*(volatile u_int8_t *)(((vm_offset_t)(map)->virtual) +		\
-	    (vm_offset_t)(offset)) = val
-#define DRM_WRITE16(map, offset, val)					\
-	*(volatile u_int16_t *)(((vm_offset_t)(map)->virtual) +		\
-	    (vm_offset_t)(offset)) = htole16(val)
-#define DRM_WRITE32(map, offset, val)					\
-	*(volatile u_int32_t *)(((vm_offset_t)(map)->virtual) +		\
-	    (vm_offset_t)(offset)) = htole32(val)
-#define DRM_WRITE64(map, offset, val)					\
-	*(volatile u_int64_t *)(((vm_offset_t)(map)->virtual) +		\
-	    (vm_offset_t)(offset)) = htole64(val)
 
 #define DRM_VERIFYAREA_READ( uaddr, size )		\
 	(!useracc(__DECONST(caddr_t, uaddr), size, VM_PROT_READ))

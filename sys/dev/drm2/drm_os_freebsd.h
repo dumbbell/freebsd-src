@@ -40,13 +40,49 @@ typedef int32_t __be32;
 	__typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
-#define DRM_HZ			hz
-#define DRM_UDELAY(udelay)	DELAY(udelay)
-#define DRM_MDELAY(msecs)	do { int loops = (msecs);		\
+#define	DRM_HZ			hz
+#define	DRM_CURRENTPID		curthread->td_proc->p_pid
+#define	DRM_SUSER(p)		(priv_check(p, PRIV_DRIVER) == 0)
+#define	DRM_UDELAY(udelay)	DELAY(udelay)
+#define	DRM_MDELAY(msecs)	do { int loops = (msecs);		\
 				  while (loops--) DELAY(1000);		\
 				} while (0)
-#define DRM_MSLEEP(msecs)	drm_msleep((msecs), "drm_msleep")
-#define DRM_TIME_SLICE		(hz/20)  /* Time slice for GLXContexts	  */
+#define	drm_msleep(x, msg)	pause((msg), ((int64_t)(x)) * hz / 1000)
+#define	DRM_MSLEEP(msecs)	drm_msleep((msecs), "drm_msleep")
+#define	DRM_TIME_SLICE		(hz/20)  /* Time slice for GLXContexts	  */
+
+#define	DRM_READ8(map, offset)						\
+	*(volatile u_int8_t *)(((vm_offset_t)(map)->handle) +		\
+	    (vm_offset_t)(offset))
+#define	DRM_READ16(map, offset)						\
+	le16toh(*(volatile u_int16_t *)(((vm_offset_t)(map)->handle) +	\
+	    (vm_offset_t)(offset)))
+#define	DRM_READ32(map, offset)						\
+	le32toh(*(volatile u_int32_t *)(((vm_offset_t)(map)->handle) +	\
+	    (vm_offset_t)(offset)))
+#define	DRM_READ64(map, offset)						\
+	le64toh(*(volatile u_int64_t *)(((vm_offset_t)(map)->handle) +	\
+	    (vm_offset_t)(offset)))
+#define	DRM_WRITE8(map, offset, val)					\
+	*(volatile u_int8_t *)(((vm_offset_t)(map)->handle) +		\
+	    (vm_offset_t)(offset)) = val
+#define	DRM_WRITE16(map, offset, val)					\
+	*(volatile u_int16_t *)(((vm_offset_t)(map)->handle) +		\
+	    (vm_offset_t)(offset)) = htole16(val)
+#define	DRM_WRITE32(map, offset, val)					\
+	*(volatile u_int32_t *)(((vm_offset_t)(map)->handle) +		\
+	    (vm_offset_t)(offset)) = htole32(val)
+#define	DRM_WRITE64(map, offset, val)					\
+	*(volatile u_int64_t *)(((vm_offset_t)(map)->handle) +		\
+	    (vm_offset_t)(offset)) = htole64(val)
+
+/* DRM_READMEMORYBARRIER() prevents reordering of reads.
+ * DRM_WRITEMEMORYBARRIER() prevents reordering of writes.
+ * DRM_MEMORYBARRIER() prevents reordering of reads and writes.
+ */
+#define	DRM_READMEMORYBARRIER()		rmb()
+#define	DRM_WRITEMEMORYBARRIER()	wmb()
+#define	DRM_MEMORYBARRIER()		mb()
 
 #define	do_div(a, b)		((a) /= (b))
 #define	lower_32_bits(n)	((u32)(n))
