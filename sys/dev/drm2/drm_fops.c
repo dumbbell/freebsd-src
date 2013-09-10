@@ -118,10 +118,8 @@ int drm_open(struct cdev *kdev, int flags, int fmt, DRM_STRUCTPROC *p)
 	int need_setup = 0;
 
 	minor = kdev->si_drv1;
-	DRM_INFO("minor: %p\n", minor);
 	if (!minor)
 		return ENODEV;
-	DRM_INFO("minor->dev: %p?\n", minor->dev);
 
 	if (!(dev = minor->dev))
 		return ENODEV;
