@@ -456,12 +456,11 @@ static bool
 drm_dequeue_event(struct drm_file *file_priv, struct uio *uio,
     struct drm_pending_event **out)
 {
-	struct drm_device *dev = file_priv->minor->dev;
 	struct drm_pending_event *e;
-	unsigned long flags;
 	bool ret = false;
 
-	DRM_SPINLOCK_IRQSAVE(&dev->event_lock, flags);
+	/* Already locked in drm_read(). */
+	/* DRM_SPINLOCK_IRQSAVE(&dev->event_lock, flags); */
 
 	*out = NULL;
 	if (list_empty(&file_priv->event_list))
@@ -477,7 +476,7 @@ drm_dequeue_event(struct drm_file *file_priv, struct uio *uio,
 	ret = true;
 
 out:
-	DRM_SPINUNLOCK_IRQRESTORE(&dev->event_lock, flags);
+	/* DRM_SPINUNLOCK_IRQRESTORE(&dev->event_lock, flags); */
 	return ret;
 }
 
