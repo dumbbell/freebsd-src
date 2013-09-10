@@ -2408,11 +2408,7 @@ out_err1:
  */
 void drm_fb_release(struct drm_file *priv)
 {
-#if 1
-	struct drm_device *dev = priv->dev;
-#else
 	struct drm_device *dev = priv->minor->dev;
-#endif
 	struct drm_framebuffer *fb, *tfb;
 
 	sx_xlock(&dev->mode_config.mutex);

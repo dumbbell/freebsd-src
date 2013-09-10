@@ -1066,13 +1066,13 @@ int intel_init_ring_buffer(struct drm_device *dev,
 	ring->map.mtrr = 0;
 
 	drm_core_ioremap_wc(&ring->map, dev);
-	if (ring->map.virtual == NULL) {
+	if (ring->map.handle == NULL) {
 		DRM_ERROR("Failed to map ringbuffer.\n");
 		ret = -EINVAL;
 		goto err_unpin;
 	}
 
-	ring->virtual_start = ring->map.virtual;
+	ring->virtual_start = ring->map.handle;
 	ret = ring->init(ring);
 	if (ret)
 		goto err_unmap;
@@ -1578,13 +1578,13 @@ int intel_render_ring_init_dri(struct drm_device *dev, uint64_t start,
 	ring->map.mtrr = 0;
 
 	drm_core_ioremap_wc(&ring->map, dev);
-	if (ring->map.virtual == NULL) {
+	if (ring->map.handle == NULL) {
 		DRM_ERROR("can not ioremap virtual address for"
 			  " ring buffer\n");
 		return -ENOMEM;
 	}
 
-	ring->virtual_start = (void *)ring->map.virtual;
+	ring->virtual_start = (void *)ring->map.handle;
 	return 0;
 }
 

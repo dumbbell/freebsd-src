@@ -13,7 +13,6 @@ SRCS	= \
 	drm_dma.c \
 	drm_dp_helper.c \
 	drm_dp_iic_helper.c \
-	drm_drawable.c \
 	drm_drv.c \
 	drm_edid.c \
 	drm_fb_helper.c \
@@ -35,6 +34,7 @@ SRCS	= \
 	drm_stub.c \
 	drm_sysctl.c \
 	drm_vm.c \
+	drm_os_freebsd.c \
 	ttm_lock.c \
 	ttm_object.c \
 	ttm_tt.c \

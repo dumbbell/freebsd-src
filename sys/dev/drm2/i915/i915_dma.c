@@ -187,7 +187,7 @@ static int i915_initialize(struct drm_device * dev, drm_i915_init_t * init)
 	}
 
 	dev_priv->sarea_priv = (drm_i915_sarea_t *)
-	    ((u8 *) dev_priv->sarea->virtual + init->sarea_priv_offset);
+	    ((u8 *) dev_priv->sarea->handle + init->sarea_priv_offset);
 
 	if (init->ring_size != 0) {
 		if (LP_RING(dev_priv)->obj != NULL) {
@@ -891,7 +891,7 @@ static int i915_set_status_page(struct drm_device *dev, void *data,
 	dev_priv->hws_map.mtrr = 0;
 
 	drm_core_ioremap_wc(&dev_priv->hws_map, dev);
-	if (dev_priv->hws_map.virtual == NULL) {
+	if (dev_priv->hws_map.handle == NULL) {
 		i915_dma_cleanup(dev);
 		ring->status_page.gfx_addr = dev_priv->status_gfx_addr = 0;
 		DRM_ERROR("can not ioremap virtual address for"
@@ -899,7 +899,7 @@ static int i915_set_status_page(struct drm_device *dev, void *data,
 		return -ENOMEM;
 	}
 	ring->status_page.page_addr = dev_priv->hw_status_page =
-	    dev_priv->hws_map.virtual;
+	    dev_priv->hws_map.handle;
 
 	memset(dev_priv->hw_status_page, 0, PAGE_SIZE);
 	I915_WRITE(HWS_PGA, dev_priv->status_gfx_addr);
@@ -1094,10 +1094,10 @@ intel_alloc_mchbar_resource(struct drm_device *dev)
 #endif
 
 	/* Get some space for it */
-	vga = device_get_parent(dev->device);
+	vga = device_get_parent(dev->dev);
 	dev_priv->mch_res_rid = 0x100;
 	dev_priv->mch_res = BUS_ALLOC_RESOURCE(device_get_parent(vga),
-	    dev->device, SYS_RES_MEMORY, &dev_priv->mch_res_rid, 0, ~0UL,
+	    dev->dev, SYS_RES_MEMORY, &dev_priv->mch_res_rid, 0, ~0UL,
 	    MCHBAR_SIZE, RF_ACTIVE | RF_SHAREABLE);
 	if (dev_priv->mch_res == NULL) {
 		DRM_ERROR("failed mchbar resource alloc\n");
@@ -1184,10 +1184,10 @@ intel_teardown_mchbar(struct drm_device *dev)
 	}
 
 	if (dev_priv->mch_res != NULL) {
-		vga = device_get_parent(dev->device);
-		BUS_DEACTIVATE_RESOURCE(device_get_parent(vga), dev->device,
+		vga = device_get_parent(dev->dev);
+		BUS_DEACTIVATE_RESOURCE(device_get_parent(vga), dev->dev,
 		    SYS_RES_MEMORY, dev_priv->mch_res_rid, dev_priv->mch_res);
-		BUS_RELEASE_RESOURCE(device_get_parent(vga), dev->device,
+		BUS_RELEASE_RESOURCE(device_get_parent(vga), dev->dev,
 		    SYS_RES_MEMORY, dev_priv->mch_res_rid, dev_priv->mch_res);
 		dev_priv->mch_res = NULL;
 	}
@@ -1250,6 +1250,20 @@ i915_driver_load(struct drm_device *dev, unsigned long flags)
 	intel_setup_bios(dev);
 
 	i915_gem_load(dev);
+
+	/* On the 945G/GM, the chipset reports the MSI capability on the
+	 * integrated graphics even though the support isn't actually there
+	 * according to the published specs.  It doesn't appear to function
+	 * correctly in testing on 945G.
+	 * This may be a side effect of MSI having been made available for PEG
+	 * and the registers being closely associated.
+	 *
+	 * According to chipset errata, on the 965GM, MSI interrupts may
+	 * be lost or delayed, but we use them anyways to avoid
+	 * stuck interrupts on some machines.
+	 */
+	if (!IS_I945G(dev) && !IS_I945GM(dev))
+		drm_pci_enable_msi(dev);
 
 	/* Init HWS */
 	if (!I915_NEED_GFX_HWS(dev)) {
@@ -1347,6 +1361,9 @@ i915_driver_unload_int(struct drm_device *dev, bool locked)
 
 	i915_destroy_error_state(dev);
 
+	if (dev->msi_enabled)
+		drm_pci_disable_msi(dev);
+
 	intel_opregion_fini(dev);
 
 	if (locked)
@@ -1381,7 +1398,7 @@ i915_driver_unload_int(struct drm_device *dev, bool locked)
 	if (dev_priv->tq != NULL)
 		taskqueue_free(dev_priv->tq);
 
-	bus_generic_detach(dev->device);
+	bus_generic_detach(dev->dev);
 	drm_rmmap(dev, dev_priv->mmio_map);
 	intel_teardown_gmbus(dev);
 
@@ -1494,13 +1511,13 @@ struct drm_ioctl_desc i915_ioctls[] = {
 };
 
 #ifdef COMPAT_FREEBSD32
-extern drm_ioctl_desc_t i915_compat_ioctls[];
+extern struct drm_ioctl_desc i915_compat_ioctls[];
 extern int i915_compat_ioctls_nr;
 #endif
 
 struct drm_driver i915_driver_info = {
 	.driver_features =   DRIVER_USE_AGP | DRIVER_REQUIRE_AGP |
-	    DRIVER_USE_MTRR | DRIVER_HAVE_IRQ | DRIVER_LOCKLESS_IRQ |
+	    DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
 	    DRIVER_GEM /*| DRIVER_MODESET*/,
 
 	.buf_priv_size	= sizeof(drm_i915_private_t),
@@ -1523,9 +1540,9 @@ struct drm_driver i915_driver_info = {
 	.ioctls		= i915_ioctls,
 #ifdef COMPAT_FREEBSD32
 	.compat_ioctls  = i915_compat_ioctls,
-	.compat_ioctls_nr = &i915_compat_ioctls_nr,
+	.num_compat_ioctls = &i915_compat_ioctls_nr,
 #endif
-	.max_ioctl	= DRM_ARRAY_SIZE(i915_ioctls),
+	.num_ioctls	= DRM_ARRAY_SIZE(i915_ioctls),
 
 	.name		= DRIVER_NAME,
 	.desc		= DRIVER_DESC,

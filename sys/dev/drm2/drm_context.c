@@ -156,11 +156,13 @@ int drm_setsareactx(struct drm_device *dev, void *data,
 		    struct drm_file *file_priv)
 {
 	struct drm_ctx_priv_map *request = data;
-	drm_local_map_t *map = NULL;
+	struct drm_local_map *map = NULL;
+	struct drm_map_list *r_list = NULL;
 
 	DRM_LOCK(dev);
-	TAILQ_FOREACH(map, &dev->maplist, link) {
-		if (map->handle == request->handle) {
+	list_for_each_entry(r_list, &dev->maplist, head) {
+		if (r_list->map
+		    && r_list->user_token == (unsigned long) request->handle) {
 			if (dev->max_context < 0)
 				goto bad;
 			if (request->ctx_id >= (unsigned) dev->max_context)

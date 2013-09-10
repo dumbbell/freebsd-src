@@ -197,3 +197,11 @@ int drm_lock_free(struct drm_lock_data *lock_data, unsigned int context)
 	DRM_WAKEUP_INT((void *)&lock_data->lock_queue);
 	return 0;
 }
+
+int drm_i_have_hw_lock(struct drm_device *dev, struct drm_file *file_priv)
+{
+	struct drm_master *master = file_priv->master;
+	return (file_priv->lock_count && master->lock.hw_lock &&
+		_DRM_LOCK_IS_HELD(master->lock.hw_lock->lock) &&
+		master->lock.file_priv == file_priv);
+}

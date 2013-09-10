@@ -1114,7 +1114,7 @@ radeon_user_framebuffer_create(struct drm_device *dev,
 
 	obj = drm_gem_object_lookup(dev, file_priv, mode_cmd->handles[0]);
 	if (obj ==  NULL) {
-		dev_err(dev->device, "No GEM object associated to handle 0x%08X, "
+		dev_err(dev->dev, "No GEM object associated to handle 0x%08X, "
 			"can't create framebuffer\n", mode_cmd->handles[0]);
 		return -ENOENT;
 	}
@@ -1421,9 +1421,7 @@ void radeon_modeset_fini(struct radeon_device *rdev)
 		radeon_afmt_fini(rdev);
 		drm_kms_helper_poll_fini(rdev->ddev);
 		radeon_hpd_fini(rdev);
-		DRM_UNLOCK(rdev->ddev); /* Work around lock recursion. dumbbell@ */
 		drm_mode_config_cleanup(rdev->ddev);
-		DRM_LOCK(rdev->ddev);
 		rdev->mode_info.mode_config_initialized = false;
 	}
 	/* free i2c buses */

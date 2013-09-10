@@ -127,7 +127,7 @@ typedef struct drm_i915_mem_alloc32 {
 	u32 region_offset;	/* offset from start of fb or agp */
 } drm_i915_mem_alloc32_t;
 
-drm_ioctl_desc_t i915_compat_ioctls[] = {
+struct drm_ioctl_desc i915_compat_ioctls[] = {
 	DRM_IOCTL_DEF(DRM_I915_BATCHBUFFER, compat_i915_batchbuffer, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_I915_CMDBUFFER, compat_i915_cmdbuffer, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_I915_GETPARAM, compat_i915_getparam, DRM_AUTH),

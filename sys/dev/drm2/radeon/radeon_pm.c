@@ -670,7 +670,6 @@ int radeon_pm_init(struct radeon_device *rdev)
 void radeon_pm_fini(struct radeon_device *rdev)
 {
 	if (rdev->pm.num_power_states > 1) {
-		DRM_UNLOCK(rdev->ddev); /* Work around LOR. */
 		sx_xlock(&rdev->pm.mutex);
 		if (rdev->pm.pm_method == PM_METHOD_PROFILE) {
 			rdev->pm.profile = PM_PROFILE_DEFAULT;
@@ -683,7 +682,6 @@ void radeon_pm_fini(struct radeon_device *rdev)
 			radeon_pm_set_clocks(rdev);
 		}
 		sx_xunlock(&rdev->pm.mutex);
-		DRM_LOCK(rdev->ddev);
 
 #ifdef DUMBBELL_WIP
 		cancel_delayed_work_sync(&rdev->pm.dynpm_idle_work);

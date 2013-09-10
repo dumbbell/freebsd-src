@@ -339,7 +339,7 @@ drm_gem_object_release_handle(uint32_t name, void *ptr, void *arg)
 	if (dev->driver->gem_close_object)
 		dev->driver->gem_close_object(obj, file_priv);
 
-	drm_gem_object_handle_unreference(obj);
+	drm_gem_object_handle_unreference_unlocked(obj);
 	return (0);
 }
 

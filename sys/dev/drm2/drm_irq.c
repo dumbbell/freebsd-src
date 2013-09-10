@@ -72,71 +72,81 @@ int drm_irq_by_busid(struct drm_device *dev, void *data,
 	return 0;
 }
 
-static void
-drm_irq_handler_wrap(void *arg)
-{
-	struct drm_device *dev = arg;
-
-	mtx_lock(&dev->irq_lock);
-	dev->driver->irq_handler(arg);
-	mtx_unlock(&dev->irq_lock);
-}
-
 int
 drm_irq_install(struct drm_device *dev)
 {
-	int retcode;
+	int ret;
+	unsigned long sh_flags = 0;
 
-	if (dev->irq == 0 || dev->dev_private == NULL)
-		return (EINVAL);
+	if (!drm_core_check_feature(dev, DRIVER_HAVE_IRQ))
+		return -EINVAL;
 
-	DRM_DEBUG("irq=%d\n", dev->irq);
+	if (drm_dev_to_irq(dev) == 0)
+		return -EINVAL;
 
 	DRM_LOCK(dev);
+
+	/* Driver must have been initialized */
+	if (!dev->dev_private) {
+		DRM_UNLOCK(dev);
+		return -EINVAL;
+	}
+
 	if (dev->irq_enabled) {
 		DRM_UNLOCK(dev);
-		return EBUSY;
+		return -EBUSY;
 	}
 	dev->irq_enabled = 1;
+	DRM_UNLOCK(dev);
 
-	dev->context_flag = 0;
+	DRM_DEBUG("irq=%d\n", drm_dev_to_irq(dev));
 
 	/* Before installing handler */
 	if (dev->driver->irq_preinstall)
 		dev->driver->irq_preinstall(dev);
-	DRM_UNLOCK(dev);
 
 	/* Install handler */
-	retcode = bus_setup_intr(dev->device, dev->irqr,
-	    INTR_TYPE_TTY | INTR_MPSAFE, NULL,
-	    (dev->driver->driver_features & DRIVER_LOCKLESS_IRQ) != 0 ?
-		drm_irq_handler_wrap : dev->driver->irq_handler,
-	    dev, &dev->irqh);
-	if (retcode != 0)
-		goto err;
+	sh_flags = INTR_TYPE_TTY | INTR_MPSAFE;
+	if (!drm_core_check_feature(dev, DRIVER_IRQ_SHARED))
+		sh_flags |= INTR_EXCL;
+
+	ret = bus_setup_intr(dev->dev, dev->irqr, sh_flags, NULL,
+	    dev->driver->irq_handler, dev, &dev->irqh);
+
+	if (ret != 0) {
+		device_printf(dev->dev, "Error setting interrupt: %d\n", ret);
+		DRM_LOCK(dev);
+		dev->irq_enabled = 0;
+		DRM_UNLOCK(dev);
+		return ret;
+	}
 
 	/* After installing handler */
-	DRM_LOCK(dev);
 	if (dev->driver->irq_postinstall)
-		dev->driver->irq_postinstall(dev);
-	DRM_UNLOCK(dev);
+		ret = dev->driver->irq_postinstall(dev);
 
-	return (0);
-err:
-	device_printf(dev->device, "Error setting interrupt: %d\n", retcode);
-	dev->irq_enabled = 0;
+	if (ret != 0) {
+		DRM_LOCK(dev);
+		dev->irq_enabled = 0;
+		DRM_UNLOCK(dev);
+		bus_teardown_intr(dev->dev, dev->irqr, dev->irqh);
+		drm_pci_free_irq(dev);
+	}
 
-	return (retcode);
+	return ret;
 }
 
 int drm_irq_uninstall(struct drm_device *dev)
 {
-	int i;
+	int irq_enabled, i;
 
-	if (!dev->irq_enabled)
-		return EINVAL;
+	if (!drm_core_check_feature(dev, DRIVER_HAVE_IRQ))
+		return -EINVAL;
 
+	DRM_LOCK(dev);
+	irq_enabled = dev->irq_enabled;
 	dev->irq_enabled = 0;
+	DRM_UNLOCK(dev);
 
 	/*
 	* Wake up any waiters so they don't hang.
@@ -152,14 +162,16 @@ int drm_irq_uninstall(struct drm_device *dev)
 		mtx_unlock(&dev->vbl_lock);
 	}
 
-	DRM_DEBUG("irq=%d\n", dev->irq);
+	if (!irq_enabled)
+		return -EINVAL;
+
+	DRM_DEBUG("irq=%d\n", drm_dev_to_irq(dev));
 
 	if (dev->driver->irq_uninstall)
 		dev->driver->irq_uninstall(dev);
 
-	DRM_UNLOCK(dev);
-	bus_teardown_intr(dev->device, dev->irqr, dev->irqh);
-	DRM_LOCK(dev);
+	bus_teardown_intr(dev->dev, dev->irqr, dev->irqh);
+	drm_pci_free_irq(dev);
 
 	return 0;
 }

@@ -616,7 +616,7 @@ intel_setup_gmbus(struct drm_device *dev)
 		 * gmbus may decide to force quirk transfer in the
 		 * attachment code.
 		 */
-		dev_priv->bbbus_bridge[i] = device_add_child(dev->device,
+		dev_priv->bbbus_bridge[i] = device_add_child(dev->dev,
 		    "intel_iicbb", i);
 		if (dev_priv->bbbus_bridge[i] == NULL) {
 			DRM_ERROR("bbbus bridge %d creation failed\n", i);
@@ -646,7 +646,7 @@ intel_setup_gmbus(struct drm_device *dev)
 
 		dev_priv->bbbus[i] = iic_dev;
 
-		dev_priv->gmbus_bridge[i] = device_add_child(dev->device,
+		dev_priv->gmbus_bridge[i] = device_add_child(dev->dev,
 		    "intel_gmbus", i);
 		if (dev_priv->gmbus_bridge[i] == NULL) {
 			DRM_ERROR("gmbus bridge %d creation failed\n", i);

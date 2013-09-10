@@ -247,7 +247,7 @@ static int i915_drm_freeze(struct drm_device *dev)
 		error = -i915_gem_idle(dev);
 		if (error) {
 			DRM_UNLOCK(dev);
-			device_printf(dev->device,
+			device_printf(dev->dev,
 			    "GEM idle failed, resume might fail\n");
 			return (error);
 		}
@@ -363,7 +363,7 @@ static int
 i915_probe(device_t kdev)
 {
 
-	return drm_probe(kdev, i915_pciidlist);
+	return drm_probe_helper(kdev, i915_pciidlist);
 }
 
 int i915_modeset;
@@ -371,13 +371,10 @@ int i915_modeset;
 static int
 i915_attach(device_t kdev)
 {
-	struct drm_device *dev;
 
-	dev = device_get_softc(kdev);
 	if (i915_modeset == 1)
 		i915_driver_info.driver_features |= DRIVER_MODESET;
-	dev->driver = &i915_driver_info;
-	return (drm_attach(kdev, i915_pciidlist));
+	return (drm_attach_helper(kdev, i915_pciidlist, &i915_driver_info));
 }
 
 const struct intel_device_info *
@@ -399,7 +396,7 @@ static device_method_t i915_methods[] = {
 	DEVMETHOD(device_attach,	i915_attach),
 	DEVMETHOD(device_suspend,	i915_suspend),
 	DEVMETHOD(device_resume,	i915_resume),
-	DEVMETHOD(device_detach,	drm_detach),
+	DEVMETHOD(device_detach,	drm_generic_detach),
 	DEVMETHOD_END
 };
 
@@ -627,7 +624,7 @@ i965_reset_complete(struct drm_device *dev)
 {
 	u8 gdrst;
 
-	gdrst = pci_read_config(dev->device, I965_GDRST, 1);
+	gdrst = pci_read_config(dev->dev, I965_GDRST, 1);
 	return (gdrst & 0x1);
 }
 
@@ -641,8 +638,8 @@ i965_do_reset(struct drm_device *dev, u8 flags)
 	 * well as the reset bit (GR/bit 0).  Setting the GR bit
 	 * triggers the reset; when done, the hardware will clear it.
 	 */
-	gdrst = pci_read_config(dev->device, I965_GDRST, 1);
-	pci_write_config(dev->device, I965_GDRST, gdrst | flags | 0x1, 1);
+	gdrst = pci_read_config(dev->dev, I965_GDRST, 1);
+	pci_write_config(dev->dev, I965_GDRST, gdrst | flags | 0x1, 1);
 
 	return (_intel_wait_for(dev, i965_reset_complete(dev), 500, 1,
 	    "915rst"));

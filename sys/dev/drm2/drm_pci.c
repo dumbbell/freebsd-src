@@ -33,6 +33,12 @@ __FBSDID("$FreeBSD$");
 
 #include <dev/drm2/drmP.h>
 
+static int drm_msi = 1;	/* Enable by default. */
+TUNABLE_INT("hw.drm.msi", &drm_msi);
+SYSCTL_NODE(_hw, OID_AUTO, drm, CTLFLAG_RW, NULL, "DRM device");
+SYSCTL_INT(_hw_drm, OID_AUTO, msi, CTLFLAG_RDTUN, &drm_msi, 1,
+    "Enable MSI interrupts for drm devices");
+
 /**********************************************************************/
 /** \name PCI memory */
 /*@{*/
@@ -124,7 +130,248 @@ drm_pci_free(struct drm_device *dev, drm_dma_handle_t *dmah)
 
 /*@}*/
 
-int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
+int drm_pci_get_irq(struct drm_device *dev)
+{
+
+	if (dev->irqr)
+		return (dev->irq);
+
+	dev->irqr = bus_alloc_resource_any(dev->dev, SYS_RES_IRQ,
+	    &dev->irqrid, RF_SHAREABLE);
+	if (!dev->irqr) {
+		dev_err(dev->dev, "Failed to allocate IRQ\n");
+		return (0);
+	}
+
+	dev->irq = (int) rman_get_start(dev->irqr);
+
+	return (dev->irq);
+}
+
+void drm_pci_free_irq(struct drm_device *dev)
+{
+	if (dev->irqr == NULL)
+		return;
+
+	bus_release_resource(dev->dev, SYS_RES_IRQ,
+	    dev->irqrid, dev->irqr);
+
+	dev->irqr = NULL;
+	dev->irq = 0;
+}
+
+int drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
+{
+	int len, ret;
+	master->unique_len = 40;
+	master->unique_size = master->unique_len;
+	master->unique = malloc(master->unique_size, DRM_MEM_DRIVER, M_NOWAIT);
+	if (master->unique == NULL)
+		return -ENOMEM;
+
+
+	len = snprintf(master->unique, master->unique_len,
+		       "pci:%04x:%02x:%02x.%d",
+		       dev->pci_domain,
+		       dev->pci_bus,
+		       dev->pci_slot,
+		       dev->pci_func);
+
+	if (len >= master->unique_len) {
+		DRM_ERROR("buffer overflow");
+		ret = -EINVAL;
+		goto err;
+	} else
+		master->unique_len = len;
+
+	return 0;
+err:
+	return ret;
+}
+
+int drm_pci_set_unique(struct drm_device *dev,
+		       struct drm_master *master,
+		       struct drm_unique *u)
+{
+	int domain, bus, slot, func, ret;
+
+	master->unique_len = u->unique_len;
+	master->unique_size = u->unique_len + 1;
+	master->unique = malloc(master->unique_size, DRM_MEM_DRIVER, M_WAITOK);
+	if (!master->unique) {
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	if (DRM_COPY_FROM_USER(master->unique, u->unique, master->unique_len)) {
+		ret = -EFAULT;
+		goto err;
+	}
+
+	master->unique[master->unique_len] = '\0';
+
+	/* Return error if the busid submitted doesn't match the device's actual
+	 * busid.
+	 */
+	ret = sscanf(master->unique, "PCI:%d:%d:%d", &bus, &slot, &func);
+	if (ret != 3) {
+		ret = -EINVAL;
+		goto err;
+	}
+
+	domain = bus >> 8;
+	bus &= 0xff;
+
+	if ((domain != dev->pci_domain) ||
+	    (bus != dev->pci_bus) ||
+	    (slot != dev->pci_slot) ||
+	    (func != dev->pci_func)) {
+		ret = -EINVAL;
+		goto err;
+	}
+	return 0;
+err:
+	return ret;
+}
+
+int drm_pci_agp_init(struct drm_device *dev)
+{
+	if (drm_core_has_AGP(dev)) {
+		if (drm_device_is_agp(dev))
+			dev->agp = drm_agp_init();
+		if (drm_core_check_feature(dev, DRIVER_REQUIRE_AGP)
+		    && (dev->agp == NULL)) {
+			DRM_ERROR("Cannot initialize the agpgart module.\n");
+			return -EINVAL;
+		}
+		if (drm_core_has_MTRR(dev)) {
+			if (dev->agp && dev->agp->agp_info.ai_aperture_base != 0) {
+				if (drm_mtrr_add(dev->agp->agp_info.ai_aperture_base,
+				    dev->agp->agp_info.ai_aperture_size, DRM_MTRR_WC) == 0)
+					dev->agp->agp_mtrr = 1;
+				else
+					dev->agp->agp_mtrr = -1;
+			}
+		}
+	}
+	return 0;
+}
+
+int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
+		    struct drm_driver *driver)
+{
+	int ret;
+
+	DRM_DEBUG("\n");
+
+	dev->dev = kdev;
+
+	dev->pci_domain = pci_get_domain(dev->dev);
+	dev->pci_bus = pci_get_bus(dev->dev);
+	dev->pci_slot = pci_get_slot(dev->dev);
+	dev->pci_func = pci_get_function(dev->dev);
+
+	dev->pci_vendor = pci_get_vendor(dev->dev);
+	dev->pci_device = pci_get_device(dev->dev);
+	dev->pci_subvendor = pci_get_subvendor(dev->dev);
+	dev->pci_subdevice = pci_get_subdevice(dev->dev);
+
+	sx_xlock(&drm_global_mutex);
+
+	if ((ret = drm_fill_in_dev(dev, driver))) {
+		DRM_ERROR("Failed to fill in dev: %d\n", ret);
+		goto err_g1;
+	}
+
+	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
+		ret = drm_get_minor(dev, &dev->control, DRM_MINOR_CONTROL);
+		if (ret)
+			goto err_g2;
+	}
+
+	if ((ret = drm_get_minor(dev, &dev->primary, DRM_MINOR_LEGACY)))
+		goto err_g3;
+
+	if (dev->driver->load) {
+		ret = dev->driver->load(dev,
+		    dev->id_entry->driver_private);
+		if (ret)
+			goto err_g4;
+	}
+
+#ifdef FREEBSD_NOTYET
+	/* setup the grouping for the legacy output */
+	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
+		ret = drm_mode_group_init_legacy_group(dev,
+						&dev->primary->mode_group);
+		if (ret)
+			goto err_g5;
+	}
+
+	list_add_tail(&dev->driver_item, &driver->device_list);
+#endif /* FREEBSD_NOTYET */
+
+	DRM_INFO("Initialized %s %d.%d.%d %s for %s on minor %d\n",
+		 driver->name, driver->major, driver->minor, driver->patchlevel,
+		 driver->date, device_get_nameunit(dev->dev), dev->primary->index);
+
+	sx_xunlock(&drm_global_mutex);
+	return 0;
+
+#ifdef FREEBSD_NOTYET
+err_g5:
+	if (dev->driver->unload)
+		dev->driver->unload(dev);
+#endif /* FREEBSD_NOTYET */
+err_g4:
+	drm_put_minor(&dev->primary);
+err_g3:
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
+		drm_put_minor(&dev->control);
+err_g2:
+	drm_cancel_fill_in_dev(dev);
+err_g1:
+	sx_xunlock(&drm_global_mutex);
+	return ret;
+}
+
+int
+drm_pci_enable_msi(struct drm_device *dev)
+{
+	int msicount, ret;
+
+	if (!drm_msi)
+		return (-ENOENT);
+
+	msicount = pci_msi_count(dev->dev);
+	DRM_DEBUG("MSI count = %d\n", msicount);
+	if (msicount > 1)
+		msicount = 1;
+
+	ret = pci_alloc_msi(dev->dev, &msicount);
+	if (ret == 0) {
+		DRM_INFO("MSI enabled %d message(s)\n", msicount);
+		dev->msi_enabled = 1;
+		dev->irqrid = 1;
+	}
+
+	return (-ret);
+}
+
+void
+drm_pci_disable_msi(struct drm_device *dev)
+{
+
+	if (!dev->msi_enabled)
+		return;
+
+	pci_release_msi(dev->dev);
+	dev->msi_enabled = 0;
+	dev->irqrid = 0;
+}
+
+int
+drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 {
 	device_t root;
 	int pos;
@@ -134,7 +381,7 @@ int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 	if (!drm_device_is_pcie(dev))
 		return -EINVAL;
 
-	root = device_get_parent(dev->device);
+	root = device_get_parent(dev->dev);
 
 	pos = 0;
 	pci_find_cap(root, PCIY_EXPRESS, &pos);

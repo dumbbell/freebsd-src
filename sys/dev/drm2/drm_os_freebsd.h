@@ -30,6 +30,8 @@ __FBSDID("$FreeBSD$");
 #define	be32_to_cpup(x)	be32toh(*x)
 
 typedef vm_paddr_t dma_addr_t;
+typedef vm_paddr_t resource_size_t;
+
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -39,6 +41,9 @@ typedef int32_t s32;
 typedef int16_t s16;
 typedef int8_t s8;
 typedef int32_t __be32;
+
+#define	__init
+#define	__exit
 
 #define	unlikely(x)            __builtin_expect(!!(x), 0)
 #define	likely(x)              __builtin_expect(!!(x), 1)
@@ -197,8 +202,12 @@ ilog2(unsigned long x)
 	return (flsl(x) - 1);
 }
 
+#define PAGE_ALIGN(addr) round_page(addr)
+
+#define	drm_get_device_from_kdev(_kdev)	(((struct drm_minor *)(_kdev)->si_drv1)->dev)
+
 #define KIB_NOTYET()							\
 do {									\
-	if (drm_debug_flag && drm_notyet_flag)				\
+	if (drm_debug && drm_notyet)					\
 		printf("NOTYET: %s at %s:%d\n", __func__, __FILE__, __LINE__); \
 } while (0)

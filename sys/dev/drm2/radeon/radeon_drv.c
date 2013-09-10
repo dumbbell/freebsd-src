@@ -347,7 +347,6 @@ static struct drm_driver kms_driver = {
 	.dev_priv_size = 0,
 #endif /* DUMBBELL_WIP */
 	.load = radeon_driver_load_kms,
-	.use_msi = radeon_msi_ok,
 	.firstopen = radeon_driver_firstopen_kms,
 	.open = radeon_driver_open_kms,
 	.preclose = radeon_driver_preclose_kms,
@@ -446,22 +445,19 @@ static int
 radeon_probe(device_t kdev)
 {
 
-	return drm_probe(kdev, pciidlist);
+	return (drm_probe_helper(kdev, pciidlist));
 }
 
 static int
 radeon_attach(device_t kdev)
 {
-	struct drm_device *dev;
 
-	dev = device_get_softc(kdev);
 	if (radeon_modeset == 1) {
 		kms_driver.driver_features |= DRIVER_MODESET;
-		kms_driver.max_ioctl = radeon_max_kms_ioctl;
+		kms_driver.num_ioctls = radeon_max_kms_ioctl;
 		radeon_register_atpx_handler();
 	}
-	dev->driver = &kms_driver;
-	return (drm_attach(kdev, pciidlist));
+	return (drm_attach_helper(kdev, pciidlist, &kms_driver));
 }
 
 static int
@@ -494,7 +490,7 @@ static device_method_t radeon_methods[] = {
 	DEVMETHOD(device_attach,	radeon_attach),
 	DEVMETHOD(device_suspend,	radeon_suspend),
 	DEVMETHOD(device_resume,	radeon_resume),
-	DEVMETHOD(device_detach,	drm_detach),
+	DEVMETHOD(device_detach,	drm_generic_detach),
 	DEVMETHOD_END
 };
 

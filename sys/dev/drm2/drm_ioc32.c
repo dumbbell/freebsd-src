@@ -71,8 +71,6 @@ __FBSDID("$FreeBSD$");
 #define DRM_IOCTL_SG_ALLOC32		DRM_IOW( 0x38, drm_scatter_gather32_t)
 #define DRM_IOCTL_SG_FREE32		DRM_IOW( 0x39, drm_scatter_gather32_t)
 
-#define DRM_IOCTL_UPDATE_DRAW32		DRM_IOW( 0x3f, drm_update_draw32_t)
-
 #define DRM_IOCTL_WAIT_VBLANK32		DRM_IOWR(0x3a, drm_wait_vblank32_t)
 
 typedef struct drm_version_32 {
@@ -688,29 +686,6 @@ static int compat_drm_sg_free(struct drm_device *dev, void *data, struct drm_fil
 	return drm_sg_free(dev, (void *)&request, file_priv);
 }
 
-typedef struct drm_update_draw32 {
-	drm_drawable_t handle;
-	unsigned int type;
-	unsigned int num;
-	/* 64-bit version has a 32-bit pad here */
-	u64 data;	/**< Pointer */
-} __attribute__((packed)) drm_update_draw32_t;
-
-static int compat_drm_update_draw(struct drm_device *dev, void *data, struct drm_file *file_priv)
-{
-	drm_update_draw32_t *update32 = data;
-	struct drm_update_draw request;
-	int err;
-
-	request.handle = update32->handle;
-	request.type = update32->type;
-	request.num = update32->num;
-	request.data = update32->data;
-
-	err = drm_update_draw(dev, (void *)&request, file_priv);
-	return err;
-}
-
 struct drm_wait_vblank_request32 {
 	enum drm_vblank_seq_type type;
 	unsigned int sequence;
@@ -751,7 +726,7 @@ static int compat_drm_wait_vblank(struct drm_device *dev, void *data, struct drm
 	return 0;
 }
 
-drm_ioctl_desc_t drm_compat_ioctls[256] = {
+struct drm_ioctl_desc drm_compat_ioctls[256] = {
 	DRM_IOCTL_DEF(DRM_IOCTL_VERSION32, compat_drm_version, 0),
 	DRM_IOCTL_DEF(DRM_IOCTL_GET_UNIQUE32, compat_drm_getunique, 0),
 	DRM_IOCTL_DEF(DRM_IOCTL_GET_MAP32, compat_drm_getmap, 0),
@@ -769,19 +744,17 @@ drm_ioctl_desc_t drm_compat_ioctls[256] = {
 	DRM_IOCTL_DEF(DRM_IOCTL_GET_SAREA_CTX32, compat_drm_getsareactx, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_IOCTL_RES_CTX32, compat_drm_resctx, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_IOCTL_DMA32, compat_drm_dma, DRM_AUTH),
-	
+
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_ENABLE32, compat_drm_agp_enable, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_INFO32, compat_drm_agp_info, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_ALLOC32, compat_drm_agp_alloc, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_FREE32, compat_drm_agp_free, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_BIND32, compat_drm_agp_bind, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_UNBIND32, compat_drm_agp_unbind, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-	
+
 	DRM_IOCTL_DEF(DRM_IOCTL_SG_ALLOC32, compat_drm_sg_alloc, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_SG_FREE32, compat_drm_sg_free, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-	
-	DRM_IOCTL_DEF(DRM_IOCTL_UPDATE_DRAW32, compat_drm_update_draw, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-	
+
 	DRM_IOCTL_DEF(DRM_IOCTL_WAIT_VBLANK32, compat_drm_wait_vblank, DRM_UNLOCKED),
 };
 

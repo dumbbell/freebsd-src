@@ -349,9 +349,7 @@ static int radeon_fbdev_destroy(struct drm_device *dev, struct radeon_fbdev *rfb
 #endif /* DUMBBELL_WIP */
 
 	if (rfb->obj) {
-		DRM_UNLOCK(dev); /* Work around lock recursion. dumbbell@ */
 		radeonfb_destroy_pinned_object(rfb->obj);
-		DRM_LOCK(dev);
 		rfb->obj = NULL;
 	}
 	drm_fb_helper_fini(&rfbdev->helper);

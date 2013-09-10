@@ -1015,6 +1015,22 @@ struct drm_event_vblank {
 #define DRM_CAP_VBLANK_HIGH_CRTC 0x2
 #define DRM_CAP_DUMB_PREFERRED_DEPTH 0x3
 #define DRM_CAP_DUMB_PREFER_SHADOW 0x4
+#define DRM_CAP_PRIME 0x5
+#define DRM_CAP_TIMESTAMP_MONOTONIC 0x6
+
+#define DRM_PRIME_CAP_IMPORT 0x1
+#define DRM_PRIME_CAP_EXPORT 0x2
+
+#define DRM_CLOEXEC O_CLOEXEC
+struct drm_prime_handle {
+	uint32_t handle;
+
+	/** Flags.. only applicable for handle->fd */
+	uint32_t flags;
+
+	/** Returned dmabuf file descriptor */
+	int32_t fd;
+};
 
 #include "drm_mode.h"
 
@@ -1079,7 +1095,8 @@ struct drm_event_vblank {
 #define DRM_IOCTL_UNLOCK		DRM_IOW( 0x2b, struct drm_lock)
 #define DRM_IOCTL_FINISH		DRM_IOW( 0x2c, struct drm_lock)
 
-#define DRM_IOCTL_GEM_PRIME_OPEN        DRM_IOWR(0x2e, struct drm_gem_open)
+#define DRM_IOCTL_PRIME_HANDLE_TO_FD    DRM_IOWR(0x2d, struct drm_prime_handle)
+#define DRM_IOCTL_PRIME_FD_TO_HANDLE    DRM_IOWR(0x2e, struct drm_prime_handle)
 
 #define DRM_IOCTL_AGP_ACQUIRE		DRM_IO(  0x30)
 #define DRM_IOCTL_AGP_RELEASE		DRM_IO(  0x31)
@@ -1117,38 +1134,15 @@ struct drm_event_vblank {
 #define DRM_IOCTL_MODE_PAGE_FLIP	DRM_IOWR(0xB0, struct drm_mode_crtc_page_flip)
 #define DRM_IOCTL_MODE_DIRTYFB		DRM_IOWR(0xB1, struct drm_mode_fb_dirty_cmd)
 
-#define DRM_IOCTL_MODE_CREATE_DUMB	DRM_IOWR(0xB2, struct drm_mode_create_dumb)
-#define DRM_IOCTL_MODE_MAP_DUMB		DRM_IOWR(0xB3, struct drm_mode_map_dumb)
-#define DRM_IOCTL_MODE_DESTROY_DUMB	DRM_IOWR(0xB4, struct drm_mode_destroy_dumb)
+#define DRM_IOCTL_MODE_CREATE_DUMB DRM_IOWR(0xB2, struct drm_mode_create_dumb)
+#define DRM_IOCTL_MODE_MAP_DUMB    DRM_IOWR(0xB3, struct drm_mode_map_dumb)
+#define DRM_IOCTL_MODE_DESTROY_DUMB    DRM_IOWR(0xB4, struct drm_mode_destroy_dumb)
 #define DRM_IOCTL_MODE_GETPLANERESOURCES DRM_IOWR(0xB5, struct drm_mode_get_plane_res)
-#define DRM_IOCTL_MODE_GETPLANE		DRM_IOWR(0xB6, struct drm_mode_get_plane)
-#define DRM_IOCTL_MODE_SETPLANE		DRM_IOWR(0xB7, struct drm_mode_set_plane)
+#define DRM_IOCTL_MODE_GETPLANE	DRM_IOWR(0xB6, struct drm_mode_get_plane)
+#define DRM_IOCTL_MODE_SETPLANE	DRM_IOWR(0xB7, struct drm_mode_set_plane)
 #define DRM_IOCTL_MODE_ADDFB2		DRM_IOWR(0xB8, struct drm_mode_fb_cmd2)
-
-#define DRM_IOCTL_MM_INIT               DRM_IOWR(0xc0, struct drm_mm_init_arg)
-#define DRM_IOCTL_MM_TAKEDOWN           DRM_IOWR(0xc1, struct drm_mm_type_arg)
-#define DRM_IOCTL_MM_LOCK               DRM_IOWR(0xc2, struct drm_mm_type_arg)
-#define DRM_IOCTL_MM_UNLOCK             DRM_IOWR(0xc3, struct drm_mm_type_arg)
-
-#define DRM_IOCTL_FENCE_CREATE          DRM_IOWR(0xc4, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_REFERENCE       DRM_IOWR(0xc6, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_UNREFERENCE     DRM_IOWR(0xc7, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_SIGNALED        DRM_IOWR(0xc8, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_FLUSH           DRM_IOWR(0xc9, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_WAIT            DRM_IOWR(0xca, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_EMIT            DRM_IOWR(0xcb, struct drm_fence_arg)
-#define DRM_IOCTL_FENCE_BUFFERS         DRM_IOWR(0xcc, struct drm_fence_arg)
-
-#define DRM_IOCTL_BO_CREATE             DRM_IOWR(0xcd, struct drm_bo_create_arg)
-#define DRM_IOCTL_BO_MAP                DRM_IOWR(0xcf, struct drm_bo_map_wait_idle_arg)
-#define DRM_IOCTL_BO_UNMAP              DRM_IOWR(0xd0, struct drm_bo_handle_arg)
-#define DRM_IOCTL_BO_REFERENCE          DRM_IOWR(0xd1, struct drm_bo_reference_info_arg)
-#define DRM_IOCTL_BO_UNREFERENCE        DRM_IOWR(0xd2, struct drm_bo_handle_arg)
-#define DRM_IOCTL_BO_SETSTATUS          DRM_IOWR(0xd3, struct drm_bo_map_wait_idle_arg)
-#define DRM_IOCTL_BO_INFO               DRM_IOWR(0xd4, struct drm_bo_reference_info_arg)
-#define DRM_IOCTL_BO_WAIT_IDLE          DRM_IOWR(0xd5, struct drm_bo_map_wait_idle_arg)
-#define DRM_IOCTL_BO_VERSION          DRM_IOR(0xd6, struct drm_bo_version_arg)
-#define DRM_IOCTL_MM_INFO               DRM_IOWR(0xd7, struct drm_mm_info_arg)
+#define DRM_IOCTL_MODE_OBJ_GETPROPERTIES	DRM_IOWR(0xB9, struct drm_mode_obj_get_properties)
+#define DRM_IOCTL_MODE_OBJ_SETPROPERTY	DRM_IOWR(0xBA, struct drm_mode_obj_set_property)
 
 /*@}*/
 

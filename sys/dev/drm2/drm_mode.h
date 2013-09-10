@@ -252,6 +252,21 @@ struct drm_mode_connector_set_property {
 	uint32_t connector_id;
 };
 
+struct drm_mode_obj_get_properties {
+	uint64_t props_ptr;
+	uint64_t prop_values_ptr;
+	uint32_t count_props;
+	uint32_t obj_id;
+	uint32_t obj_type;
+};
+
+struct drm_mode_obj_set_property {
+	uint64_t value;
+	uint32_t prop_id;
+	uint32_t obj_id;
+	uint32_t obj_type;
+};
+
 struct drm_mode_get_blob {
 	uint32_t blob_id;
 	uint32_t length;

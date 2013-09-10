@@ -1005,7 +1005,7 @@ int radeon_device_init(struct radeon_device *rdev,
 	int dma_bits;
 
 	rdev->shutdown = false;
-	rdev->dev = ddev->device;
+	rdev->dev = ddev->dev;
 	rdev->ddev = ddev;
 	rdev->flags = flags;
 	rdev->family = flags & RADEON_FAMILY_MASK;
@@ -1316,13 +1316,13 @@ int radeon_suspend_kms(struct drm_device *dev)
 
 	radeon_agp_suspend(rdev);
 
-	pci_save_state(dev->device);
+	pci_save_state(dev->dev);
 #ifdef DUMBBELL_WIP
 	if (state.event == PM_EVENT_SUSPEND) {
 		/* Shut down the device */
 		pci_disable_device(dev->pdev);
 #endif /* DUMBBELL_WIP */
-		pci_set_powerstate(dev->device, PCI_POWERSTATE_D3);
+		pci_set_powerstate(dev->dev, PCI_POWERSTATE_D3);
 #ifdef DUMBBELL_WIP
 	}
 	console_lock();
@@ -1355,8 +1355,8 @@ int radeon_resume_kms(struct drm_device *dev)
 #ifdef DUMBBELL_WIP
 	console_lock();
 #endif /* DUMBBELL_WIP */
-	pci_set_powerstate(dev->device, PCI_POWERSTATE_D0);
-	pci_restore_state(dev->device);
+	pci_set_powerstate(dev->dev, PCI_POWERSTATE_D0);
+	pci_restore_state(dev->dev);
 #ifdef DUMBBELL_WIP
 	if (pci_enable_device(dev->pdev)) {
 		console_unlock();
