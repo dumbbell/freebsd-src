@@ -175,7 +175,7 @@ static int drm_name_info DRM_SYSCTL_HANDLER_ARGS
 
 	DRM_LOCK(dev);
 	master = minor->master;
-	if (master->unique) {
+	if (master != NULL && master->unique) {
 		snprintf(buf, sizeof(buf), " %s", master->unique);
 		hasunique = 1;
 	}
