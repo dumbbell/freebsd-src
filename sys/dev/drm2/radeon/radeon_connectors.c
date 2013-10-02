@@ -641,9 +641,9 @@ static void radeon_connector_destroy(struct drm_connector *connector)
 	if (radeon_connector->edid)
 		free(radeon_connector->edid, DRM_MEM_KMS);
 	free(radeon_connector->con_priv, DRM_MEM_DRIVER);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	drm_sysfs_connector_remove(connector);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	drm_connector_cleanup(connector);
 	free(connector, DRM_MEM_DRIVER);
 }
@@ -1211,9 +1211,9 @@ static void radeon_dp_connector_destroy(struct drm_connector *connector)
 	if (radeon_dig_connector->dp_i2c_bus)
 		radeon_i2c_destroy(radeon_dig_connector->dp_i2c_bus);
 	free(radeon_connector->con_priv, DRM_MEM_DRIVER);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	drm_sysfs_connector_remove(connector);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	drm_connector_cleanup(connector);
 	free(connector, DRM_MEM_DRIVER);
 }
@@ -1874,9 +1874,9 @@ radeon_add_atom_connector(struct drm_device *dev,
 		connector->polled = DRM_CONNECTOR_POLL_HPD;
 
 	connector->display_info.subpixel_order = subpixel_order;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	drm_sysfs_connector_add(connector);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	return;
 
 failed:
@@ -2034,7 +2034,7 @@ radeon_add_legacy_connector(struct drm_device *dev,
 	} else
 		connector->polled = DRM_CONNECTOR_POLL_HPD;
 	connector->display_info.subpixel_order = subpixel_order;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	drm_sysfs_connector_add(connector);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 }

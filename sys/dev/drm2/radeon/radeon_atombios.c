@@ -1998,7 +1998,7 @@ static int radeon_atombios_parse_power_table_1_3(struct radeon_device *rdev)
 			 power_info->info.ucOverdriveControllerAddress >> 1);
 		i2c_bus = radeon_lookup_i2c_gpio(rdev, power_info->info.ucOverdriveI2cLine);
 		rdev->pm.i2c_bus = radeon_i2c_lookup(rdev, &i2c_bus);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 		if (rdev->pm.i2c_bus) {
 			struct i2c_board_info info = { };
 			const char *name = thermal_controller_names[power_info->info.
@@ -2007,7 +2007,7 @@ static int radeon_atombios_parse_power_table_1_3(struct radeon_device *rdev)
 			strlcpy(info.type, name, sizeof(info.type));
 			i2c_new_device(&rdev->pm.i2c_bus->adapter, &info);
 		}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	}
 	num_modes = power_info->info.ucNumOfPowerModeEntries;
 	if (num_modes > ATOM_MAX_NUMBEROF_POWER_BLOCK)
@@ -2208,7 +2208,7 @@ static void radeon_atombios_add_pplib_thermal_controller(struct radeon_device *r
 				  ATOM_PP_FANPARAMETERS_NOFAN) ? "without" : "with");
 			i2c_bus = radeon_lookup_i2c_gpio(rdev, controller->ucI2cLine);
 			rdev->pm.i2c_bus = radeon_i2c_lookup(rdev, &i2c_bus);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 			if (rdev->pm.i2c_bus) {
 				struct i2c_board_info info = { };
 				const char *name = pp_lib_thermal_controller_names[controller->ucType];
@@ -2216,7 +2216,7 @@ static void radeon_atombios_add_pplib_thermal_controller(struct radeon_device *r
 				strlcpy(info.type, name, sizeof(info.type));
 				i2c_new_device(&rdev->pm.i2c_bus->adapter, &info);
 			}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		} else {
 			DRM_INFO("Unknown thermal controller type %d at 0x%02x %s fan control\n",
 				 controller->ucType,

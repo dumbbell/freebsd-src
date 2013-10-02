@@ -23,7 +23,7 @@ __FBSDID("$FreeBSD$");
 #include "radeon_acpi.h"
 #include "radeon_drv.h"
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 struct radeon_atpx_functions {
 	bool px_params;
 	bool power_cntl;
@@ -472,7 +472,7 @@ static bool radeon_atpx_detect(void)
 	}
 	return false;
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_register_atpx_handler - register with vga_switcheroo
@@ -481,7 +481,7 @@ static bool radeon_atpx_detect(void)
  */
 void radeon_register_atpx_handler(void)
 {
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	bool r;
 
 	/* detect if we have any ATPX + 2 VGA in the system */
@@ -490,7 +490,7 @@ void radeon_register_atpx_handler(void)
 		return;
 
 	vga_switcheroo_register_handler(&radeon_atpx_handler);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 }
 
 /**
@@ -500,7 +500,7 @@ void radeon_register_atpx_handler(void)
  */
 void radeon_unregister_atpx_handler(void)
 {
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	vga_switcheroo_unregister_handler();
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 }

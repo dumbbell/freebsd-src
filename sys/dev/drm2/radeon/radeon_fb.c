@@ -46,7 +46,7 @@ struct radeon_fbdev {
 	struct radeon_device *rdev;
 };
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static struct fb_ops radeonfb_ops = {
 	.owner = THIS_MODULE,
 	.fb_check_var = drm_fb_helper_check_var,
@@ -60,7 +60,7 @@ static struct fb_ops radeonfb_ops = {
 	.fb_debug_enter = drm_fb_helper_debug_enter,
 	.fb_debug_leave = drm_fb_helper_debug_leave,
 };
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 
 int radeon_align_pitch(struct radeon_device *rdev, int width, int bpp, bool tiled)
@@ -191,20 +191,20 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 			   struct drm_fb_helper_surface_size *sizes)
 {
 	struct radeon_device *rdev = rfbdev->rdev;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	struct fb_info *info;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	struct drm_framebuffer *fb = NULL;
 	struct drm_mode_fb_cmd2 mode_cmd;
 	struct drm_gem_object *gobj = NULL;
 	struct radeon_bo *rbo = NULL;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	device_t device = rdev->dev;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	int ret;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	unsigned long tmp;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	mode_cmd.width = sizes->surface_width;
 	mode_cmd.height = sizes->surface_height;
@@ -224,7 +224,7 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 
 	rbo = gem_to_radeon_bo(gobj);
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	/* okay we have an object now allocate the framebuffer */
 	info = framebuffer_alloc(0, device);
 	if (info == NULL) {
@@ -233,7 +233,7 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 	}
 
 	info->par = rfbdev;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	ret = radeon_framebuffer_init(rdev->ddev, &rfbdev->rfb, &mode_cmd, gobj);
 	if (ret) {
@@ -245,7 +245,7 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 
 	/* setup helper */
 	rfbdev->helper.fb = fb;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	rfbdev->helper.fbdev = info;
 
 	memset_io(rbo->kptr, 0x0, radeon_bo_size(rbo));
@@ -294,7 +294,7 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 	DRM_INFO("   pitch is %d\n", fb->pitches[0]);
 
 	vga_switcheroo_client_fb_set(rdev->ddev->pdev, info);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	return 0;
 
 out_unref:
@@ -332,12 +332,12 @@ void radeon_fb_output_poll_changed(struct radeon_device *rdev)
 
 static int radeon_fbdev_destroy(struct drm_device *dev, struct radeon_fbdev *rfbdev)
 {
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	struct fb_info *info;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	struct radeon_framebuffer *rfb = &rfbdev->rfb;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (rfbdev->helper.fbdev) {
 		info = rfbdev->helper.fbdev;
 
@@ -346,7 +346,7 @@ static int radeon_fbdev_destroy(struct drm_device *dev, struct radeon_fbdev *rfb
 			fb_dealloc_cmap(&info->cmap);
 		framebuffer_release(info);
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	if (rfb->obj) {
 		radeonfb_destroy_pinned_object(rfb->obj);
@@ -408,9 +408,9 @@ void radeon_fbdev_fini(struct radeon_device *rdev)
 
 void radeon_fbdev_set_suspend(struct radeon_device *rdev, int state)
 {
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	fb_set_suspend(rdev->mode_info.rfbdev->helper.fbdev, state);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 }
 
 int radeon_fbdev_total_size(struct radeon_device *rdev)

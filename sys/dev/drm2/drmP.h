@@ -664,13 +664,13 @@ struct drm_gem_object {
 
 	void *driver_private;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	/* dma buf exported from this GEM object */
 	struct dma_buf *export_dma_buf;
 
 	/* dma buf attachment backing this object */
 	struct dma_buf_attachment *import_attach;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 };
 
 #include "drm_crtc.h"
@@ -1108,7 +1108,7 @@ void drm_event_wakeup(struct drm_pending_event *e);
 int drm_add_busid_modesetting(struct drm_device *dev,
     struct sysctl_ctx_list *ctx, struct sysctl_oid *top);
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 extern int drm_gem_prime_handle_to_fd(struct drm_device *dev,
 		struct drm_file *file_priv, uint32_t handle, uint32_t flags,
 		int *prime_fd);
@@ -1120,14 +1120,14 @@ extern int drm_prime_handle_to_fd_ioctl(struct drm_device *dev, void *data,
 extern int drm_prime_fd_to_handle_ioctl(struct drm_device *dev, void *data,
 					struct drm_file *file_priv);
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 /*
  * See drm_prime.c
  *   -- dumbbell@
  */
 extern int drm_prime_sg_to_page_addr_arrays(struct sg_table *sgt, vm_page_t *pages,
 					    dma_addr_t *addrs, int max_pages);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 extern struct sg_table *drm_prime_pages_to_sg(vm_page_t *pages, int nr_pages);
 extern void drm_prime_gem_destroy(struct drm_gem_object *obj, struct sg_table *sg);
 
@@ -1141,7 +1141,7 @@ void drm_prime_remove_imported_buf_handle(struct drm_prime_file_private *prime_f
 int drm_prime_add_dma_buf(struct drm_device *dev, struct drm_gem_object *obj);
 int drm_prime_lookup_obj(struct drm_device *dev, struct dma_buf *buf,
 			 struct drm_gem_object **obj);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /* Memory management support (drm_memory.c) */
 int	drm_mtrr_add(unsigned long offset, size_t size, int flags);

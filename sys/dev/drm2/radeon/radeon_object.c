@@ -36,9 +36,9 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/radeon/radeon_drm.h>
 #include "radeon.h"
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 #include "radeon_trace.h"
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 
 static void radeon_bo_clear_surface_reg(struct radeon_bo *bo);
@@ -160,9 +160,9 @@ int radeon_bo_create(struct radeon_device *rdev,
 	}
 	*bo_ptr = bo;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	trace_radeon_bo_create(bo);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	return 0;
 }
@@ -388,13 +388,13 @@ int radeon_bo_list_validate(struct list_head *head)
 	return 0;
 }
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 int radeon_bo_fbdev_mmap(struct radeon_bo *bo,
 			     struct vm_area_struct *vma)
 {
 	return ttm_fbdev_mmap(vma, &bo->tbo);
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 int radeon_bo_get_surface_reg(struct radeon_bo *bo)
 {

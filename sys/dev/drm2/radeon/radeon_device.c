@@ -430,11 +430,11 @@ bool radeon_card_posted(struct radeon_device *rdev)
 {
 	uint32_t reg;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (efi_enabled(EFI_BOOT) &&
 	    rdev->dev->pci_subvendor == PCI_VENDOR_ID_APPLE)
 		return false;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	/* first check CRTCs */
 	if (ASIC_IS_DCE41(rdev)) {
@@ -814,7 +814,7 @@ void radeon_combios_fini(struct radeon_device *rdev)
 {
 }
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 /* if we get transitioned to only one device, take VGA back */
 /**
  * radeon_vga_set_decode - enable/disable vga decode
@@ -835,7 +835,7 @@ static unsigned int radeon_vga_set_decode(void *cookie, bool state)
 	else
 		return VGA_RSRC_NORMAL_IO | VGA_RSRC_NORMAL_MEM;
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_check_pot_argument - check that argument is a power of two
@@ -903,7 +903,7 @@ static void radeon_check_arguments(struct radeon_device *rdev)
  *
  * @pdev: pci dev pointer
  */
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static bool radeon_switcheroo_quirk_long_wakeup(struct pci_dev *pdev)
 {
 
@@ -916,7 +916,7 @@ static bool radeon_switcheroo_quirk_long_wakeup(struct pci_dev *pdev)
 
 	return false;
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_switcheroo_set_state - set switcheroo state
@@ -927,7 +927,7 @@ static bool radeon_switcheroo_quirk_long_wakeup(struct pci_dev *pdev)
  * Callback for the switcheroo driver.  Suspends or resumes the
  * the asics before or after it is powered up using ACPI methods.
  */
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static void radeon_switcheroo_set_state(struct pci_dev *pdev, enum vga_switcheroo_state state)
 {
 	struct drm_device *dev = pci_get_drvdata(pdev);
@@ -956,7 +956,7 @@ static void radeon_switcheroo_set_state(struct pci_dev *pdev, enum vga_switchero
 		dev->switch_power_state = DRM_SWITCH_POWER_OFF;
 	}
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_switcheroo_can_switch - see if switcheroo state can change
@@ -967,7 +967,7 @@ static void radeon_switcheroo_set_state(struct pci_dev *pdev, enum vga_switchero
  * state can be changed.
  * Returns true if the state can be changed, false if not.
  */
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static bool radeon_switcheroo_can_switch(struct pci_dev *pdev)
 {
 	struct drm_device *dev = pci_get_drvdata(pdev);
@@ -984,7 +984,7 @@ static const struct vga_switcheroo_client_ops radeon_switcheroo_ops = {
 	.reprobe = NULL,
 	.can_switch = radeon_switcheroo_can_switch,
 };
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_device_init - initialize the driver
@@ -1078,7 +1078,7 @@ int radeon_device_init(struct radeon_device *rdev,
 		rdev->need_dma32 = true;
 
 	dma_bits = rdev->need_dma32 ? 32 : 40;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	r = pci_set_dma_mask(rdev->pdev, DMA_BIT_MASK(dma_bits));
 	if (r) {
 		rdev->need_dma32 = true;
@@ -1090,7 +1090,7 @@ int radeon_device_init(struct radeon_device *rdev,
 		pci_set_consistent_dma_mask(rdev->pdev, DMA_BIT_MASK(32));
 		printk(KERN_WARNING "radeon: No coherent DMA available.\n");
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	/* Registers mapping */
 	/* TODO: block userspace mapping of io register */
@@ -1126,13 +1126,13 @@ int radeon_device_init(struct radeon_device *rdev,
 	    taskqueue_thread_enqueue, &rdev->tq);
 	taskqueue_start_threads(&rdev->tq, 1, PWAIT, "radeon taskq");
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	/* if we have > 1 VGA cards, then disable the radeon VGA resources */
 	/* this will fail for cards that aren't VGA class devices, just
 	 * ignore it */
 	vga_client_register(rdev->pdev, rdev, NULL, radeon_vga_set_decode);
 	vga_switcheroo_register_client(rdev->pdev, &radeon_switcheroo_ops);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	r = radeon_init(rdev);
 	if (r)
@@ -1181,9 +1181,9 @@ int radeon_device_init(struct radeon_device *rdev,
 	return 0;
 }
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static void radeon_debugfs_remove_files(struct radeon_device *rdev);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_device_fini - tear down the driver
@@ -1207,10 +1207,10 @@ void radeon_device_fini(struct radeon_device *rdev)
 	}
 
 	radeon_fini(rdev);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	vga_switcheroo_unregister_client(rdev->pdev);
 	vga_client_register(rdev->pdev, NULL, NULL, NULL);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	if (rdev->tq != NULL) {
 		taskqueue_free(rdev->tq);
@@ -1224,9 +1224,9 @@ void radeon_device_fini(struct radeon_device *rdev)
 	bus_release_resource(rdev->dev, SYS_RES_MEMORY, rdev->rmmio_rid,
 	    rdev->rmmio);
 	rdev->rmmio = NULL;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	radeon_debugfs_remove_files(rdev);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 }
 
 
@@ -1254,11 +1254,11 @@ int radeon_suspend_kms(struct drm_device *dev)
 	if (dev == NULL || dev->dev_private == NULL) {
 		return -ENODEV;
 	}
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (state.event == PM_EVENT_PRETHAW) {
 		return 0;
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	rdev = dev->dev_private;
 
 	if (dev->switch_power_state == DRM_SWITCH_POWER_OFF)
@@ -1317,20 +1317,20 @@ int radeon_suspend_kms(struct drm_device *dev)
 	radeon_agp_suspend(rdev);
 
 	pci_save_state(device_get_parent(dev->dev));
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (state.event == PM_EVENT_SUSPEND) {
 		/* Shut down the device */
 		pci_disable_device(dev->pdev);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		pci_set_powerstate(dev->dev, PCI_POWERSTATE_D3);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	}
 	console_lock();
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	radeon_fbdev_set_suspend(rdev, 1);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	console_unlock();
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	return 0;
 }
 
@@ -1352,17 +1352,17 @@ int radeon_resume_kms(struct drm_device *dev)
 	if (dev->switch_power_state == DRM_SWITCH_POWER_OFF)
 		return 0;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	console_lock();
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	pci_set_powerstate(device_get_parent(dev->dev), PCI_POWERSTATE_D0);
 	pci_restore_state(device_get_parent(dev->dev));
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (pci_enable_device(dev->pdev)) {
 		console_unlock();
 		return -1;
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	/* resume AGP if in use */
 	radeon_agp_resume(rdev);
 	radeon_resume(rdev);
@@ -1375,9 +1375,9 @@ int radeon_resume_kms(struct drm_device *dev)
 	radeon_restore_bios_scratch_regs(rdev);
 
 	radeon_fbdev_set_suspend(rdev, 0);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	console_unlock();
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	/* init dig PHYs, disp eng pll */
 	if (rdev->is_atom_bios) {
@@ -1487,7 +1487,7 @@ retry:
 /*
  * Debugfs
  */
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 int radeon_debugfs_add_files(struct radeon_device *rdev,
 			     struct drm_info_list *files,
 			     unsigned nfiles)
@@ -1547,5 +1547,5 @@ int radeon_debugfs_init(struct drm_minor *minor)
 void radeon_debugfs_cleanup(struct drm_minor *minor)
 {
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 #endif

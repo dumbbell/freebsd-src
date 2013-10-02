@@ -560,12 +560,12 @@ static struct ttm_tt *radeon_ttm_tt_create(struct ttm_bo_device *bdev,
 
 	rdev = radeon_get_rdev(bdev);
 #if __OS_HAS_AGP
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (rdev->flags & RADEON_IS_AGP) {
 		return ttm_agp_tt_create(bdev, rdev->ddev->agp->agpdev,
 					 size, page_flags, dummy_read_page);
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 #endif
 
 	gtt = malloc(sizeof(struct radeon_ttm_tt),
@@ -588,14 +588,14 @@ static int radeon_ttm_tt_populate(struct ttm_tt *ttm)
 	struct radeon_ttm_tt *gtt = (void *)ttm;
 	unsigned i;
 	int r;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	bool slave = !!(ttm->page_flags & TTM_PAGE_FLAG_SG);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	if (ttm->state != tt_unpopulated)
 		return 0;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	/*
 	 * Maybe unneeded on FreeBSD.
 	 *   -- dumbbell@
@@ -606,15 +606,15 @@ static int radeon_ttm_tt_populate(struct ttm_tt *ttm)
 		ttm->state = tt_unbound;
 		return 0;
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	rdev = radeon_get_rdev(ttm->bdev);
 #if __OS_HAS_AGP
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (rdev->flags & RADEON_IS_AGP) {
 		return ttm_agp_tt_populate(ttm);
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 #endif
 
 #ifdef CONFIG_SWIOTLB
@@ -630,7 +630,7 @@ static int radeon_ttm_tt_populate(struct ttm_tt *ttm)
 
 	for (i = 0; i < ttm->num_pages; i++) {
 		gtt->ttm.dma_address[i] = VM_PAGE_TO_PHYS(ttm->pages[i]);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 		gtt->ttm.dma_address[i] = pci_map_page(rdev->pdev, ttm->pages[i],
 						       0, PAGE_SIZE,
 						       PCI_DMA_BIDIRECTIONAL);
@@ -643,7 +643,7 @@ static int radeon_ttm_tt_populate(struct ttm_tt *ttm)
 			ttm_pool_unpopulate(ttm);
 			return -EFAULT;
 		}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	}
 	return 0;
 }
@@ -660,12 +660,12 @@ static void radeon_ttm_tt_unpopulate(struct ttm_tt *ttm)
 
 	rdev = radeon_get_rdev(ttm->bdev);
 #if __OS_HAS_AGP
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (rdev->flags & RADEON_IS_AGP) {
 		ttm_agp_tt_unpopulate(ttm);
 		return;
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 #endif
 
 #ifdef CONFIG_SWIOTLB
@@ -678,10 +678,10 @@ static void radeon_ttm_tt_unpopulate(struct ttm_tt *ttm)
 	for (i = 0; i < ttm->num_pages; i++) {
 		if (gtt->ttm.dma_address[i]) {
 			gtt->ttm.dma_address[i] = 0;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 			pci_unmap_page(rdev->pdev, gtt->ttm.dma_address[i],
 				       PAGE_SIZE, PCI_DMA_BIDIRECTIONAL);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		}
 	}
 
@@ -818,7 +818,7 @@ void radeon_ttm_set_active_vram_size(struct radeon_device *rdev, u64 size)
 	man->size = size >> PAGE_SHIFT;
 }
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static struct vm_operations_struct radeon_ttm_vm_ops;
 static const struct vm_operations_struct *ttm_vm_ops = NULL;
 
@@ -866,7 +866,7 @@ int radeon_mmap(struct file *filp, struct vm_area_struct *vma)
 	vma->vm_ops = &radeon_ttm_vm_ops;
 	return 0;
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 
 #define RADEON_DEBUGFS_MEM_TYPES 2

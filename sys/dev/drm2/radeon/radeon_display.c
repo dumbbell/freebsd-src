@@ -336,9 +336,9 @@ void radeon_crtc_handle_flip(struct radeon_device *rdev, int crtc_id)
 		e->event.tv_sec = now.tv_sec;
 		e->event.tv_usec = now.tv_usec;
 		list_add_tail(&e->base.link, &e->base.file_priv->event_list);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 		wake_up_interruptible(&e->base.file_priv->event_wait);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	}
 	DRM_SPINUNLOCK_IRQRESTORE(&rdev->ddev->event_lock, flags);
 

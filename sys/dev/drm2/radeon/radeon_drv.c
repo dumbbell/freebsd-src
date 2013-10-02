@@ -84,9 +84,9 @@ extern int radeon_get_crtc_scanoutpos(struct drm_device *dev, int crtc,
 				      int *vpos, int *hpos);
 extern struct drm_ioctl_desc radeon_ioctls_kms[];
 extern int radeon_max_kms_ioctl;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 int radeon_mmap(struct file *filp, struct vm_area_struct *vma);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 int radeon_mode_dumb_mmap(struct drm_file *filp,
 			  struct drm_device *dev,
 			  uint32_t handle, uint64_t *offset_p);
@@ -126,7 +126,7 @@ int radeon_pcie_gen2 = -1;
 int radeon_msi = -1;
 int radeon_lockup_timeout = 10000;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 MODULE_PARM_DESC(no_wb, "Disable AGP writeback for scratch registers");
 module_param_named(no_wb, radeon_no_wb, int, 0444);
 
@@ -205,13 +205,13 @@ static int radeon_resume(struct drm_device *dev)
 	RADEON_WRITE(RADEON_GEN_INT_CNTL, dev_priv->irq_enable_reg);
 	return 0;
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 static drm_pci_id_list_t pciidlist[] = {
 	radeon_PCI_IDS
 };
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static const struct file_operations radeon_driver_old_fops = {
 	.owner = THIS_MODULE,
 	.open = drm_open,
@@ -239,10 +239,10 @@ static struct drm_driver driver_old = {
 	.postclose = radeon_driver_postclose,
 	.lastclose = radeon_driver_lastclose,
 	.unload = radeon_driver_unload,
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	.suspend = radeon_suspend,
 	.resume = radeon_resume,
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	.get_vblank_counter = radeon_get_vblank_counter,
 	.enable_vblank = radeon_enable_vblank,
 	.disable_vblank = radeon_disable_vblank,
@@ -262,11 +262,11 @@ static struct drm_driver driver_old = {
 	.minor = DRIVER_MINOR,
 	.patchlevel = DRIVER_PATCHLEVEL,
 };
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 static struct drm_driver kms_driver;
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static int radeon_kick_out_firmware_fb(struct pci_dev *pdev)
 {
 	struct apertures_struct *ap;
@@ -336,16 +336,16 @@ static const struct file_operations radeon_driver_kms_fops = {
 	.compat_ioctl = radeon_kms_compat_ioctl,
 #endif
 };
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 static struct drm_driver kms_driver = {
 	.driver_features =
 	    DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_PCI_DMA | DRIVER_SG |
 	    DRIVER_HAVE_IRQ | DRIVER_HAVE_DMA | DRIVER_IRQ_SHARED | DRIVER_GEM |
 	    DRIVER_PRIME /* | DRIVE_MODESET */,
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	.dev_priv_size = 0,
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	.load = radeon_driver_load_kms,
 	.firstopen = radeon_driver_firstopen_kms,
 	.open = radeon_driver_open_kms,
@@ -353,10 +353,10 @@ static struct drm_driver kms_driver = {
 	.postclose = radeon_driver_postclose_kms,
 	.lastclose = radeon_driver_lastclose_kms,
 	.unload = radeon_driver_unload_kms,
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	.suspend = radeon_suspend_kms,
 	.resume = radeon_resume_kms,
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	.get_vblank_counter = radeon_get_vblank_counter_kms,
 	.enable_vblank = radeon_enable_vblank_kms,
 	.disable_vblank = radeon_disable_vblank_kms,
@@ -375,16 +375,16 @@ static struct drm_driver kms_driver = {
 	.dumb_create = radeon_mode_dumb_create,
 	.dumb_map_offset = radeon_mode_dumb_mmap,
 	.dumb_destroy = radeon_mode_dumb_destroy,
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	.fops = &radeon_driver_kms_fops,
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
 	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
 	.gem_prime_export = radeon_gem_prime_export,
 	.gem_prime_import = radeon_gem_prime_import,
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
@@ -394,7 +394,7 @@ static struct drm_driver kms_driver = {
 	.patchlevel = KMS_DRIVER_PATCHLEVEL,
 };
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static int __init radeon_init(void)
 {
 	driver = &driver_old;
@@ -437,7 +437,7 @@ static void __exit radeon_exit(void)
 	drm_pci_exit(driver, pdriver);
 	radeon_unregister_atpx_handler();
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /* =================================================================== */
 

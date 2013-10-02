@@ -50,7 +50,7 @@ __FBSDID("$FreeBSD$");
 #define CAYMAN_RLC_UCODE_SIZE 1024
 #define ARUBA_RLC_UCODE_SIZE 1536
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 /* Firmware Names */
 MODULE_FIRMWARE("radeon/R600_pfp.bin");
 MODULE_FIRMWARE("radeon/R600_me.bin");
@@ -93,7 +93,7 @@ MODULE_FIRMWARE("radeon/SUMO_pfp.bin");
 MODULE_FIRMWARE("radeon/SUMO_me.bin");
 MODULE_FIRMWARE("radeon/SUMO2_pfp.bin");
 MODULE_FIRMWARE("radeon/SUMO2_me.bin");
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 int r600_debugfs_mc_info_init(struct radeon_device *rdev);
 

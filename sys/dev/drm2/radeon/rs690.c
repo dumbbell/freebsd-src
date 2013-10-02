@@ -308,9 +308,9 @@ static void rs690_crtc_bandwidth_compute(struct radeon_device *rdev,
 		if (rdev->pm.max_bandwidth.full > rdev->pm.sideport_bandwidth.full &&
 			rdev->pm.sideport_bandwidth.full)
 			rdev->pm.max_bandwidth = rdev->pm.sideport_bandwidth;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 		read_delay_latency.full = dfixed_const(370 * 800 * 1000);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		read_delay_latency.full = UINT_MAX;
 		read_delay_latency.full = dfixed_div(read_delay_latency,
 			rdev->pm.igp_sideport_mclk);

@@ -46,10 +46,10 @@ void radeon_gem_object_free(struct drm_gem_object *gobj)
 	struct radeon_bo *robj = gem_to_radeon_bo(gobj);
 
 	if (robj) {
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 		if (robj->gem_base.import_attach)
 			drm_prime_gem_destroy(&robj->gem_base, robj->tbo.sg);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		radeon_bo_unref(&robj);
 	}
 }

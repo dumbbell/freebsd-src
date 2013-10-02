@@ -36,7 +36,7 @@ __FBSDID("$FreeBSD$");
 #include "radeon.h"
 #include "atom.h"
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 /*
  * IB
  * IBs (Indirect Buffers) and areas of GPU accessible memory where
@@ -47,7 +47,7 @@ __FBSDID("$FreeBSD$");
  * put in IBs for execution by the requested ring.
  */
 static int radeon_debugfs_sa_init(struct radeon_device *rdev);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /**
  * radeon_ib_get - request an IB (Indirect Buffer)
@@ -219,11 +219,11 @@ int radeon_ib_pool_init(struct radeon_device *rdev)
 	}
 
 	rdev->ib_pool_ready = true;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (radeon_debugfs_sa_init(rdev)) {
 		dev_err(rdev->dev, "failed to register debugfs file for SA\n");
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	return 0;
 }
 
@@ -284,7 +284,7 @@ int radeon_ib_ring_tests(struct radeon_device *rdev)
 	return 0;
 }
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 /*
  * Rings
  * Most engines on the GPU are fed via ring buffers.  Ring
@@ -299,7 +299,7 @@ int radeon_ib_ring_tests(struct radeon_device *rdev)
  * them until the pointers are equal again.
  */
 static int radeon_debugfs_ring_init(struct radeon_device *rdev, struct radeon_ring *ring);
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 #if defined(DRM_DEBUG_CODE) && DRM_DEBUG_CODE != 0
 /**
@@ -738,11 +738,11 @@ int radeon_ring_init(struct radeon_device *rdev, struct radeon_ring *ring, unsig
 		ring->next_rptr_gpu_addr = rdev->wb.gpu_addr + index;
 		ring->next_rptr_cpu_addr = &rdev->wb.wb[index/4];
 	}
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	if (radeon_debugfs_ring_init(rdev, ring)) {
 		DRM_ERROR("Failed to register debugfs file for rings !\n");
 	}
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	radeon_ring_lockup_update(ring);
 	return 0;
 }
@@ -852,7 +852,7 @@ static struct drm_info_list radeon_debugfs_sa_list[] = {
 
 #endif
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 static int radeon_debugfs_ring_init(struct radeon_device *rdev, struct radeon_ring *ring)
 {
 #if defined(CONFIG_DEBUG_FS)
@@ -881,4 +881,4 @@ static int radeon_debugfs_sa_init(struct radeon_device *rdev)
 	return 0;
 #endif
 }
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */

@@ -197,9 +197,9 @@ static bool radeon_atrm_get_bios(struct radeon_device *rdev)
 		return false;
 	}
 
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	while ((pdev = pci_get_class(PCI_CLASS_DISPLAY_VGA << 8, pdev)) != NULL) {
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 	if ((dev = pci_find_class(PCIC_DISPLAY, PCIS_DISPLAY_VGA)) != NULL) {
 		DRM_INFO("%s: pci_find_class() found: %d:%d:%d:%d, vendor=%04x, device=%04x\n",
 		    __func__,
@@ -211,10 +211,10 @@ static bool radeon_atrm_get_bios(struct radeon_device *rdev)
 		    pci_get_device(dev));
 		DRM_INFO("%s: Get ACPI device handle\n", __func__);
 		dhandle = acpi_get_handle(dev);
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 		if (!dhandle)
 			continue;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		if (!dhandle)
 			return false;
 
@@ -222,9 +222,9 @@ static bool radeon_atrm_get_bios(struct radeon_device *rdev)
 		status = AcpiGetHandle(dhandle, "ATRM", &atrm_handle);
 		if (!ACPI_FAILURE(status)) {
 			found = true;
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 			break;
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 		} else {
 			DRM_INFO("%s: Failed to get \"ATRM\" handle: %s\n",
 			    __func__, AcpiFormatException(status));

@@ -35,9 +35,9 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drmP.h>
 #include "radeon_reg.h"
 #include "radeon.h"
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 #include "radeon_trace.h"
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 
 /*
  * Fences

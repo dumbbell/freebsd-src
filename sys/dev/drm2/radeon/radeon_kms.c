@@ -419,9 +419,9 @@ int radeon_driver_firstopen_kms(struct drm_device *dev)
  */
 void radeon_driver_lastclose_kms(struct drm_device *dev)
 {
-#ifdef DUMBBELL_WIP
+#ifdef FREEBSD_WIP
 	vga_switcheroo_process_delayed_switch();
-#endif /* DUMBBELL_WIP */
+#endif /* FREEBSD_WIP */
 }
 
 /**
