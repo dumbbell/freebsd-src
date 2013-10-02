@@ -2120,7 +2120,6 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 		edid = intel_dp_get_edid(connector, intel_dp->adapter);
 		if (edid) {
 			intel_dp->has_audio = drm_detect_monitor_audio(edid);
-			connector->display_info.raw_edid = NULL;
 			free(edid, DRM_MEM_KMS);
 		}
 	}
@@ -2186,7 +2185,6 @@ intel_dp_detect_audio(struct drm_connector *connector)
 	if (edid) {
 		has_audio = drm_detect_monitor_audio(edid);
 
-		connector->display_info.raw_edid = NULL;
 		free(edid, DRM_MEM_KMS);
 	}
 
@@ -2202,7 +2200,7 @@ intel_dp_set_property(struct drm_connector *connector,
 	struct intel_dp *intel_dp = intel_attached_dp(connector);
 	int ret;
 
-	ret = drm_connector_property_set_value(connector, property, val);
+	ret = drm_object_property_set_value(&connector->base, property, val);
 	if (ret)
 		return ret;
 

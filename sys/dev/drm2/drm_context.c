@@ -225,7 +225,7 @@ int drm_resctx(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		bzero(&ctx, sizeof(ctx));
 		for (i = 0; i < DRM_RESERVED_CONTEXTS; i++) {
 			ctx.handle = i;
-			if (DRM_COPY_TO_USER(&res->contexts[i],
+			if (copy_to_user(&res->contexts[i],
 			    &ctx, sizeof(ctx)))
 				return EFAULT;
 		}

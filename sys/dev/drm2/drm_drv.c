@@ -290,7 +290,7 @@ static int drm_copy_field(char *buf, size_t *buf_len, const char *value)
 
 	/* finally, try filling in the userbuf */
 	if (len && buf)
-		if (DRM_COPY_TO_USER(buf, value, len))
+		if (copy_to_user(buf, value, len))
 			return -EFAULT;
 	return 0;
 }

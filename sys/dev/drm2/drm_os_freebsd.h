@@ -6,6 +6,9 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#ifndef _DRM_OS_FREEBSD_H_
+#define	_DRM_OS_FREEBSD_H_
+
 #if _BYTE_ORDER == _BIG_ENDIAN
 #define	__BIG_ENDIAN 4321
 #else
@@ -35,21 +38,37 @@ typedef vm_paddr_t resource_size_t;
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
-typedef uint8_t u8;
+typedef uint8_t  u8;
 typedef int64_t s64;
 typedef int32_t s32;
 typedef int16_t s16;
-typedef int8_t s8;
-typedef int32_t __be32;
+typedef int8_t  s8;
+typedef uint64_t __u64;
+typedef uint32_t __u32;
+typedef uint16_t __u16;
+typedef uint8_t  __u8;
+typedef int64_t __s64;
+typedef int32_t __s32;
+typedef int16_t __s16;
+typedef int8_t  __s8;
+typedef uint16_t __le16;
+typedef uint32_t __le32;
+typedef uint64_t __le64;
+typedef uint16_t __be16;
+typedef uint32_t __be32;
+typedef uint64_t __be64;
 
 #define	__init
 #define	__exit
+#define	__read_mostly
 
 #define	unlikely(x)            __builtin_expect(!!(x), 0)
 #define	likely(x)              __builtin_expect(!!(x), 1)
 #define	container_of(ptr, type, member) ({			\
 	__typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - offsetof(type,member) );})
+
+#define	KHZ2PICOS(a)	(1000000000UL/(a))
 
 #define	DRM_HZ			hz
 #define	DRM_CURRENTPID		curthread->td_proc->p_pid
@@ -206,8 +225,17 @@ ilog2(unsigned long x)
 
 #define	drm_get_device_from_kdev(_kdev)	(((struct drm_minor *)(_kdev)->si_drv1)->dev)
 
+#define	copy_from_user(kaddr, uaddr, len)	copyin((uaddr), (kaddr), (len))
+#define	get_user(val, uaddr)			copyin((uaddr), &(val), sizeof(val))
+#define	copy_to_user(uaddr, kaddr, len)		copyout((kaddr), (uaddr), (len))
+#define	put_user(val, uaddr)			copyout(&(val), (uaddr), sizeof(val))
+
+#define	simple_strtol(a, b, c)			strtol((a), (b), (c))
+
 #define KIB_NOTYET()							\
 do {									\
 	if (drm_debug && drm_notyet)					\
 		printf("NOTYET: %s at %s:%d\n", __func__, __FILE__, __LINE__); \
 } while (0)
+
+#endif /* _DRM_OS_FREEBSD_H_ */

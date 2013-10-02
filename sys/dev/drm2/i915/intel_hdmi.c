@@ -344,7 +344,6 @@ intel_hdmi_detect(struct drm_connector *connector, bool force)
 						drm_detect_hdmi_monitor(edid);
 			intel_hdmi->has_audio = drm_detect_monitor_audio(edid);
 		}
-		connector->display_info.raw_edid = NULL;
 		free(edid, DRM_MEM_KMS);
 	} else {
 		DRM_DEBUG_KMS("[CONNECTOR:%d:%s] got no edid, ddc port %d\n",
@@ -387,7 +386,6 @@ intel_hdmi_detect_audio(struct drm_connector *connector)
 		if (edid->input & DRM_EDID_INPUT_DIGITAL)
 			has_audio = drm_detect_monitor_audio(edid);
 
-		connector->display_info.raw_edid = NULL;
 		free(edid, DRM_MEM_KMS);
 	}
 
@@ -403,7 +401,7 @@ intel_hdmi_set_property(struct drm_connector *connector,
 	struct drm_i915_private *dev_priv = connector->dev->dev_private;
 	int ret;
 
-	ret = drm_connector_property_set_value(connector, property, val);
+	ret = drm_object_property_set_value(&connector->base, property, val);
 	if (ret)
 		return ret;
 

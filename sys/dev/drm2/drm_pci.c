@@ -203,7 +203,7 @@ int drm_pci_set_unique(struct drm_device *dev,
 		goto err;
 	}
 
-	if (DRM_COPY_FROM_USER(master->unique, u->unique, master->unique_len)) {
+	if (copy_from_user(master->unique, u->unique, master->unique_len)) {
 		ret = -EFAULT;
 		goto err;
 	}
@@ -299,7 +299,6 @@ int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 			goto err_g4;
 	}
 
-#ifdef FREEBSD_NOTYET
 	/* setup the grouping for the legacy output */
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = drm_mode_group_init_legacy_group(dev,
@@ -308,6 +307,7 @@ int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 			goto err_g5;
 	}
 
+#ifdef FREEBSD_NOTYET
 	list_add_tail(&dev->driver_item, &driver->device_list);
 #endif /* FREEBSD_NOTYET */
 
@@ -318,11 +318,9 @@ int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 	sx_xunlock(&drm_global_mutex);
 	return 0;
 
-#ifdef FREEBSD_NOTYET
 err_g5:
 	if (dev->driver->unload)
 		dev->driver->unload(dev);
-#endif /* FREEBSD_NOTYET */
 err_g4:
 	drm_put_minor(&dev->primary);
 err_g3:

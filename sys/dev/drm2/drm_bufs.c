@@ -1436,16 +1436,16 @@ int drm_infobufs(struct drm_device *dev, void *data,
 				    &request->list[count];
 				struct drm_buf_entry *from = &dma->bufs[i];
 				struct drm_freelist *list = &dma->bufs[i].freelist;
-				if (DRM_COPY_TO_USER(&to->count,
+				if (copy_to_user(&to->count,
 						 &from->buf_count,
 						 sizeof(from->buf_count)) ||
-				    DRM_COPY_TO_USER(&to->size,
+				    copy_to_user(&to->size,
 						 &from->buf_size,
 						 sizeof(from->buf_size)) ||
-				    DRM_COPY_TO_USER(&to->low_mark,
+				    copy_to_user(&to->low_mark,
 						 &list->low_mark,
 						 sizeof(list->low_mark)) ||
-				    DRM_COPY_TO_USER(&to->high_mark,
+				    copy_to_user(&to->high_mark,
 						 &list->high_mark,
 						 sizeof(list->high_mark)))
 					return -EFAULT;
@@ -1540,7 +1540,7 @@ int drm_freebufs(struct drm_device *dev, void *data,
 
 	DRM_DEBUG("%d\n", request->count);
 	for (i = 0; i < request->count; i++) {
-		if (DRM_COPY_FROM_USER(&idx, &request->list[i], sizeof(idx)))
+		if (copy_from_user(&idx, &request->list[i], sizeof(idx)))
 			return -EFAULT;
 		if (idx < 0 || idx >= dma->buf_count) {
 			DRM_ERROR("Index %d (of %d max)\n",
@@ -1632,25 +1632,25 @@ int drm_mapbufs(struct drm_device *dev, void *data,
 		request->virtual = (void __user *)virtual;
 
 		for (i = 0; i < dma->buf_count; i++) {
-			if (DRM_COPY_TO_USER(&request->list[i].idx,
+			if (copy_to_user(&request->list[i].idx,
 					 &dma->buflist[i]->idx,
 					 sizeof(request->list[0].idx))) {
 				retcode = -EFAULT;
 				goto done;
 			}
-			if (DRM_COPY_TO_USER(&request->list[i].total,
+			if (copy_to_user(&request->list[i].total,
 					 &dma->buflist[i]->total,
 					 sizeof(request->list[0].total))) {
 				retcode = -EFAULT;
 				goto done;
 			}
-			if (DRM_COPY_TO_USER(&request->list[i].used,
+			if (copy_to_user(&request->list[i].used,
 					 &zero, sizeof(zero))) {
 				retcode = -EFAULT;
 				goto done;
 			}
 			address = virtual + dma->buflist[i]->offset;	/* *** */
-			if (DRM_COPY_TO_USER(&request->list[i].address,
+			if (copy_to_user(&request->list[i].address,
 					 &address, sizeof(address))) {
 				retcode = -EFAULT;
 				goto done;
