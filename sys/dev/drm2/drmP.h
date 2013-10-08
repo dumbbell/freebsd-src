@@ -787,9 +787,9 @@ struct drm_driver {
 	int	(*dumb_destroy)(struct drm_file *file_priv,
 		    struct drm_device *dev, uint32_t handle);
 
-	int	(*sysctl_init)(struct drm_device *dev,
+	int	(*sysctl_init)(struct drm_minor *minor,
 		    struct sysctl_ctx_list *ctx, struct sysctl_oid *top);
-	void	(*sysctl_cleanup)(struct drm_device *dev);
+	void	(*sysctl_cleanup)(struct drm_minor *minor);
 
 	drm_pci_id_list_t *id_entry;	/* PCI ID, name, and chipset private */
 
@@ -846,6 +846,9 @@ struct drm_minor {
 	struct drm_mode_group mode_group;
 
 	struct sigio *buf_sigio;	/* Processes waiting for SIGIO     */
+
+	struct drm_sysctl_info *sysctl; /* Sysctl support */
+	int sysctl_node_idx;
 };
 
 /* mode specified on the command line */
@@ -1261,6 +1264,8 @@ int	drm_sg_alloc(struct drm_device *dev, struct drm_scatter_gather * request);
 /* sysctl support (drm_sysctl.h) */
 extern int		drm_sysctl_init(struct drm_device *dev);
 extern int		drm_sysctl_cleanup(struct drm_device *dev);
+extern int		drm_sysctl_add_minor(struct drm_minor *minor);
+extern int		drm_sysctl_remove_minor(struct drm_minor *minor);
 
 /* ATI PCIGART support (ati_pcigart.c) */
 int	drm_ati_pcigart_init(struct drm_device *dev,

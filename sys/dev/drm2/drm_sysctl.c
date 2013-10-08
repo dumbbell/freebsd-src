@@ -32,9 +32,16 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm.h>
 
+#include <sys/mount.h>
 #include <sys/sysctl.h>
 
 static int	   drm_name_info DRM_SYSCTL_HANDLER_ARGS;
+static int	   drm_driver_name_info DRM_SYSCTL_HANDLER_ARGS;
+static int	   drm_vendor_id_info DRM_SYSCTL_HANDLER_ARGS;
+static int	   drm_device_id_info DRM_SYSCTL_HANDLER_ARGS;
+static int	   drm_subvendor_id_info DRM_SYSCTL_HANDLER_ARGS;
+static int	   drm_subdevice_id_info DRM_SYSCTL_HANDLER_ARGS;
+static int	   drm_dev_path_info DRM_SYSCTL_HANDLER_ARGS;
 static int	   drm_vm_info DRM_SYSCTL_HANDLER_ARGS;
 static int	   drm_clients_info DRM_SYSCTL_HANDLER_ARGS;
 static int	   drm_bufs_info DRM_SYSCTL_HANDLER_ARGS;
@@ -42,27 +49,39 @@ static int	   drm_vblank_info DRM_SYSCTL_HANDLER_ARGS;
 
 struct drm_sysctl_list {
 	const char *name;
+	int         kind;
 	int	   (*f) DRM_SYSCTL_HANDLER_ARGS;
+	const char *format;
+	const char *descr;
 } drm_sysctl_list[] = {
-	{"name",    drm_name_info},
-	{"vm",	    drm_vm_info},
-	{"clients", drm_clients_info},
-	{"bufs",    drm_bufs_info},
-	{"vblank",    drm_vblank_info},
+	{"name",            CTLTYPE_STRING, drm_name_info, "A", NULL},
+	{"driver_name",     CTLTYPE_STRING, drm_driver_name_info, "A", "Kernel driver name"},
+	{"vendor_id",       CTLTYPE_UINT, drm_vendor_id_info, "IU",
+		"Vendor ID"},
+	{"device_id",       CTLTYPE_UINT, drm_device_id_info, "IU",
+		"Device ID"},
+	{"subvendor_id",    CTLTYPE_UINT, drm_subvendor_id_info, "IU",
+		"Sub-vendor ID"},
+	{"subdevice_id",    CTLTYPE_UINT, drm_subdevice_id_info, "IU",
+		"Sub-device ID"},
+	{"dev_path", CTLTYPE_STRING, drm_dev_path_info, "A",
+		"Device path (relative to devfs mountpoint)"},
+	{"vm",	            CTLTYPE_STRING, drm_vm_info, "A", NULL},
+	{"clients",         CTLTYPE_STRING, drm_clients_info, "A", NULL},
+	{"bufs",            CTLTYPE_STRING, drm_bufs_info, "A", NULL},
+	{"vblank",          CTLTYPE_STRING, drm_vblank_info, "A", NULL},
 };
 #define DRM_SYSCTL_ENTRIES (sizeof(drm_sysctl_list)/sizeof(drm_sysctl_list[0]))
 
 struct drm_sysctl_info {
 	struct sysctl_ctx_list ctx;
-	char		       name[2];
+	char		       name[5];
 };
 
 int drm_sysctl_init(struct drm_device *dev)
 {
 	struct drm_sysctl_info *info;
-	struct sysctl_oid *oid;
-	struct sysctl_oid *top, *drioid;
-	int		  i;
+	struct sysctl_oid *drioid;
 
 	info = malloc(sizeof *info, DRM_MEM_DRIVER, M_WAITOK | M_ZERO);
 	dev->sysctl = info;
@@ -76,53 +95,12 @@ int drm_sysctl_init(struct drm_device *dev)
 		return 1;
 	}
 
-	/* Find the next free slot under hw.dri */
-	i = 0;
-	SLIST_FOREACH(oid, SYSCTL_CHILDREN(drioid), oid_link) {
-		if (i <= oid->oid_arg2)
-			i = oid->oid_arg2 + 1;
-	}
-	if (i > 9) {
-		drm_sysctl_cleanup(dev);
-		return (1);
-	}
-
-	dev->sysctl_node_idx = i;
-	/* Add the hw.dri.x for our device */
-	info->name[0] = '0' + i;
-	info->name[1] = 0;
-	top = SYSCTL_ADD_NODE(&info->ctx, SYSCTL_CHILDREN(drioid),
-	    OID_AUTO, info->name, CTLFLAG_RW, NULL, NULL);
-	if (!top) {
-		drm_sysctl_cleanup(dev);
-		return 1;
-	}
-
-	for (i = 0; i < DRM_SYSCTL_ENTRIES; i++) {
-		oid = SYSCTL_ADD_OID(&info->ctx,
-			SYSCTL_CHILDREN(top),
-			OID_AUTO,
-			drm_sysctl_list[i].name,
-			CTLTYPE_STRING | CTLFLAG_RD,
-			dev,
-			0,
-			drm_sysctl_list[i].f,
-			"A",
-			NULL);
-		if (!oid) {
-			drm_sysctl_cleanup(dev);
-			return 1;
-		}
-	}
 	SYSCTL_ADD_INT(&info->ctx, SYSCTL_CHILDREN(drioid), OID_AUTO, "debug",
 	    CTLFLAG_RW, &drm_debug, sizeof(drm_debug),
 	    "Enable debugging output");
 	SYSCTL_ADD_INT(&info->ctx, SYSCTL_CHILDREN(drioid), OID_AUTO, "notyet",
 	    CTLFLAG_RW, &drm_notyet, sizeof(drm_debug),
 	    "Enable notyet reminders");
-
-	if (dev->driver->sysctl_init != NULL)
-		dev->driver->sysctl_init(dev, &info->ctx, top);
 
 	SYSCTL_ADD_INT(&info->ctx, SYSCTL_CHILDREN(drioid), OID_AUTO,
 	    "vblank_offdelay", CTLFLAG_RW, &drm_vblank_offdelay,
@@ -146,8 +124,76 @@ int drm_sysctl_cleanup(struct drm_device *dev)
 	error = sysctl_ctx_free(&dev->sysctl->ctx);
 	free(dev->sysctl, DRM_MEM_DRIVER);
 	dev->sysctl = NULL;
-	if (dev->driver->sysctl_cleanup != NULL)
-		dev->driver->sysctl_cleanup(dev);
+
+	return (error);
+}
+
+int
+drm_sysctl_add_minor(struct drm_minor *minor)
+{
+	struct drm_sysctl_info *info;
+	struct sysctl_oid *drioid, *top, *oid;
+	int i;
+
+	info = malloc(sizeof(*info), DRM_MEM_DRIVER, M_WAITOK | M_ZERO);
+	minor->sysctl = info;
+
+	/* Add the sysctl node for DRI if it doesn't already exist */
+	drioid = SYSCTL_ADD_NODE(&info->ctx, &sysctl__hw_children, OID_AUTO,
+	    "dri", CTLFLAG_RW, NULL, "DRI Graphics");
+	if (!drioid) {
+		free(minor->sysctl, DRM_MEM_DRIVER);
+		minor->sysctl = NULL;
+		return 1;
+	}
+
+	minor->sysctl_node_idx = dev2udev(minor->device);
+	/* Add the hw.dri.x for our device */
+	snprintf(info->name, sizeof(info->name), "0x%02x", minor->sysctl_node_idx);
+	top = SYSCTL_ADD_NODE(&info->ctx, SYSCTL_CHILDREN(drioid),
+	    minor->sysctl_node_idx, info->name, CTLFLAG_RW, NULL, NULL);
+	if (!top) {
+		drm_sysctl_remove_minor(minor);
+		return 1;
+	}
+
+	for (i = 0; i < DRM_SYSCTL_ENTRIES; i++) {
+		oid = SYSCTL_ADD_OID(&info->ctx,
+			SYSCTL_CHILDREN(top),
+			OID_AUTO,
+			drm_sysctl_list[i].name,
+			drm_sysctl_list[i].kind | CTLFLAG_RD,
+			minor,
+			0,
+			drm_sysctl_list[i].f,
+			drm_sysctl_list[i].format,
+			drm_sysctl_list[i].descr);
+		if (!oid) {
+			drm_sysctl_remove_minor(minor);
+			return 1;
+		}
+	}
+
+	if (minor->dev->driver->sysctl_init != NULL)
+		minor->dev->driver->sysctl_init(minor, &info->ctx, top);
+
+	return (0);
+}
+
+int
+drm_sysctl_remove_minor(struct drm_minor *minor)
+{
+	int error;
+
+	if (
+	    minor->sysctl == NULL)
+		return (0);
+
+	error = sysctl_ctx_free(&minor->sysctl->ctx);
+	free(minor->sysctl, DRM_MEM_DRIVER);
+	minor->sysctl = NULL;
+	if (minor->dev->driver->sysctl_cleanup != NULL)
+		minor->dev->driver->sysctl_cleanup(minor);
 
 	return (error);
 }
@@ -162,15 +208,14 @@ do {								\
 
 static int drm_name_info DRM_SYSCTL_HANDLER_ARGS
 {
-	struct drm_device *dev = arg1;
-	struct drm_minor *minor;
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
 	struct drm_master *master;
 	char buf[128];
 	int retcode;
 	int hasunique = 0;
 
-	/* FIXME: This still uses primary minor. */
-	minor = dev->primary;
+	dev = minor->dev;
 	DRM_SYSCTL_PRINT("%s 0x%x", dev->driver->name, dev2udev(minor->device));
 
 	DRM_LOCK(dev);
@@ -190,9 +235,96 @@ done:
 	return retcode;
 }
 
+static int drm_driver_name_info DRM_SYSCTL_HANDLER_ARGS
+{
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
+	char buf[128];
+	int retcode;
+
+	dev = minor->dev;
+	DRM_SYSCTL_PRINT("%s", dev->driver->name);
+
+	SYSCTL_OUT(req, "", 1);
+
+done:
+	return retcode;
+}
+
+static int drm_vendor_id_info DRM_SYSCTL_HANDLER_ARGS
+{
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
+	uint32_t vendor_id;
+	int retcode;
+
+	dev = minor->dev;
+	vendor_id = dev->pci_vendor;
+	retcode = SYSCTL_OUT(req, &vendor_id, sizeof(vendor_id));
+
+	return retcode;
+}
+
+static int drm_device_id_info DRM_SYSCTL_HANDLER_ARGS
+{
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
+	uint32_t device_id;
+	int retcode;
+
+	dev = minor->dev;
+	device_id = dev->pci_device;
+	retcode = SYSCTL_OUT(req, &device_id, sizeof(device_id));
+
+	return retcode;
+}
+
+static int drm_subvendor_id_info DRM_SYSCTL_HANDLER_ARGS
+{
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
+	uint32_t subvendor_id;
+	int retcode;
+
+	dev = minor->dev;
+	subvendor_id = dev->pci_subvendor;
+	retcode = SYSCTL_OUT(req, &subvendor_id, sizeof(subvendor_id));
+
+	return retcode;
+}
+
+static int drm_subdevice_id_info DRM_SYSCTL_HANDLER_ARGS
+{
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
+	uint32_t subdevice_id;
+	int retcode;
+
+	dev = minor->dev;
+	subdevice_id = dev->pci_subdevice;
+	retcode = SYSCTL_OUT(req, &subdevice_id, sizeof(subdevice_id));
+
+	return retcode;
+}
+
+static int drm_dev_path_info DRM_SYSCTL_HANDLER_ARGS
+{
+	struct drm_minor *minor = arg1;
+	char buf[MAXPATHLEN + 1];
+	int retcode;
+
+	DRM_SYSCTL_PRINT("%s", minor->device->si_name);
+
+	SYSCTL_OUT(req, "", 1);
+
+done:
+	return retcode;
+}
+
 static int drm_vm_info DRM_SYSCTL_HANDLER_ARGS
 {
-	struct drm_device *dev = arg1;
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
 	struct drm_map_list *entry;
 	struct drm_local_map *map, *tempmaps;
 	const char *types[] = {
@@ -212,6 +344,7 @@ static int drm_vm_info DRM_SYSCTL_HANDLER_ARGS
 	/* We can't hold the lock while doing SYSCTL_OUTs, so allocate a
 	 * temporary copy of all the map entries and then SYSCTL_OUT that.
 	 */
+	dev = minor->dev;
 	DRM_LOCK(dev);
 
 	mapcount = 0;
@@ -275,8 +408,9 @@ done:
 
 static int drm_bufs_info DRM_SYSCTL_HANDLER_ARGS
 {
-	struct drm_device	 *dev = arg1;
-	drm_device_dma_t *dma = dev->dma;
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
+	drm_device_dma_t *dma;
 	drm_device_dma_t tempdma;
 	int *templists;
 	int i;
@@ -286,6 +420,8 @@ static int drm_bufs_info DRM_SYSCTL_HANDLER_ARGS
 	/* We can't hold the locks around DRM_SYSCTL_PRINT, so make a temporary
 	 * copy of the whole structure and the relevant data from buflist.
 	 */
+	dev = minor->dev;
+	dma = dev->dma;
 	DRM_LOCK(dev);
 	if (dma == NULL) {
 		DRM_UNLOCK(dev);
@@ -332,12 +468,14 @@ done:
 
 static int drm_clients_info DRM_SYSCTL_HANDLER_ARGS
 {
-	struct drm_device *dev = arg1;
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
 	struct drm_file *priv, *tempprivs;
 	char buf[128];
 	int retcode;
 	int privcount, i;
 
+	dev = minor->dev;
 	DRM_LOCK(dev);
 
 	privcount = 0;
@@ -377,10 +515,13 @@ done:
 
 static int drm_vblank_info DRM_SYSCTL_HANDLER_ARGS
 {
-	struct drm_device *dev = arg1;
+	struct drm_minor *minor = arg1;
+	struct drm_device *dev;
 	char buf[128];
 	int retcode;
 	int i;
+
+	dev = minor->dev;
 
 	DRM_SYSCTL_PRINT("\ncrtc ref count    last     enabled inmodeset\n");
 	DRM_LOCK(dev);

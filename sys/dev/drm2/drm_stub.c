@@ -364,12 +364,21 @@ int drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
 		goto err_mem;
 	}
 	new_minor->device->si_drv1 = new_minor;
+
+	ret = drm_sysctl_add_minor(new_minor);
+	if (ret) {
+		DRM_ERROR("Failed to add device minor sysctl tree: %d\n",
+		    ret);
+		goto err_g2;
+	}
 	*minor = new_minor;
 
 	DRM_DEBUG("new minor assigned %d\n", minor_id);
 	return 0;
 
 
+err_g2:
+	drm_put_minor(&new_minor);
 err_mem:
 	free(new_minor, DRM_MEM_MINOR);
 err_idr:
@@ -393,6 +402,7 @@ int drm_put_minor(struct drm_minor **minor_p)
 
 	DRM_DEBUG("release secondary minor %d\n", minor->index);
 
+	drm_sysctl_remove_minor(minor);
 	funsetown(&minor->buf_sigio);
 
 	destroy_dev(minor->device);
