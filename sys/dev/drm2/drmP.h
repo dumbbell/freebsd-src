@@ -100,7 +100,6 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drm_sarea.h>
 
 #include <dev/drm2/drm_atomic.h>
-#include <dev/drm2/drm_internal.h>
 #include <dev/drm2/drm_linux_list.h>
 #include <dev/drm2/drm_gem_names.h>
 
