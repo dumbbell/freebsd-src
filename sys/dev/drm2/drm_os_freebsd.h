@@ -235,6 +235,8 @@ ilog2(unsigned long x)
 #define	simple_strtol(a, b, c)			strtol((a), (b), (c))
 
 #define	EXPORT_SYMBOL(x)
+#define	module_param_named(name, var, type, perm)
+#define	MODULE_PARM_DESC(name, desc)
 
 #define KIB_NOTYET()							\
 do {									\
