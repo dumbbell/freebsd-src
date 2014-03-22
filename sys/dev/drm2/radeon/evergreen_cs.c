@@ -1292,9 +1292,9 @@ static int evergreen_cs_check_reg(struct radeon_cs_parser *p, u32 reg, u32 idx)
 	int r;
 
 	if (p->rdev->family >= CHIP_CAYMAN)
-		last_reg = DRM_ARRAY_SIZE(cayman_reg_safe_bm);
+		last_reg = ARRAY_SIZE(cayman_reg_safe_bm);
 	else
-		last_reg = DRM_ARRAY_SIZE(evergreen_reg_safe_bm);
+		last_reg = ARRAY_SIZE(evergreen_reg_safe_bm);
 
 	i = (reg >> 7);
 	if (i >= last_reg) {
@@ -1960,9 +1960,9 @@ static bool evergreen_is_safe_reg(struct radeon_cs_parser *p, u32 reg, u32 idx)
 	u32 last_reg, m, i;
 
 	if (p->rdev->family >= CHIP_CAYMAN)
-		last_reg = DRM_ARRAY_SIZE(cayman_reg_safe_bm);
+		last_reg = ARRAY_SIZE(cayman_reg_safe_bm);
 	else
-		last_reg = DRM_ARRAY_SIZE(evergreen_reg_safe_bm);
+		last_reg = ARRAY_SIZE(evergreen_reg_safe_bm);
 
 	i = (reg >> 7);
 	if (i >= last_reg) {

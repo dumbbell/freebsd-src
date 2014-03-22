@@ -227,7 +227,7 @@ int drm_fill_in_dev(struct drm_device *dev,
 	dev->types[4] = _DRM_STAT_LOCKS;
 	dev->types[5] = _DRM_STAT_UNLOCKS;
 
-	for (i = 0; i < DRM_ARRAY_SIZE(dev->counts); i++)
+	for (i = 0; i < ARRAY_SIZE(dev->counts); i++)
 		atomic_set(&dev->counts[i], 0);
 
 	dev->driver = driver;

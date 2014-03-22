@@ -192,7 +192,6 @@ SYSCTL_DECL(_hw_drm);
 /** \name Internal types and structures */
 /*@{*/
 
-#define DRM_ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 #define DRM_MIN(a,b) ((a)<(b)?(a):(b))
 #define DRM_MAX(a,b) ((a)>(b)?(a):(b))
 

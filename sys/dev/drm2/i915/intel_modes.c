@@ -105,7 +105,7 @@ intel_attach_force_audio_property(struct drm_connector *connector)
 		prop = drm_property_create_enum(dev, 0,
 					   "audio",
 					   force_audio_names,
-					   DRM_ARRAY_SIZE(force_audio_names));
+					   ARRAY_SIZE(force_audio_names));
 		if (prop == NULL)
 			return;
 
@@ -131,7 +131,7 @@ intel_attach_broadcast_rgb_property(struct drm_connector *connector)
 		prop = drm_property_create_enum(dev, DRM_MODE_PROP_ENUM,
 		    "Broadcast RGB",
 		    broadcast_rgb_names,
-		    DRM_ARRAY_SIZE(broadcast_rgb_names));
+		    ARRAY_SIZE(broadcast_rgb_names));
 		if (prop == NULL)
 			return;
 

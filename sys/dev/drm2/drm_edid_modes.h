@@ -470,7 +470,7 @@ static const struct minimode est3_modes[] = {
 	{ 1920, 1440, 60, 0 },
 	{ 1920, 1440, 75, 0 },
 };
-static const int num_est3_modes = DRM_ARRAY_SIZE(est3_modes);
+static const int num_est3_modes = ARRAY_SIZE(est3_modes);
 
 static const struct minimode extra_modes[] = {
 	{ 1024, 576,  60, 0 },
@@ -481,7 +481,7 @@ static const struct minimode extra_modes[] = {
 	{ 2048, 1152, 60, 0 },
 	{ 2048, 1536, 60, 0 },
 };
-static const int num_extra_modes = DRM_ARRAY_SIZE(extra_modes);
+static const int num_extra_modes = ARRAY_SIZE(extra_modes);
 
 /*
  * Probably taken from CEA-861 spec.
@@ -770,4 +770,4 @@ static const struct drm_display_mode edid_cea_modes[] = {
 		   2492, 2640, 0, 1080, 1084, 1094, 1125, 0,
 		   DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC) },
 };
-static const int drm_num_cea_modes = DRM_ARRAY_SIZE(edid_cea_modes);
+static const int drm_num_cea_modes = ARRAY_SIZE(edid_cea_modes);

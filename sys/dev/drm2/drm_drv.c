@@ -174,7 +174,7 @@ static struct drm_ioctl_desc drm_ioctls[] = {
 extern struct drm_ioctl_desc drm_compat_ioctls[];
 #endif
 
-#define DRM_CORE_IOCTL_COUNT	DRM_ARRAY_SIZE( drm_ioctls )
+#define DRM_CORE_IOCTL_COUNT	ARRAY_SIZE( drm_ioctls )
 
 /**
  * Take down the DRM device.

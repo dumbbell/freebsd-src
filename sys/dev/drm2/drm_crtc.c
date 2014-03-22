@@ -42,7 +42,7 @@ __FBSDID("$FreeBSD$");
 	char *fnname(int val)					\
 	{							\
 		int i;						\
-		for (i = 0; i < DRM_ARRAY_SIZE(list); i++) {	\
+		for (i = 0; i < ARRAY_SIZE(list); i++) {	\
 			if (list[i].type == val)		\
 				return list[i].name;		\
 		}						\
@@ -750,7 +750,7 @@ static int drm_mode_create_standard_connector_properties(struct drm_device *dev)
 
 	dpms = drm_property_create_enum(dev, 0,
 				   "DPMS", drm_dpms_enum_list,
-				   DRM_ARRAY_SIZE(drm_dpms_enum_list));
+				   ARRAY_SIZE(drm_dpms_enum_list));
 	dev->mode_config.dpms_property = dpms;
 
 	return 0;
@@ -774,13 +774,13 @@ int drm_mode_create_dvi_i_properties(struct drm_device *dev)
 		drm_property_create_enum(dev, 0,
 				    "select subconnector",
 				    drm_dvi_i_select_enum_list,
-				    DRM_ARRAY_SIZE(drm_dvi_i_select_enum_list));
+				    ARRAY_SIZE(drm_dvi_i_select_enum_list));
 	dev->mode_config.dvi_i_select_subconnector_property = dvi_i_selector;
 
 	dvi_i_subconnector = drm_property_create_enum(dev, DRM_MODE_PROP_IMMUTABLE,
 				    "subconnector",
 				    drm_dvi_i_subconnector_enum_list,
-				    DRM_ARRAY_SIZE(drm_dvi_i_subconnector_enum_list));
+				    ARRAY_SIZE(drm_dvi_i_subconnector_enum_list));
 	dev->mode_config.dvi_i_subconnector_property = dvi_i_subconnector;
 
 	return 0;
@@ -813,14 +813,14 @@ int drm_mode_create_tv_properties(struct drm_device *dev, int num_modes,
 	tv_selector = drm_property_create_enum(dev, 0,
 					  "select subconnector",
 					  drm_tv_select_enum_list,
-					  DRM_ARRAY_SIZE(drm_tv_select_enum_list));
+					  ARRAY_SIZE(drm_tv_select_enum_list));
 	dev->mode_config.tv_select_subconnector_property = tv_selector;
 
 	tv_subconnector =
 		drm_property_create_enum(dev, DRM_MODE_PROP_IMMUTABLE,
 				    "subconnector",
 				    drm_tv_subconnector_enum_list,
-				    DRM_ARRAY_SIZE(drm_tv_subconnector_enum_list));
+				    ARRAY_SIZE(drm_tv_subconnector_enum_list));
 	dev->mode_config.tv_subconnector_property = tv_subconnector;
 
 	/*
@@ -883,7 +883,7 @@ int drm_mode_create_scaling_mode_property(struct drm_device *dev)
 	scaling_mode =
 		drm_property_create_enum(dev, 0, "scaling mode",
 				drm_scaling_mode_enum_list,
-				    DRM_ARRAY_SIZE(drm_scaling_mode_enum_list));
+				    ARRAY_SIZE(drm_scaling_mode_enum_list));
 
 	dev->mode_config.scaling_mode_property = scaling_mode;
 
@@ -907,7 +907,7 @@ int drm_mode_create_dithering_property(struct drm_device *dev)
 	dithering_mode =
 		drm_property_create_enum(dev, 0, "dithering",
 				drm_dithering_mode_enum_list,
-				    DRM_ARRAY_SIZE(drm_dithering_mode_enum_list));
+				    ARRAY_SIZE(drm_dithering_mode_enum_list));
 	dev->mode_config.dithering_mode_property = dithering_mode;
 
 	return 0;
@@ -931,7 +931,7 @@ int drm_mode_create_dirty_info_property(struct drm_device *dev)
 		drm_property_create_enum(dev, DRM_MODE_PROP_IMMUTABLE,
 				    "dirty",
 				    drm_dirty_info_enum_list,
-				    DRM_ARRAY_SIZE(drm_dirty_info_enum_list));
+				    ARRAY_SIZE(drm_dirty_info_enum_list));
 	dev->mode_config.dirty_info_property = dirty_info;
 
 	return 0;

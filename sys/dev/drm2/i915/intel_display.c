@@ -3886,7 +3886,7 @@ static const struct cxsr_latency *intel_get_cxsr_latency(int is_desktop,
 	if (fsb == 0 || mem == 0)
 		return NULL;
 
-	for (i = 0; i < DRM_ARRAY_SIZE(cxsr_latency_table); i++) {
+	for (i = 0; i < ARRAY_SIZE(cxsr_latency_table); i++) {
 		latency = &cxsr_latency_table[i];
 		if (is_desktop == latency->is_desktop &&
 		    is_ddr3 == latency->is_ddr3 &&
@@ -7761,7 +7761,7 @@ static void intel_crtc_init(struct drm_device *dev, int pipe)
 		intel_crtc->plane = !pipe;
 	}
 
-	KASSERT(pipe < DRM_ARRAY_SIZE(dev_priv->plane_to_crtc_mapping) &&
+	KASSERT(pipe < ARRAY_SIZE(dev_priv->plane_to_crtc_mapping) &&
 	    dev_priv->plane_to_crtc_mapping[intel_crtc->plane] == NULL,
 	    ("plane_to_crtc is already initialized"));
 	dev_priv->plane_to_crtc_mapping[intel_crtc->plane] = &intel_crtc->base;
@@ -9227,7 +9227,7 @@ static void intel_init_quirks(struct drm_device *dev)
 	int i;
 
 	d = dev->dev;
-	for (i = 0; i < DRM_ARRAY_SIZE(intel_quirks); i++) {
+	for (i = 0; i < ARRAY_SIZE(intel_quirks); i++) {
 		q = &intel_quirks[i];
 		if (pci_get_device(d) == q->device &&
 		    (pci_get_subvendor(d) == q->subsystem_vendor ||

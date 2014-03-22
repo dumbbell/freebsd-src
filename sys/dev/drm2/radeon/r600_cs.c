@@ -186,7 +186,7 @@ static const struct gpu_formats color_formats_table[] = {
 
 bool r600_fmt_is_valid_color(u32 format)
 {
-	if (format >= DRM_ARRAY_SIZE(color_formats_table))
+	if (format >= ARRAY_SIZE(color_formats_table))
 		return false;
 
 	if (color_formats_table[format].valid_color)
@@ -197,7 +197,7 @@ bool r600_fmt_is_valid_color(u32 format)
 
 bool r600_fmt_is_valid_texture(u32 format, enum radeon_family family)
 {
-	if (format >= DRM_ARRAY_SIZE(color_formats_table))
+	if (format >= ARRAY_SIZE(color_formats_table))
 		return false;
 
 	if (family < color_formats_table[format].min_family)
@@ -211,7 +211,7 @@ bool r600_fmt_is_valid_texture(u32 format, enum radeon_family family)
 
 int r600_fmt_get_blocksize(u32 format)
 {
-	if (format >= DRM_ARRAY_SIZE(color_formats_table))
+	if (format >= ARRAY_SIZE(color_formats_table))
 		return 0;
 
 	return color_formats_table[format].blocksize;
@@ -221,7 +221,7 @@ int r600_fmt_get_nblocksx(u32 format, u32 w)
 {
 	unsigned bw;
 
-	if (format >= DRM_ARRAY_SIZE(color_formats_table))
+	if (format >= ARRAY_SIZE(color_formats_table))
 		return 0;
 
 	bw = color_formats_table[format].blockwidth;
@@ -235,7 +235,7 @@ int r600_fmt_get_nblocksy(u32 format, u32 h)
 {
 	unsigned bh;
 
-	if (format >= DRM_ARRAY_SIZE(color_formats_table))
+	if (format >= ARRAY_SIZE(color_formats_table))
 		return 0;
 
 	bh = color_formats_table[format].blockheight;
@@ -1117,7 +1117,7 @@ static int r600_cs_check_reg(struct radeon_cs_parser *p, u32 reg, u32 idx)
 	int r;
 
 	i = (reg >> 7);
-	if (i >= DRM_ARRAY_SIZE(r600_reg_safe_bm)) {
+	if (i >= ARRAY_SIZE(r600_reg_safe_bm)) {
 		dev_warn(p->dev, "forbidden register 0x%08x at %d\n", reg, idx);
 		return -EINVAL;
 	}
@@ -1741,7 +1741,7 @@ static bool r600_is_safe_reg(struct radeon_cs_parser *p, u32 reg, u32 idx)
 	u32 m, i;
 
 	i = (reg >> 7);
-	if (i >= DRM_ARRAY_SIZE(r600_reg_safe_bm)) {
+	if (i >= ARRAY_SIZE(r600_reg_safe_bm)) {
 		dev_warn(p->dev, "forbidden register 0x%08x at %d\n", reg, idx);
 		return false;
 	}

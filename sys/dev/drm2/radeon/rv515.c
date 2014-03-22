@@ -540,7 +540,7 @@ int rv515_suspend(struct radeon_device *rdev)
 void rv515_set_safe_registers(struct radeon_device *rdev)
 {
 	rdev->config.r300.reg_safe_bm = rv515_reg_safe_bm;
-	rdev->config.r300.reg_safe_bm_size = DRM_ARRAY_SIZE(rv515_reg_safe_bm);
+	rdev->config.r300.reg_safe_bm_size = ARRAY_SIZE(rv515_reg_safe_bm);
 }
 
 void rv515_fini(struct radeon_device *rdev)

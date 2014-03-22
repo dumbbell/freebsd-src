@@ -1319,7 +1319,7 @@ intel_tv_get_modes(struct drm_connector *connector)
 	int j, count = 0;
 	u64 tmp;
 
-	for (j = 0; j < DRM_ARRAY_SIZE(input_res_table);
+	for (j = 0; j < ARRAY_SIZE(input_res_table);
 	     j++) {
 		const struct input_res *input = &input_res_table[j];
 		unsigned int hactive_s = input->w;
@@ -1407,7 +1407,7 @@ intel_tv_set_property(struct drm_connector *connector, struct drm_property *prop
 		intel_tv->margin[TV_MARGIN_BOTTOM] = val;
 		changed = true;
 	} else if (property == dev->mode_config.tv_mode_property) {
-		if (val >= DRM_ARRAY_SIZE(tv_modes)) {
+		if (val >= ARRAY_SIZE(tv_modes)) {
 			ret = -EINVAL;
 			goto out;
 		}
@@ -1499,7 +1499,7 @@ intel_tv_init(struct drm_device *dev)
 	struct intel_encoder *intel_encoder;
 	struct intel_connector *intel_connector;
 	u32 tv_dac_on, tv_dac_off, save_tv_dac;
-	char *tv_format_names[DRM_ARRAY_SIZE(tv_modes)];
+	char *tv_format_names[ARRAY_SIZE(tv_modes)];
 	int i, initial_mode = 0;
 
 	if ((I915_READ(TV_CTL) & TV_FUSE_STATE_MASK) == TV_FUSE_STATE_DISABLED)
@@ -1583,10 +1583,10 @@ intel_tv_init(struct drm_device *dev)
 	connector->doublescan_allowed = false;
 
 	/* Create TV properties then attach current values */
-	for (i = 0; i < DRM_ARRAY_SIZE(tv_modes); i++)
+	for (i = 0; i < ARRAY_SIZE(tv_modes); i++)
 		tv_format_names[i] = __DECONST(char *, tv_modes[i].name);
 	drm_mode_create_tv_properties(dev,
-				      DRM_ARRAY_SIZE(tv_modes),
+				      ARRAY_SIZE(tv_modes),
 				      tv_format_names);
 
 	drm_object_attach_property(&connector->base, dev->mode_config.tv_mode_property,

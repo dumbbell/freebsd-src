@@ -2909,7 +2909,7 @@ i915_gem_retire_requests_ring(struct intel_ring_buffer *ring)
 	seqno = ring->get_seqno(ring);
 	CTR2(KTR_DRM, "retire_request_ring %s %d", ring->name, seqno);
 
-	for (i = 0; i < DRM_ARRAY_SIZE(ring->sync_seqno); i++)
+	for (i = 0; i < ARRAY_SIZE(ring->sync_seqno); i++)
 		if (seqno >= ring->sync_seqno[i])
 			ring->sync_seqno[i] = 0;
 

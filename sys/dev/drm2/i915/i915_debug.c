@@ -750,7 +750,7 @@ static int i915_error_state(struct drm_device *dev, struct sbuf *m,
 				    error->pinned_bo,
 				    error->pinned_bo_count);
 
-	for (i = 0; i < DRM_ARRAY_SIZE(error->ring); i++) {
+	for (i = 0; i < ARRAY_SIZE(error->ring); i++) {
 		struct drm_i915_error_object *obj;
  
 		if ((obj = error->ring[i].batchbuffer)) {
@@ -1618,9 +1618,9 @@ i915_sysctl_init(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 	struct i915_info_sysctl_thunk *thunks;
 	int i, error;
 
-	thunks = malloc(sizeof(*thunks) * DRM_ARRAY_SIZE(i915_info_sysctl_list),
+	thunks = malloc(sizeof(*thunks) * ARRAY_SIZE(i915_info_sysctl_list),
 	    DRM_MEM_DRIVER, M_WAITOK | M_ZERO);
-	for (i = 0; i < DRM_ARRAY_SIZE(i915_info_sysctl_list); i++) {
+	for (i = 0; i < ARRAY_SIZE(i915_info_sysctl_list); i++) {
 		thunks[i].dev = dev;
 		thunks[i].idx = i;
 		thunks[i].arg = i915_info_sysctl_list[i].data;
@@ -1630,7 +1630,7 @@ i915_sysctl_init(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 	    CTLFLAG_RW, NULL, NULL);
 	if (info == NULL)
 		return (ENOMEM);
-	for (i = 0; i < DRM_ARRAY_SIZE(i915_info_sysctl_list); i++) {
+	for (i = 0; i < ARRAY_SIZE(i915_info_sysctl_list); i++) {
 		oid = SYSCTL_ADD_OID(ctx, SYSCTL_CHILDREN(info), OID_AUTO,
 		    i915_info_sysctl_list[i].name, CTLTYPE_STRING | CTLFLAG_RD,
 		    &thunks[i], 0, i915_info_sysctl_handler, "A", NULL);

@@ -2973,10 +2973,10 @@ static void r100_set_safe_registers(struct radeon_device *rdev)
 {
 	if (ASIC_IS_RN50(rdev)) {
 		rdev->config.r100.reg_safe_bm = rn50_reg_safe_bm;
-		rdev->config.r100.reg_safe_bm_size = DRM_ARRAY_SIZE(rn50_reg_safe_bm);
+		rdev->config.r100.reg_safe_bm_size = ARRAY_SIZE(rn50_reg_safe_bm);
 	} else if (rdev->family < CHIP_R200) {
 		rdev->config.r100.reg_safe_bm = r100_reg_safe_bm;
-		rdev->config.r100.reg_safe_bm_size = DRM_ARRAY_SIZE(r100_reg_safe_bm);
+		rdev->config.r100.reg_safe_bm_size = ARRAY_SIZE(r100_reg_safe_bm);
 	} else {
 		r200_set_safe_registers(rdev);
 	}

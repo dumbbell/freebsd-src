@@ -133,6 +133,6 @@ struct drm_ioctl_desc i915_compat_ioctls[] = {
 	DRM_IOCTL_DEF(DRM_I915_GETPARAM, compat_i915_getparam, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_I915_IRQ_EMIT, compat_i915_irq_emit, DRM_AUTH)
 };
-int i915_compat_ioctls_nr = DRM_ARRAY_SIZE(i915_compat_ioctls);
+int i915_compat_ioctls_nr = ARRAY_SIZE(i915_compat_ioctls);
 
 #endif

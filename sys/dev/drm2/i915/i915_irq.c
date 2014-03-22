@@ -1982,7 +1982,7 @@ i915_error_state_free(struct drm_device *dev,
 {
 	int i;
 
-	for (i = 0; i < DRM_ARRAY_SIZE(error->ring); i++) {
+	for (i = 0; i < ARRAY_SIZE(error->ring); i++) {
 		i915_error_object_free(error->ring[i].batchbuffer);
 		i915_error_object_free(error->ring[i].ringbuffer);
 		free(error->ring[i].requests, DRM_I915_GEM);

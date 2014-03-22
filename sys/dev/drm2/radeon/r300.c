@@ -1299,7 +1299,7 @@ int r300_cs_parse(struct radeon_cs_parser *p)
 void r300_set_reg_safe(struct radeon_device *rdev)
 {
 	rdev->config.r300.reg_safe_bm = r300_reg_safe_bm;
-	rdev->config.r300.reg_safe_bm_size = DRM_ARRAY_SIZE(r300_reg_safe_bm);
+	rdev->config.r300.reg_safe_bm_size = ARRAY_SIZE(r300_reg_safe_bm);
 }
 
 void r300_mc_program(struct radeon_device *rdev)

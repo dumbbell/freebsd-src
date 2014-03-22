@@ -156,11 +156,9 @@ int drm_edid_header_is_valid(const u8 *raw_edid)
 EXPORT_SYMBOL(drm_edid_header_is_valid);
 
 static int edid_fixup __read_mostly = 6;
-#ifdef FREEBSD_NOTYET
 module_param_named(edid_fixup, edid_fixup, int, 0400);
 MODULE_PARM_DESC(edid_fixup,
 		 "Minimum number of valid EDID header bytes (0-8, default 6)");
-#endif /* FREEBSD_NOTYET */
 
 /*
  * Sanity check the EDID block (base or extension).  Return 0 if the block
@@ -472,7 +470,7 @@ static u32 edid_get_quirks(struct edid *edid)
 	struct edid_quirk *quirk;
 	int i;
 
-	for (i = 0; i < DRM_ARRAY_SIZE(edid_quirk_list); i++) {
+	for (i = 0; i < ARRAY_SIZE(edid_quirk_list); i++) {
 		quirk = &edid_quirk_list[i];
 
 		if (edid_vendor(edid, quirk->vendor) &&
@@ -873,7 +871,7 @@ drm_mode_do_interlace_quirk(struct drm_display_mode *mode,
 	if (!(pt->misc & DRM_EDID_PT_INTERLACED))
 		return;
 
-	for (i = 0; i < DRM_ARRAY_SIZE(cea_interlaced); i++) {
+	for (i = 0; i < ARRAY_SIZE(cea_interlaced); i++) {
 		if ((mode->hdisplay == cea_interlaced[i].w) &&
 		    (mode->vdisplay == cea_interlaced[i].h / 2)) {
 			mode->vdisplay *= 2;
@@ -1245,7 +1243,7 @@ drm_est3_modes(struct drm_connector *connector, struct detailed_timing *timing)
 	for (i = 0; i < 6; i++) {
 		for (j = 7; j > 0; j--) {
 			m = (i * 8) + (7 - j);
-			if (m >= DRM_ARRAY_SIZE(est3_modes))
+			if (m >= ARRAY_SIZE(est3_modes))
 				break;
 			if (est[i] & (1 << j)) {
 				mode = drm_mode_find_dmt(connector->dev,

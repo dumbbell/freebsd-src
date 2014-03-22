@@ -1179,7 +1179,7 @@ static int radeon_modeset_create_props(struct radeon_device *rdev)
 	}
 
 	if (!ASIC_IS_AVIVO(rdev)) {
-		sz = DRM_ARRAY_SIZE(radeon_tmds_pll_enum_list);
+		sz = ARRAY_SIZE(radeon_tmds_pll_enum_list);
 		rdev->mode_info.tmds_pll_property =
 			drm_property_create_enum(rdev->ddev, 0,
 					    "tmds_pll",
@@ -1193,13 +1193,13 @@ static int radeon_modeset_create_props(struct radeon_device *rdev)
 
 	drm_mode_create_scaling_mode_property(rdev->ddev);
 
-	sz = DRM_ARRAY_SIZE(radeon_tv_std_enum_list);
+	sz = ARRAY_SIZE(radeon_tv_std_enum_list);
 	rdev->mode_info.tv_std_property =
 		drm_property_create_enum(rdev->ddev, 0,
 				    "tv standard",
 				    radeon_tv_std_enum_list, sz);
 
-	sz = DRM_ARRAY_SIZE(radeon_underscan_enum_list);
+	sz = ARRAY_SIZE(radeon_underscan_enum_list);
 	rdev->mode_info.underscan_property =
 		drm_property_create_enum(rdev->ddev, 0,
 				    "underscan",

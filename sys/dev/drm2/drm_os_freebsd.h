@@ -72,6 +72,8 @@ typedef uint64_t __be64;
 
 #define	KHZ2PICOS(a)	(1000000000UL/(a))
 
+#define ARRAY_SIZE(x)		(sizeof(x)/sizeof(x[0]))
+
 #define	DRM_HZ			hz
 #define	DRM_CURRENTPID		curthread->td_proc->p_pid
 #define	DRM_SUSER(p)		(priv_check(p, PRIV_DRIVER) == 0)

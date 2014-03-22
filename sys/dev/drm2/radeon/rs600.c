@@ -835,7 +835,7 @@ static void rs600_debugfs(struct radeon_device *rdev)
 void rs600_set_safe_registers(struct radeon_device *rdev)
 {
 	rdev->config.r300.reg_safe_bm = rs600_reg_safe_bm;
-	rdev->config.r300.reg_safe_bm_size = DRM_ARRAY_SIZE(rs600_reg_safe_bm);
+	rdev->config.r300.reg_safe_bm_size = ARRAY_SIZE(rs600_reg_safe_bm);
 }
 
 static void rs600_mc_program(struct radeon_device *rdev)

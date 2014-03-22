@@ -1542,7 +1542,7 @@ struct drm_driver i915_driver_info = {
 	.compat_ioctls  = i915_compat_ioctls,
 	.num_compat_ioctls = &i915_compat_ioctls_nr,
 #endif
-	.num_ioctls	= DRM_ARRAY_SIZE(i915_ioctls),
+	.num_ioctls	= ARRAY_SIZE(i915_ioctls),
 
 	.name		= DRIVER_NAME,
 	.desc		= DRIVER_DESC,
@@ -1720,7 +1720,7 @@ unsigned long i915_chipset_val(struct drm_i915_private *dev_priv)
 		diff = total_count - dev_priv->last_count1;
 	}
 
-	for (i = 0; i < DRM_ARRAY_SIZE(cparams); i++) {
+	for (i = 0; i < ARRAY_SIZE(cparams); i++) {
 		if (cparams[i].i == dev_priv->c_m &&
 		    cparams[i].t == dev_priv->r_t) {
 			m = cparams[i].m;

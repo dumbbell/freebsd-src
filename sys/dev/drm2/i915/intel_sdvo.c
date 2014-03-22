@@ -422,13 +422,13 @@ intel_sdvo_debug_write(struct intel_sdvo *intel_sdvo, u8 cmd,
 		printf("%02X ", ((const u8 *)args)[i]);
 	for (; i < 8; i++)
 		printf("   ");
-	for (i = 0; i < DRM_ARRAY_SIZE(sdvo_cmd_names); i++) {
+	for (i = 0; i < ARRAY_SIZE(sdvo_cmd_names); i++) {
 		if (cmd == sdvo_cmd_names[i].cmd) {
 			printf("(%s)", sdvo_cmd_names[i].name);
 			break;
 		}
 	}
-	if (i == DRM_ARRAY_SIZE(sdvo_cmd_names))
+	if (i == ARRAY_SIZE(sdvo_cmd_names))
 		printf("(%02X)", cmd);
 	printf("\n");
 }
@@ -1536,7 +1536,7 @@ static void intel_sdvo_get_tv_modes(struct drm_connector *connector)
 	if (!intel_sdvo_read_response(intel_sdvo, &reply, 3))
 		return;
 
-	for (i = 0; i < DRM_ARRAY_SIZE(sdvo_tv_modes); i++)
+	for (i = 0; i < ARRAY_SIZE(sdvo_tv_modes); i++)
 		if (reply & (1 << i)) {
 			struct drm_display_mode *nmode;
 			nmode = drm_mode_duplicate(connector->dev,
