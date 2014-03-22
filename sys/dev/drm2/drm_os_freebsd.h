@@ -234,6 +234,8 @@ ilog2(unsigned long x)
 
 #define	simple_strtol(a, b, c)			strtol((a), (b), (c))
 
+#define	EXPORT_SYMBOL(x)
+
 #define KIB_NOTYET()							\
 do {									\
 	if (drm_debug && drm_notyet)					\
