@@ -92,7 +92,7 @@ static int r600_do_wait_for_fifo(drm_radeon_private_t *dev_priv, int entries)
 				 & R600_CMDFIFO_AVAIL_MASK);
 		if (slots >= entries)
 			return 0;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	DRM_INFO("wait for fifo failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(R600_GRBM_STATUS),
@@ -116,7 +116,7 @@ static int r600_do_wait_for_idle(drm_radeon_private_t *dev_priv)
 	for (i = 0; i < dev_priv->usec_timeout; i++) {
 		if (!(RADEON_READ(R600_GRBM_STATUS) & R600_GUI_ACTIVE))
 			return 0;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	DRM_INFO("wait idle failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(R600_GRBM_STATUS),
@@ -225,7 +225,7 @@ static void r600_vm_flush_gart_range(struct drm_device *dev)
 	do {
 		resp = RADEON_READ(R600_VM_CONTEXT0_REQUEST_RESPONSE);
 		countdown--;
-		DRM_UDELAY(1);
+		udelay(1);
 	} while (((resp & 0xf0) == 0) && countdown);
 }
 
@@ -392,7 +392,7 @@ static void r600_cp_load_microcode(drm_radeon_private_t *dev_priv)
 
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, R600_SOFT_RESET_CP);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0);
 
 	fw_data = (const __be32 *)dev_priv->me_fw->data;
@@ -485,7 +485,7 @@ static void r700_cp_load_microcode(drm_radeon_private_t *dev_priv)
 
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, R600_SOFT_RESET_CP);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0);
 
 	fw_data = (const __be32 *)dev_priv->pfp_fw->data;
@@ -526,7 +526,7 @@ static void r600_test_writeback(drm_radeon_private_t *dev_priv)
 		val = radeon_read_ring_rptr(dev_priv, R600_SCRATCHOFF(1));
 		if (val == 0xdeadbeef)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 
 	if (tmp < dev_priv->usec_timeout) {
@@ -566,7 +566,7 @@ int r600_do_engine_reset(struct drm_device *dev)
 
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0x7fff);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
-	DRM_UDELAY(50);
+	udelay(50);
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
 
@@ -1777,7 +1777,7 @@ static void r600_cp_init_ring_buffer(struct drm_device *dev,
 
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, R600_SOFT_RESET_CP);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0);
 
 

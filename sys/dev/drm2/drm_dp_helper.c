@@ -113,17 +113,17 @@ EXPORT_SYMBOL(drm_dp_get_adjust_request_pre_emphasis);
 
 void drm_dp_link_train_clock_recovery_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE]) {
 	if (dpcd[DP_TRAINING_AUX_RD_INTERVAL] == 0)
-		DRM_UDELAY(100);
+		udelay(100);
 	else
-		DRM_MDELAY(dpcd[DP_TRAINING_AUX_RD_INTERVAL] * 4);
+		mdelay(dpcd[DP_TRAINING_AUX_RD_INTERVAL] * 4);
 }
 EXPORT_SYMBOL(drm_dp_link_train_clock_recovery_delay);
 
 void drm_dp_link_train_channel_eq_delay(u8 dpcd[DP_RECEIVER_CAP_SIZE]) {
 	if (dpcd[DP_TRAINING_AUX_RD_INTERVAL] == 0)
-		DRM_UDELAY(400);
+		udelay(400);
 	else
-		DRM_MDELAY(dpcd[DP_TRAINING_AUX_RD_INTERVAL] * 4);
+		mdelay(dpcd[DP_TRAINING_AUX_RD_INTERVAL] * 4);
 }
 EXPORT_SYMBOL(drm_dp_link_train_channel_eq_delay);
 

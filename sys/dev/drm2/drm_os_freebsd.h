@@ -77,8 +77,8 @@ typedef uint64_t __be64;
 #define	DRM_HZ			hz
 #define	DRM_CURRENTPID		curthread->td_proc->p_pid
 #define	DRM_SUSER(p)		(priv_check(p, PRIV_DRIVER) == 0)
-#define	DRM_UDELAY(udelay)	DELAY(udelay)
-#define	DRM_MDELAY(msecs)	do { int loops = (msecs);		\
+#define	udelay(usecs)		DELAY(usecs)
+#define	mdelay(msecs)		do { int loops = (msecs);		\
 				  while (loops--) DELAY(1000);		\
 				} while (0)
 #define	drm_msleep(x, msg)	pause((msg), ((int64_t)(x)) * hz / 1000)

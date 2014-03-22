@@ -460,19 +460,19 @@ static void i915_restore_modeset_reg(struct drm_device *dev)
 		I915_WRITE(dpll_a_reg, dev_priv->saveDPLL_A &
 			   ~DPLL_VCO_ENABLE);
 		POSTING_READ(dpll_a_reg);
-		DRM_UDELAY(150);
+		udelay(150);
 	}
 	I915_WRITE(fpa0_reg, dev_priv->saveFPA0);
 	I915_WRITE(fpa1_reg, dev_priv->saveFPA1);
 	/* Actually enable it */
 	I915_WRITE(dpll_a_reg, dev_priv->saveDPLL_A);
 	POSTING_READ(dpll_a_reg);
-	DRM_UDELAY(150);
+	udelay(150);
 	if (INTEL_INFO(dev)->gen >= 4 && !HAS_PCH_SPLIT(dev)) {
 		I915_WRITE(_DPLL_A_MD, dev_priv->saveDPLL_A_MD);
 		POSTING_READ(_DPLL_A_MD);
 	}
-	DRM_UDELAY(150);
+	udelay(150);
 
 	/* Restore mode */
 	I915_WRITE(_HTOTAL_A, dev_priv->saveHTOTAL_A);
@@ -529,19 +529,19 @@ static void i915_restore_modeset_reg(struct drm_device *dev)
 		I915_WRITE(dpll_b_reg, dev_priv->saveDPLL_B &
 			   ~DPLL_VCO_ENABLE);
 		POSTING_READ(dpll_b_reg);
-		DRM_UDELAY(150);
+		udelay(150);
 	}
 	I915_WRITE(fpb0_reg, dev_priv->saveFPB0);
 	I915_WRITE(fpb1_reg, dev_priv->saveFPB1);
 	/* Actually enable it */
 	I915_WRITE(dpll_b_reg, dev_priv->saveDPLL_B);
 	POSTING_READ(dpll_b_reg);
-	DRM_UDELAY(150);
+	udelay(150);
 	if (INTEL_INFO(dev)->gen >= 4 && !HAS_PCH_SPLIT(dev)) {
 		I915_WRITE(_DPLL_B_MD, dev_priv->saveDPLL_B_MD);
 		POSTING_READ(_DPLL_B_MD);
 	}
-	DRM_UDELAY(150);
+	udelay(150);
 
 	/* Restore mode */
 	I915_WRITE(_HTOTAL_B, dev_priv->saveHTOTAL_B);
@@ -792,7 +792,7 @@ static void i915_restore_display(struct drm_device *dev)
 	I915_WRITE(VGA1, dev_priv->saveVGA1);
 	I915_WRITE(VGA_PD, dev_priv->saveVGA_PD);
 	POSTING_READ(VGA_PD);
-	DRM_UDELAY(150);
+	udelay(150);
 
 	i915_restore_vga(dev);
 }

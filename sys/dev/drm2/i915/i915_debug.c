@@ -1031,7 +1031,7 @@ gen6_drpc_info(struct drm_device *dev, struct sbuf *m)
 	} else {
 		/* NB: we cannot use forcewake, else we read the wrong values */
 		while (count++ < 50 && (I915_READ_NOTRACE(FORCEWAKE_ACK) & 1))
-			DRM_UDELAY(10);
+			udelay(10);
 		sbuf_printf(m, "RC information accurate: %s\n", yesno(count < 51));
 	}
 

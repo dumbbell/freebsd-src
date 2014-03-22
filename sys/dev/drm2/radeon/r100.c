@@ -79,12 +79,12 @@ void r100_wait_for_vblank(struct radeon_device *rdev, int crtc)
 			for (i = 0; i < rdev->usec_timeout; i++) {
 				if (!(RREG32(RADEON_CRTC_STATUS) & RADEON_CRTC_VBLANK_CUR))
 					break;
-				DRM_UDELAY(1);
+				udelay(1);
 			}
 			for (i = 0; i < rdev->usec_timeout; i++) {
 				if (RREG32(RADEON_CRTC_STATUS) & RADEON_CRTC_VBLANK_CUR)
 					break;
-				DRM_UDELAY(1);
+				udelay(1);
 			}
 		}
 	} else {
@@ -92,12 +92,12 @@ void r100_wait_for_vblank(struct radeon_device *rdev, int crtc)
 			for (i = 0; i < rdev->usec_timeout; i++) {
 				if (!(RREG32(RADEON_CRTC2_STATUS) & RADEON_CRTC2_VBLANK_CUR))
 					break;
-				DRM_UDELAY(1);
+				udelay(1);
 			}
 			for (i = 0; i < rdev->usec_timeout; i++) {
 				if (RREG32(RADEON_CRTC2_STATUS) & RADEON_CRTC2_VBLANK_CUR)
 					break;
-				DRM_UDELAY(1);
+				udelay(1);
 			}
 		}
 	}
@@ -160,7 +160,7 @@ u32 r100_page_flip(struct radeon_device *rdev, int crtc_id, u64 crtc_base)
 	for (i = 0; i < rdev->usec_timeout; i++) {
 		if (RREG32(RADEON_CRTC_OFFSET + radeon_crtc->crtc_offset) & RADEON_CRTC_OFFSET__GUI_TRIG_OFFSET)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	DRM_DEBUG("Update pending now high. Unlocking vupdate_lock.\n");
 
@@ -335,7 +335,7 @@ void r100_pm_misc(struct radeon_device *rdev)
 				tmp &= ~(voltage->gpio.mask);
 			WREG32(voltage->gpio.reg, tmp);
 			if (voltage->delay)
-				DRM_UDELAY(voltage->delay);
+				udelay(voltage->delay);
 		} else {
 			tmp = RREG32(voltage->gpio.reg);
 			if (voltage->active_high)
@@ -344,7 +344,7 @@ void r100_pm_misc(struct radeon_device *rdev)
 				tmp |= voltage->gpio.mask;
 			WREG32(voltage->gpio.reg, tmp);
 			if (voltage->delay)
-				DRM_UDELAY(voltage->delay);
+				udelay(voltage->delay);
 		}
 	}
 
@@ -713,7 +713,7 @@ void r100_irq_disable(struct radeon_device *rdev)
 
 	WREG32(R_000040_GEN_INT_CNTL, 0);
 	/* Wait and acknowledge irq */
-	DRM_MDELAY(1);
+	mdelay(1);
 	tmp = RREG32(R_000044_GEN_INT_STATUS);
 	WREG32(R_000044_GEN_INT_STATUS, tmp);
 }
@@ -924,7 +924,7 @@ static int r100_cp_wait_for_idle(struct radeon_device *rdev)
 		if (!G_000E40_CP_CMDSTRM_BUSY(tmp)) {
 			return 0;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	return -1;
 }
@@ -1143,7 +1143,7 @@ int r100_cp_init(struct radeon_device *rdev, unsigned ring_size)
 	}
 
 	WREG32(RADEON_CP_RB_CNTL, tmp);
-	DRM_UDELAY(10);
+	udelay(10);
 	ring->rptr = RREG32(RADEON_CP_RB_RPTR);
 	/* Set cp mode to bus mastering & enable cp*/
 	WREG32(RADEON_CP_CSQ_MODE,
@@ -2546,7 +2546,7 @@ static int r100_rbbm_fifo_wait_for_entry(struct radeon_device *rdev, unsigned n)
 		if (tmp >= n) {
 			return 0;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	return -1;
 }
@@ -2565,7 +2565,7 @@ int r100_gui_wait_for_idle(struct radeon_device *rdev)
 		if (!(tmp & RADEON_RBBM_ACTIVE)) {
 			return 0;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	return -1;
 }
@@ -2581,7 +2581,7 @@ int r100_mc_wait_for_idle(struct radeon_device *rdev)
 		if (tmp & RADEON_MC_IDLE) {
 			return 0;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	return -1;
 }
@@ -2616,14 +2616,14 @@ void r100_bm_disable(struct radeon_device *rdev)
 	/* disable bus mastering */
 	tmp = RREG32(R_000030_BUS_CNTL);
 	WREG32(R_000030_BUS_CNTL, (tmp & 0xFFFFFFFF) | 0x00000044);
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(R_000030_BUS_CNTL, (tmp & 0xFFFFFFFF) | 0x00000042);
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(R_000030_BUS_CNTL, (tmp & 0xFFFFFFFF) | 0x00000040);
 	tmp = RREG32(RADEON_BUS_CNTL);
-	DRM_MDELAY(1);
+	mdelay(1);
 	pci_disable_busmaster(rdev->dev);
-	DRM_MDELAY(1);
+	mdelay(1);
 }
 
 int r100_asic_reset(struct radeon_device *rdev)
@@ -2655,17 +2655,17 @@ int r100_asic_reset(struct radeon_device *rdev)
 					S_0000F0_SOFT_RESET_PP(1) |
 					S_0000F0_SOFT_RESET_RB(1));
 	RREG32(R_0000F0_RBBM_SOFT_RESET);
-	DRM_MDELAY(500);
+	mdelay(500);
 	WREG32(R_0000F0_RBBM_SOFT_RESET, 0);
-	DRM_MDELAY(1);
+	mdelay(1);
 	status = RREG32(R_000E40_RBBM_STATUS);
 	dev_info(rdev->dev, "(%s:%d) RBBM_STATUS=0x%08X\n", __func__, __LINE__, status);
 	/* reset CP */
 	WREG32(R_0000F0_RBBM_SOFT_RESET, S_0000F0_SOFT_RESET_CP(1));
 	RREG32(R_0000F0_RBBM_SOFT_RESET);
-	DRM_MDELAY(500);
+	mdelay(500);
 	WREG32(R_0000F0_RBBM_SOFT_RESET, 0);
-	DRM_MDELAY(1);
+	mdelay(1);
 	status = RREG32(R_000E40_RBBM_STATUS);
 	dev_info(rdev->dev, "(%s:%d) RBBM_STATUS=0x%08X\n", __func__, __LINE__, status);
 	/* restore PCI & busmastering */
@@ -2931,7 +2931,7 @@ static void r100_pll_errata_after_data(struct radeon_device *rdev)
 	 * or the chip could hang on a subsequent access
 	 */
 	if (rdev->pll_errata & CHIP_ERRATA_PLL_DELAY) {
-		DRM_MDELAY(5);
+		mdelay(5);
 	}
 
 	/* This function is required to workaround a hardware bug in some (all?)
@@ -3722,7 +3722,7 @@ int r100_ring_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		if (tmp == 0xDEADBEEF) {
 			break;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ring test succeeded in %d usecs\n", i);
@@ -3793,7 +3793,7 @@ int r100_ib_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		if (tmp == 0xDEADBEEF) {
 			break;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ib test succeeded in %u usecs\n", i);

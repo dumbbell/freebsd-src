@@ -860,7 +860,7 @@ void r600_pcie_gart_tlb_flush(struct radeon_device *rdev)
 		if (tmp) {
 			return;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 }
 
@@ -1021,7 +1021,7 @@ int r600_mc_wait_for_idle(struct radeon_device *rdev)
 		tmp = RREG32(R_000E50_SRBM_STATUS) & 0x3F00;
 		if (!tmp)
 			return 0;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	return -1;
 }
@@ -1324,7 +1324,7 @@ static void r600_gpu_soft_reset_gfx(struct radeon_device *rdev)
 		dev_info(rdev->dev, "  R_008020_GRBM_SOFT_RESET=0x%08X\n", tmp);
 		WREG32(R_008020_GRBM_SOFT_RESET, tmp);
 		RREG32(R_008020_GRBM_SOFT_RESET);
-		DRM_MDELAY(15);
+		mdelay(15);
 		WREG32(R_008020_GRBM_SOFT_RESET, 0);
 	}
 	/* Reset CP (we always reset CP) */
@@ -1332,7 +1332,7 @@ static void r600_gpu_soft_reset_gfx(struct radeon_device *rdev)
 	dev_info(rdev->dev, "R_008020_GRBM_SOFT_RESET=0x%08X\n", tmp);
 	WREG32(R_008020_GRBM_SOFT_RESET, tmp);
 	RREG32(R_008020_GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	WREG32(R_008020_GRBM_SOFT_RESET, 0);
 
 	dev_info(rdev->dev, "  R_008010_GRBM_STATUS      = 0x%08X\n",
@@ -1373,7 +1373,7 @@ static void r600_gpu_soft_reset_dma(struct radeon_device *rdev)
 	else
 		WREG32(SRBM_SOFT_RESET, SOFT_RESET_DMA);
 	RREG32(SRBM_SOFT_RESET);
-	DRM_UDELAY(50);
+	udelay(50);
 	WREG32(SRBM_SOFT_RESET, 0);
 
 	dev_info(rdev->dev, "  R_00D034_DMA_STATUS_REG   = 0x%08X\n",
@@ -1407,7 +1407,7 @@ static int r600_gpu_soft_reset(struct radeon_device *rdev, u32 reset_mask)
 		r600_gpu_soft_reset_dma(rdev);
 
 	/* Wait a little for things to settle down */
-	DRM_MDELAY(1);
+	mdelay(1);
 
 	rv515_mc_resume(rdev, &save);
 	return 0;
@@ -2168,7 +2168,7 @@ static int r600_cp_load_microcode(struct radeon_device *rdev)
 	/* Reset cp */
 	WREG32(GRBM_SOFT_RESET, SOFT_RESET_CP);
 	RREG32(GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	WREG32(GRBM_SOFT_RESET, 0);
 
 	WREG32(CP_ME_RAM_WADDR, 0);
@@ -2231,7 +2231,7 @@ int r600_cp_resume(struct radeon_device *rdev)
 	/* Reset cp */
 	WREG32(GRBM_SOFT_RESET, SOFT_RESET_CP);
 	RREG32(GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	WREG32(GRBM_SOFT_RESET, 0);
 
 	/* Set ring buffer size */
@@ -2265,7 +2265,7 @@ int r600_cp_resume(struct radeon_device *rdev)
 		WREG32(SCRATCH_UMSK, 0);
 	}
 
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(CP_RB_CNTL, tmp);
 
 	WREG32(CP_RB_BASE, ring->gpu_addr >> 8);
@@ -2362,7 +2362,7 @@ int r600_dma_resume(struct radeon_device *rdev)
 	else
 		WREG32(SRBM_SOFT_RESET, SOFT_RESET_DMA);
 	RREG32(SRBM_SOFT_RESET);
-	DRM_UDELAY(50);
+	udelay(50);
 	WREG32(SRBM_SOFT_RESET, 0);
 
 	WREG32(DMA_SEM_INCOMPLETE_TIMER_CNTL, 0);
@@ -2480,7 +2480,7 @@ int r600_ring_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		tmp = RREG32(scratch);
 		if (tmp == 0xDEADBEEF)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ring test on %d succeeded in %d usecs\n", ring->idx, i);
@@ -2534,7 +2534,7 @@ int r600_dma_ring_test(struct radeon_device *rdev,
 		tmp = *ptr;
 		if (tmp == 0xDEADBEEF)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 
 	if (i < rdev->usec_timeout) {
@@ -3114,7 +3114,7 @@ int r600_ib_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		tmp = RREG32(scratch);
 		if (tmp == 0xDEADBEEF)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ib test on ring %d succeeded in %u usecs\n", ib.fence->ring, i);
@@ -3183,7 +3183,7 @@ int r600_dma_ib_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		tmp = *ptr;
 		if (tmp == 0xDEADBEEF)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ib test on ring %d succeeded in %u usecs\n", ib.fence->ring, i);
@@ -3320,7 +3320,7 @@ void r600_rlc_stop(struct radeon_device *rdev)
 		/* r7xx asics need to soft reset RLC before halting */
 		WREG32(SRBM_SOFT_RESET, SOFT_RESET_RLC);
 		RREG32(SRBM_SOFT_RESET);
-		DRM_MDELAY(15);
+		mdelay(15);
 		WREG32(SRBM_SOFT_RESET, 0);
 		RREG32(SRBM_SOFT_RESET);
 	}
@@ -3813,7 +3813,7 @@ void r600_irq_disable(struct radeon_device *rdev)
 {
 	r600_disable_interrupts(rdev);
 	/* Wait and acknowledge irq */
-	DRM_MDELAY(1);
+	mdelay(1);
 	r600_irq_ack(rdev);
 	r600_disable_interrupt_state(rdev);
 }

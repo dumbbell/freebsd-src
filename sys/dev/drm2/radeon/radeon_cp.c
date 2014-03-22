@@ -334,7 +334,7 @@ static int radeon_do_pixcache_flush(drm_radeon_private_t * dev_priv)
 			      & RADEON_RB3D_DC_BUSY)) {
 				return 0;
 			}
-			DRM_UDELAY(1);
+			udelay(1);
 		}
 	} else {
 		/* don't flush or purge cache here or lockup */
@@ -359,7 +359,7 @@ static int radeon_do_wait_for_fifo(drm_radeon_private_t * dev_priv, int entries)
 			     & RADEON_RBBM_FIFOCNT_MASK);
 		if (slots >= entries)
 			return 0;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	DRM_DEBUG("wait for fifo failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(RADEON_RBBM_STATUS),
@@ -388,7 +388,7 @@ static int radeon_do_wait_for_idle(drm_radeon_private_t * dev_priv)
 			radeon_do_pixcache_flush(dev_priv);
 			return 0;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	DRM_DEBUG("wait idle failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(RADEON_RBBM_STATUS),
@@ -872,7 +872,7 @@ static void radeon_test_writeback(drm_radeon_private_t * dev_priv)
 		val = radeon_read_ring_rptr(dev_priv, RADEON_SCRATCHOFF(1));
 		if (val == 0xdeadbeef)
 			break;
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 
 	if (tmp < dev_priv->usec_timeout) {
@@ -947,7 +947,7 @@ static void radeon_set_igpgart(drm_radeon_private_t * dev_priv, int on)
 			temp = IGP_READ_MCIND(dev_priv, RS480_GART_CACHE_CNTRL);
 			if ((temp & RS480_GART_CACHE_INVALIDATE) == 0)
 				break;
-			DRM_UDELAY(1);
+			udelay(1);
 		} while (1);
 
 		IGP_WRITE_MCIND(RS480_GART_CACHE_CNTRL,
@@ -957,7 +957,7 @@ static void radeon_set_igpgart(drm_radeon_private_t * dev_priv, int on)
 			temp = IGP_READ_MCIND(dev_priv, RS480_GART_CACHE_CNTRL);
 			if ((temp & RS480_GART_CACHE_INVALIDATE) == 0)
 				break;
-			DRM_UDELAY(1);
+			udelay(1);
 		} while (1);
 
 		IGP_WRITE_MCIND(RS480_GART_CACHE_CNTRL, 0);
@@ -1943,7 +1943,7 @@ struct drm_buf *radeon_freelist_get(struct drm_device * dev)
 		}
 
 		if (t) {
-			DRM_UDELAY(1);
+			udelay(1);
 			dev_priv->stats.freelist_loops++;
 		}
 	}
@@ -1990,7 +1990,7 @@ int radeon_wait_ring(drm_radeon_private_t * dev_priv, int n)
 			i = 0;
 		last_head = head;
 
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 
 	/* FIXME: This return value is ignored in the BEGIN_RING macro! */

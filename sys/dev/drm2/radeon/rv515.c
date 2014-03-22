@@ -139,7 +139,7 @@ int rv515_mc_wait_for_idle(struct radeon_device *rdev)
 		if (tmp & MC_STATUS_IDLE) {
 			return 0;
 		}
-		DRM_UDELAY(1);
+		udelay(1);
 	}
 	return -1;
 }
@@ -312,7 +312,7 @@ void rv515_mc_stop(struct radeon_device *rdev, struct rv515_mc_save *save)
 			for (j = 0; j < rdev->usec_timeout; j++) {
 				if (radeon_get_vblank_counter(rdev, i) != frame_count)
 					break;
-				DRM_UDELAY(1);
+				udelay(1);
 			}
 		} else {
 			save->crtc_enabled[i] = false;
@@ -338,7 +338,7 @@ void rv515_mc_stop(struct radeon_device *rdev, struct rv515_mc_save *save)
 		}
 	}
 	/* wait for the MC to settle */
-	DRM_UDELAY(100);
+	udelay(100);
 }
 
 void rv515_mc_resume(struct radeon_device *rdev, struct rv515_mc_save *save)
@@ -393,13 +393,13 @@ void rv515_mc_resume(struct radeon_device *rdev, struct rv515_mc_save *save)
 			for (j = 0; j < rdev->usec_timeout; j++) {
 				if (radeon_get_vblank_counter(rdev, i) != frame_count)
 					break;
-				DRM_UDELAY(1);
+				udelay(1);
 			}
 		}
 	}
 	/* Unlock vga access */
 	WREG32(R_000328_VGA_HDP_CONTROL, save->vga_hdp_control);
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(R_000300_VGA_RENDER_CONTROL, save->vga_render_control);
 }
 

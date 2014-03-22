@@ -291,7 +291,7 @@ void radeon_test_ring_sync(struct radeon_device *rdev,
 	}
 	radeon_ring_unlock_commit(rdev, ringA);
 
-	DRM_MDELAY(1000);
+	mdelay(1000);
 
 	if (radeon_fence_signaled(fence1)) {
 		DRM_ERROR("Fence 1 signaled without waiting for semaphore.\n");
@@ -312,7 +312,7 @@ void radeon_test_ring_sync(struct radeon_device *rdev,
 		goto out_cleanup;
 	}
 
-	DRM_MDELAY(1000);
+	mdelay(1000);
 
 	if (radeon_fence_signaled(fence2)) {
 		DRM_ERROR("Fence 2 signaled without waiting for semaphore.\n");
@@ -390,7 +390,7 @@ static void radeon_test_ring_sync2(struct radeon_device *rdev,
 	}
 	radeon_ring_unlock_commit(rdev, ringB);
 
-	DRM_MDELAY(1000);
+	mdelay(1000);
 
 	if (radeon_fence_signaled(fenceA)) {
 		DRM_ERROR("Fence A signaled without waiting for semaphore.\n");
@@ -410,7 +410,7 @@ static void radeon_test_ring_sync2(struct radeon_device *rdev,
 	radeon_ring_unlock_commit(rdev, ringC);
 
 	for (i = 0; i < 30; ++i) {
-		DRM_MDELAY(100);
+		mdelay(100);
 		sigA = radeon_fence_signaled(fenceA);
 		sigB = radeon_fence_signaled(fenceB);
 		if (sigA || sigB)
@@ -435,7 +435,7 @@ static void radeon_test_ring_sync2(struct radeon_device *rdev,
 	radeon_semaphore_emit_signal(rdev, ringC->idx, semaphore);
 	radeon_ring_unlock_commit(rdev, ringC);
 
-	DRM_MDELAY(1000);
+	mdelay(1000);
 
 	r = radeon_fence_wait(fenceA, false);
 	if (r) {

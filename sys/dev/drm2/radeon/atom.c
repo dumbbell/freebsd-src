@@ -661,9 +661,9 @@ static void atom_op_delay(atom_exec_context *ctx, int *ptr, int arg)
 	unsigned count = U8((*ptr)++);
 	ATOM_SDEBUG_PRINT("   count: %d\n", count);
 	if (arg == ATOM_UNIT_MICROSEC)
-		DRM_UDELAY(count);
+		udelay(count);
 	else if (!drm_can_sleep())
-		DRM_MDELAY(count);
+		mdelay(count);
 	else
 		DRM_MSLEEP(count);
 }

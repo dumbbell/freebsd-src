@@ -238,12 +238,12 @@ static int si_mc_load_microcode(struct radeon_device *rdev)
 		for (i = 0; i < rdev->usec_timeout; i++) {
 			if (RREG32(MC_SEQ_TRAIN_WAKEUP_CNTL) & TRAIN_DONE_D0)
 				break;
-			DRM_UDELAY(1);
+			udelay(1);
 		}
 		for (i = 0; i < rdev->usec_timeout; i++) {
 			if (RREG32(MC_SEQ_TRAIN_WAKEUP_CNTL) & TRAIN_DONE_D1)
 				break;
-			DRM_UDELAY(1);
+			udelay(1);
 		}
 
 		if (running)
@@ -1747,7 +1747,7 @@ static void si_gpu_init(struct radeon_device *rdev)
 
 	WREG32(PA_CL_ENHANCE, CLIP_VTX_REORDER_ENA | NUM_CLIP_SEQ(3));
 
-	DRM_UDELAY(50);
+	udelay(50);
 }
 
 /*
@@ -1867,7 +1867,7 @@ static void si_cp_enable(struct radeon_device *rdev, bool enable)
 		rdev->ring[CAYMAN_RING_TYPE_CP1_INDEX].ready = false;
 		rdev->ring[CAYMAN_RING_TYPE_CP2_INDEX].ready = false;
 	}
-	DRM_UDELAY(50);
+	udelay(50);
 }
 
 static int si_cp_load_microcode(struct radeon_device *rdev)
@@ -2009,7 +2009,7 @@ static int si_cp_resume(struct radeon_device *rdev)
 				 SOFT_RESET_SPI |
 				 SOFT_RESET_SX));
 	RREG32(GRBM_SOFT_RESET);
-	DRM_MDELAY(15);
+	mdelay(15);
 	WREG32(GRBM_SOFT_RESET, 0);
 	RREG32(GRBM_SOFT_RESET);
 
@@ -2048,7 +2048,7 @@ static int si_cp_resume(struct radeon_device *rdev)
 		WREG32(SCRATCH_UMSK, 0);
 	}
 
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(CP_RB0_CNTL, tmp);
 
 	WREG32(CP_RB0_BASE, ring->gpu_addr >> 8);
@@ -2074,7 +2074,7 @@ static int si_cp_resume(struct radeon_device *rdev)
 	WREG32(CP_RB1_RPTR_ADDR, (rdev->wb.gpu_addr + RADEON_WB_CP1_RPTR_OFFSET) & 0xFFFFFFFC);
 	WREG32(CP_RB1_RPTR_ADDR_HI, upper_32_bits(rdev->wb.gpu_addr + RADEON_WB_CP1_RPTR_OFFSET) & 0xFF);
 
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(CP_RB1_CNTL, tmp);
 
 	WREG32(CP_RB1_BASE, ring->gpu_addr >> 8);
@@ -2100,7 +2100,7 @@ static int si_cp_resume(struct radeon_device *rdev)
 	WREG32(CP_RB2_RPTR_ADDR, (rdev->wb.gpu_addr + RADEON_WB_CP2_RPTR_OFFSET) & 0xFFFFFFFC);
 	WREG32(CP_RB2_RPTR_ADDR_HI, upper_32_bits(rdev->wb.gpu_addr + RADEON_WB_CP2_RPTR_OFFSET) & 0xFF);
 
-	DRM_MDELAY(1);
+	mdelay(1);
 	WREG32(CP_RB2_CNTL, tmp);
 
 	WREG32(CP_RB2_BASE, ring->gpu_addr >> 8);
@@ -2190,7 +2190,7 @@ static void si_gpu_soft_reset_gfx(struct radeon_device *rdev)
 	dev_info(rdev->dev, "  GRBM_SOFT_RESET=0x%08X\n", grbm_reset);
 	WREG32(GRBM_SOFT_RESET, grbm_reset);
 	(void)RREG32(GRBM_SOFT_RESET);
-	DRM_UDELAY(50);
+	udelay(50);
 	WREG32(GRBM_SOFT_RESET, 0);
 	(void)RREG32(GRBM_SOFT_RESET);
 
@@ -2229,7 +2229,7 @@ static void si_gpu_soft_reset_dma(struct radeon_device *rdev)
 	/* Reset dma */
 	WREG32(SRBM_SOFT_RESET, SOFT_RESET_DMA | SOFT_RESET_DMA1);
 	RREG32(SRBM_SOFT_RESET);
-	DRM_UDELAY(50);
+	udelay(50);
 	WREG32(SRBM_SOFT_RESET, 0);
 
 	dev_info(rdev->dev, "  DMA_STATUS_REG   = 0x%08X\n",
@@ -2268,7 +2268,7 @@ static int si_gpu_soft_reset(struct radeon_device *rdev, u32 reset_mask)
 		si_gpu_soft_reset_dma(rdev);
 
 	/* Wait a little for things to settle down */
-	DRM_UDELAY(50);
+	udelay(50);
 
 	evergreen_mc_resume(rdev, &save);
 	return 0;
@@ -3645,7 +3645,7 @@ static void si_irq_disable(struct radeon_device *rdev)
 {
 	si_disable_interrupts(rdev);
 	/* Wait and acknowledge irq */
-	DRM_MDELAY(1);
+	mdelay(1);
 	si_irq_ack(rdev);
 	si_disable_interrupt_state(rdev);
 }
