@@ -211,6 +211,7 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 {
 	struct drm_local_map *map;
 	struct drm_map_list *list;
+	drm_dma_handle_t *dmah;
 	unsigned long user_token;
 	int ret;
 	int align;
@@ -252,6 +253,13 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 	switch (map->type) {
 	case _DRM_REGISTERS:
 	case _DRM_FRAME_BUFFER:
+#if !defined(__sparc__) && !defined(__alpha__) && !defined(__ia64__) && !defined(__powerpc64__) && !defined(__x86_64__) && !defined(__arm__) && defined(__linux__)
+		if (map->offset + (map->size-1) < map->offset ||
+		    map->offset < virt_to_phys(high_memory)) {
+			kfree(map);
+			return -EINVAL;
+		}
+#endif
 		/* Some drivers preinitialize some maps, without the X Server
 		 * needing to be aware of it.  Therefore, we just return success
 		 * when the server tries to create a duplicate map.
@@ -322,7 +330,7 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 		}
 		break;
 	case _DRM_AGP: {
-#if 0
+#if defined(__linux__)
 		struct drm_agp_mem *entry;
 		int valid = 0;
 #endif
@@ -331,6 +339,9 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 			free(map, DRM_MEM_MAPS);
 			return -EINVAL;
 		}
+#if defined(__alpha__) && defined(__linux__)
+		map->offset += dev->hose->mem_space->start;
+#endif
 		/* In some cases (i810 driver), user space may have already
 		 * added the AGP base itself, because dev->agp->base previously
 		 * only got set during AGP enable.  So, only add the base
@@ -344,7 +355,7 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 		}
 		map->mtrr = dev->agp->agp_mtrr;	/* for getmap */
 
-#if 0
+#if defined(__linux__)
 		/* This assumes the DRM is in total control of AGP space.
 		 * It's not always the case as AGP can be in the control
 		 * of user space (i.e. i810 driver). So this loop will get
@@ -359,7 +370,7 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 			}
 		}
 		if (!list_empty(&dev->agp->memory) && !valid) {
-			free(map, DRM_MEM_MAPS);
+			kfree(map);
 			return -EPERM;
 		}
 #endif
@@ -387,13 +398,14 @@ static int drm_addmap_core(struct drm_device * dev, resource_size_t offset,
 		align = map->size;
 		if ((align & (align - 1)) != 0)
 			align = PAGE_SIZE;
-		map->dmah = drm_pci_alloc(dev, map->size, align, 0xfffffffful);
-		if (!map->dmah) {
+		dmah = drm_pci_alloc(dev, map->size, align, 0xfffffffful);
+		if (!dmah) {
 			free(map, DRM_MEM_MAPS);
 			return -ENOMEM;
 		}
-		map->handle = map->dmah->vaddr;
-		map->offset = map->dmah->busaddr;
+		map->handle = dmah->vaddr;
+		map->offset = dmah->busaddr;
+		map->dmah = dmah;
 		break;
 	default:
 		free(map, DRM_MEM_MAPS);
@@ -448,6 +460,8 @@ int drm_addmap(struct drm_device * dev, resource_size_t offset,
 		*map_ptr = list->map;
 	return rc;
 }
+
+EXPORT_SYMBOL(drm_addmap);
 
 /**
  * Ioctl to specify a range of memory that is available for mapping by a
@@ -549,6 +563,7 @@ int drm_rmmap_locked(struct drm_device *dev, struct drm_local_map *map)
 
 	return 0;
 }
+EXPORT_SYMBOL(drm_rmmap_locked);
 
 int drm_rmmap(struct drm_device *dev, struct drm_local_map *map)
 {
@@ -560,6 +575,7 @@ int drm_rmmap(struct drm_device *dev, struct drm_local_map *map)
 
 	return ret;
 }
+EXPORT_SYMBOL(drm_rmmap);
 
 /* The rmmap ioctl appears to be unnecessary.  All mappings are torn down on
  * the last close of the device, and this is necessary for cleanup when things
@@ -665,7 +681,10 @@ int drm_addbufs_agp(struct drm_device * dev, struct drm_buf_desc * request)
 {
 	struct drm_device_dma *dma = dev->dma;
 	struct drm_buf_entry *entry;
-	/*struct drm_agp_mem *agp_entry;*/
+#if defined(__linux__)
+	struct drm_agp_mem *agp_entry;
+	int valid;
+#endif
 	struct drm_buf *buf;
 	unsigned long offset;
 	unsigned long agp_offset;
@@ -676,7 +695,7 @@ int drm_addbufs_agp(struct drm_device * dev, struct drm_buf_desc * request)
 	int page_order;
 	int total;
 	int byte_count;
-	int i/*, valid*/;
+	int i;
 	struct drm_buf **temp_buflist;
 
 	if (!dma)
@@ -705,7 +724,7 @@ int drm_addbufs_agp(struct drm_device * dev, struct drm_buf_desc * request)
 	if (order < DRM_MIN_ORDER || order > DRM_MAX_ORDER)
 		return -EINVAL;
 
-#if 0
+#if defined(__linux__)
 	/* Make sure buffers are located in AGP memory that we own */
 	valid = 0;
 	list_for_each_entry(agp_entry, &dev->agp->memory, head) {
@@ -825,6 +844,7 @@ int drm_addbufs_agp(struct drm_device * dev, struct drm_buf_desc * request)
 	atomic_dec(&dev->buf_alloc);
 	return 0;
 }
+EXPORT_SYMBOL(drm_addbufs_agp);
 #endif				/* __OS_HAS_AGP */
 
 int drm_addbufs_pci(struct drm_device * dev, struct drm_buf_desc * request)
@@ -1032,6 +1052,7 @@ int drm_addbufs_pci(struct drm_device * dev, struct drm_buf_desc * request)
 	return 0;
 
 }
+EXPORT_SYMBOL(drm_addbufs_pci);
 
 static int drm_addbufs_sg(struct drm_device * dev, struct drm_buf_desc * request)
 {
@@ -1685,3 +1706,4 @@ int drm_order(unsigned long size)
 
 	return order;
 }
+EXPORT_SYMBOL(drm_order);
