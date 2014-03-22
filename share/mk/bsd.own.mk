@@ -251,7 +251,6 @@ __DEFAULT_YES_OPTIONS = \
     ARM_EABI \
     ASSERT_DEBUG \
     AT \
-    ATF \
     ATM \
     AUDIT \
     AUTHPF \
@@ -264,6 +263,7 @@ __DEFAULT_YES_OPTIONS = \
     BZIP2 \
     CALENDAR \
     CAPSICUM \
+    CASPER \
     CDDL \
     CPP \
     CROSS_COMPILER \
@@ -271,10 +271,12 @@ __DEFAULT_YES_OPTIONS = \
     CTM \
     CXX \
     DICT \
+    DMAGENT \
     DYNAMICROOT \
     ED_CRYPTO \
     EXAMPLES \
     FLOPPY \
+    FMTREE \
     FORMAT_EXTENSIONS \
     FORTH \
     FP_LIBC \
@@ -285,6 +287,7 @@ __DEFAULT_YES_OPTIONS = \
     GNU \
     GPIB \
     GPIO \
+    GPL_DTC \
     GROFF \
     HTML \
     ICONV \
@@ -294,7 +297,6 @@ __DEFAULT_YES_OPTIONS = \
     INSTALLLIB \
     IPFILTER \
     IPFW \
-    IPX \
     JAIL \
     KDUMP \
     KERBEROS \
@@ -314,13 +316,13 @@ __DEFAULT_YES_OPTIONS = \
     MAILWRAPPER \
     MAKE \
     MAN \
+    NCURSESW \
     NDIS \
     NETCAT \
     NETGRAPH \
     NIS \
     NLS \
     NLS_CATALOGS \
-    NMTREE \
     NS_CACHING \
     NTP \
     OPENSSH \
@@ -366,14 +368,12 @@ __DEFAULT_NO_OPTIONS = \
     CLANG_EXTRAS \
     CTF \
     DEBUG_FILES \
-    GPL_DTC \
     HESIOD \
     INSTALL_AS_USER \
     LLDB \
     NAND \
     OFED \
     OPENSSH_NONE_CIPHER \
-    PKGTOOLS \
     SHARED_TOOLCHAIN \
     SVN \
     TESTS \
@@ -418,15 +418,6 @@ __DEFAULT_NO_OPTIONS+=GNUCXX
 __DEFAULT_YES_OPTIONS+=GCC
 .else
 __DEFAULT_NO_OPTIONS+=GCC GNUCXX
-.endif
-# The libc++ headers use c++11 extensions.  These are normally silenced because
-# they are treated as system headers, but we explicitly disable that warning
-# suppression when building the base system to catch bugs in our headers.
-# Eventually we'll want to start building the base system C++ code as C++11,
-# but not yet.
-_COMPVERSION!= ${CC} --version
-.if ${_COMPVERSION:Mclang}
-CXXFLAGS+=	-Wno-c++11-extensions
 .endif
 .else
 # If clang is not cc, then build gcc by default
@@ -520,6 +511,7 @@ MK_GROFF:=	no
 .if ${MK_MAIL} == "no"
 MK_MAILWRAPPER:= no
 MK_SENDMAIL:=	no
+MK_DMAGENT:=	no
 .endif
 
 .if ${MK_NETGRAPH} == "no"
@@ -552,10 +544,6 @@ MK_CLANG_EXTRAS:= no
 MK_CLANG_FULL:= no
 .endif
 
-.if ${MK_CLANG_IS_CC} == "no"
-MK_LLDB:= no
-.endif
-
 .if defined(NO_TESTS)
 # This should be handled above along the handling of all other NO_*  options.
 # However, the above is broken when WITH_*=yes are passed to make(1) as
@@ -583,7 +571,6 @@ MK_TESTS:= no
     GNU \
     INET \
     INET6 \
-    IPX \
     KERBEROS \
     KVM \
     NETGRAPH \
@@ -649,6 +636,10 @@ MK_${var}:=	no
 .endif
 .endif
 .endfor
+
+.if !${COMPILER_FEATURES:Mc++11}
+MK_LLDB:=	no
+.endif
 
 .if ${MK_CTF} != "no"
 CTFCONVERT_CMD=	${CTFCONVERT} ${CTFFLAGS} ${.TARGET}

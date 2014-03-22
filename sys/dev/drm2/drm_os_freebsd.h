@@ -9,6 +9,8 @@ __FBSDID("$FreeBSD$");
 #ifndef _DRM_OS_FREEBSD_H_
 #define	_DRM_OS_FREEBSD_H_
 
+#include <sys/fbio.h>
+
 #if _BYTE_ORDER == _BIG_ENDIAN
 #define	__BIG_ENDIAN 4321
 #else

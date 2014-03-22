@@ -46,7 +46,6 @@
 __FBSDID("$FreeBSD$");
 
 #include "opt_ddb.h"
-#include "opt_kdtrace.h"
 #include "opt_vm.h"
 
 #include <sys/param.h>
@@ -684,7 +683,9 @@ kmem_reclaim(vmem_t *vm, int flags)
 	pagedaemon_wakeup();
 }
 
+#ifndef __sparc64__
 CTASSERT(VM_KMEM_SIZE_SCALE >= 1);
+#endif
 
 /*
  * Initialize the kernel memory (kmem) arena.
@@ -710,7 +711,7 @@ kmeminit(void)
 	 * VM_KMEM_SIZE_MAX is itself a function of the available KVA space on
 	 * a given architecture.
 	 */
-	mem_size = cnt.v_page_count;
+	mem_size = vm_cnt.v_page_count;
 
 	vm_kmem_size_scale = VM_KMEM_SIZE_SCALE;
 	TUNABLE_INT_FETCH("vm.kmem_size_scale", &vm_kmem_size_scale);
@@ -818,7 +819,7 @@ malloc_init(void *data)
 	struct malloc_type_internal *mtip;
 	struct malloc_type *mtp;
 
-	KASSERT(cnt.v_page_count != 0, ("malloc_register before vm_init"));
+	KASSERT(vm_cnt.v_page_count != 0, ("malloc_register before vm_init"));
 
 	mtp = data;
 	if (mtp->ks_magic != M_MAGIC)
