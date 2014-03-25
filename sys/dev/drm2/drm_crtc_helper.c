@@ -1104,7 +1104,6 @@ void drm_helper_hpd_irq_event(struct drm_device *dev)
 }
 EXPORT_SYMBOL(drm_helper_hpd_irq_event);
 
-#ifdef FREEBSD_WIP
 bool
 drm_fetch_cmdline_mode_from_kenv(struct drm_connector *connector,
     struct drm_cmdline_mode *cmdline_mode)
@@ -1127,4 +1126,3 @@ drm_fetch_cmdline_mode_from_kenv(struct drm_connector *connector,
 	free(tun_var_name, M_TEMP);
 	return (res);
 }
-#endif /* FREEBSD_WIP */
