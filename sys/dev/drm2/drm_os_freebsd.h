@@ -79,6 +79,7 @@ typedef void			irqreturn_t;
 
 #define ARRAY_SIZE(x)		(sizeof(x)/sizeof(x[0]))
 
+#define	HZ			hz
 #define	DRM_HZ			hz
 #define	DRM_CURRENTPID		curthread->td_proc->p_pid
 #define	DRM_SUSER(p)		(priv_check(p, PRIV_DRIVER) == 0)

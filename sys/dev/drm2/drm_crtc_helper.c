@@ -152,10 +152,12 @@ int drm_helper_probe_single_connector_modes(struct drm_connector *connector,
 		goto prune;
 	}
 
+#ifdef FREEBSD_WIP
 #ifdef CONFIG_DRM_LOAD_EDID_FIRMWARE
 	count = drm_load_edid_firmware(connector);
 	if (count == 0)
 #endif
+#endif /* FREEBSD_WIP */
 		count = (*connector_funcs->get_modes)(connector);
 
 	if (count == 0 && connector->status == connector_status_connected)
@@ -319,7 +321,8 @@ static bool drm_encoder_crtc_ok(struct drm_encoder *encoder,
 	struct drm_crtc *tmp;
 	int crtc_mask = 1;
 
-	WARN(!crtc, "checking null crtc?\n");
+	if (crtc == NULL)
+		printf("checking null crtc?\n");
 
 	dev = crtc->dev;
 
@@ -589,23 +592,23 @@ int drm_crtc_helper_set_config(struct drm_mode_set *set)
 
 	/* Allocate space for the backup of all (non-pointer) crtc, encoder and
 	 * connector data. */
-	save_crtcs = kzalloc(dev->mode_config.num_crtc *
-			     sizeof(struct drm_crtc), GFP_KERNEL);
+	save_crtcs = malloc(dev->mode_config.num_crtc *
+			     sizeof(struct drm_crtc), DRM_MEM_KMS, M_NOWAIT | M_ZERO);
 	if (!save_crtcs)
 		return -ENOMEM;
 
-	save_encoders = kzalloc(dev->mode_config.num_encoder *
-				sizeof(struct drm_encoder), GFP_KERNEL);
+	save_encoders = malloc(dev->mode_config.num_encoder *
+				sizeof(struct drm_encoder), DRM_MEM_KMS, M_NOWAIT | M_ZERO);
 	if (!save_encoders) {
-		kfree(save_crtcs);
+		free(save_crtcs, DRM_MEM_KMS);
 		return -ENOMEM;
 	}
 
-	save_connectors = kzalloc(dev->mode_config.num_connector *
-				sizeof(struct drm_connector), GFP_KERNEL);
+	save_connectors = malloc(dev->mode_config.num_connector *
+				sizeof(struct drm_connector), DRM_MEM_KMS, M_NOWAIT | M_ZERO);
 	if (!save_connectors) {
-		kfree(save_crtcs);
-		kfree(save_encoders);
+		free(save_crtcs, DRM_MEM_KMS);
+		free(save_encoders, DRM_MEM_KMS);
 		return -ENOMEM;
 	}
 
@@ -777,9 +780,9 @@ int drm_crtc_helper_set_config(struct drm_mode_set *set)
 		}
 	}
 
-	kfree(save_connectors);
-	kfree(save_encoders);
-	kfree(save_crtcs);
+	free(save_connectors, DRM_MEM_KMS);
+	free(save_encoders, DRM_MEM_KMS);
+	free(save_crtcs, DRM_MEM_KMS);
 	return 0;
 
 fail:
@@ -805,9 +808,9 @@ fail:
 				      save_set.y, save_set.fb))
 		DRM_ERROR("failed to restore config after modeset failure\n");
 
-	kfree(save_connectors);
-	kfree(save_encoders);
-	kfree(save_crtcs);
+	free(save_connectors, DRM_MEM_KMS);
+	free(save_encoders, DRM_MEM_KMS);
+	free(save_crtcs, DRM_MEM_KMS);
 	return ret;
 }
 EXPORT_SYMBOL(drm_crtc_helper_set_config);
@@ -962,17 +965,18 @@ EXPORT_SYMBOL(drm_helper_resume_force_mode);
 void drm_kms_helper_hotplug_event(struct drm_device *dev)
 {
 	/* send a uevent + call fbdev */
+#ifdef FREEBSD_WIP
 	drm_sysfs_hotplug_event(dev);
+#endif /* FREEBSD_WIP */
 	if (dev->mode_config.funcs->output_poll_changed)
 		dev->mode_config.funcs->output_poll_changed(dev);
 }
 EXPORT_SYMBOL(drm_kms_helper_hotplug_event);
 
 #define DRM_OUTPUT_POLL_PERIOD (10*HZ)
-static void output_poll_execute(struct work_struct *work)
+static void output_poll_execute(void *ctx, int pending)
 {
-	struct delayed_work *delayed_work = to_delayed_work(work);
-	struct drm_device *dev = container_of(delayed_work, struct drm_device, mode_config.output_poll_work);
+	struct drm_device *dev = ctx;
 	struct drm_connector *connector;
 	enum drm_connector_status old_status;
 	bool repoll = false, changed = false;
@@ -980,7 +984,7 @@ static void output_poll_execute(struct work_struct *work)
 	if (!drm_kms_helper_poll)
 		return;
 
-	mutex_lock(&dev->mode_config.mutex);
+	sx_xlock(&dev->mode_config.mutex);
 	list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
 
 		/* Ignore forced connectors. */
@@ -1010,20 +1014,23 @@ static void output_poll_execute(struct work_struct *work)
 			changed = true;
 	}
 
-	mutex_unlock(&dev->mode_config.mutex);
+	sx_xunlock(&dev->mode_config.mutex);
 
 	if (changed)
 		drm_kms_helper_hotplug_event(dev);
 
 	if (repoll)
-		schedule_delayed_work(delayed_work, DRM_OUTPUT_POLL_PERIOD);
+		taskqueue_enqueue_timeout(taskqueue_thread,
+		    &dev->mode_config.output_poll_work,
+		    DRM_OUTPUT_POLL_PERIOD);
 }
 
 void drm_kms_helper_poll_disable(struct drm_device *dev)
 {
 	if (!dev->mode_config.poll_enabled)
 		return;
-	cancel_delayed_work_sync(&dev->mode_config.output_poll_work);
+	taskqueue_cancel_timeout(taskqueue_thread,
+	    &dev->mode_config.output_poll_work, NULL);
 }
 EXPORT_SYMBOL(drm_kms_helper_poll_disable);
 
@@ -1042,13 +1049,15 @@ void drm_kms_helper_poll_enable(struct drm_device *dev)
 	}
 
 	if (poll)
-		schedule_delayed_work(&dev->mode_config.output_poll_work, DRM_OUTPUT_POLL_PERIOD);
+		taskqueue_enqueue_timeout(taskqueue_thread,
+		    &dev->mode_config.output_poll_work, DRM_OUTPUT_POLL_PERIOD);
 }
 EXPORT_SYMBOL(drm_kms_helper_poll_enable);
 
 void drm_kms_helper_poll_init(struct drm_device *dev)
 {
-	INIT_DELAYED_WORK(&dev->mode_config.output_poll_work, output_poll_execute);
+	TIMEOUT_TASK_INIT(taskqueue_thread, &dev->mode_config.output_poll_work,
+	    0, output_poll_execute, dev);
 	dev->mode_config.poll_enabled = true;
 
 	drm_kms_helper_poll_enable(dev);
@@ -1070,7 +1079,7 @@ void drm_helper_hpd_irq_event(struct drm_device *dev)
 	if (!dev->mode_config.poll_enabled)
 		return;
 
-	mutex_lock(&dev->mode_config.mutex);
+	sx_xlock(&dev->mode_config.mutex);
 	list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
 
 		/* Only handle HPD capable connectors. */
@@ -1088,13 +1097,14 @@ void drm_helper_hpd_irq_event(struct drm_device *dev)
 			changed = true;
 	}
 
-	mutex_unlock(&dev->mode_config.mutex);
+	sx_xunlock(&dev->mode_config.mutex);
 
 	if (changed)
 		drm_kms_helper_hotplug_event(dev);
 }
 EXPORT_SYMBOL(drm_helper_hpd_irq_event);
 
+#ifdef FREEBSD_WIP
 bool
 drm_fetch_cmdline_mode_from_kenv(struct drm_connector *connector,
     struct drm_cmdline_mode *cmdline_mode)
@@ -1117,3 +1127,4 @@ drm_fetch_cmdline_mode_from_kenv(struct drm_connector *connector,
 	free(tun_var_name, M_TEMP);
 	return (res);
 }
+#endif /* FREEBSD_WIP */
