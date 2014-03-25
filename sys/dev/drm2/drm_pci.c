@@ -61,7 +61,7 @@ drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error
  */
 drm_dma_handle_t *
 drm_pci_alloc(struct drm_device *dev, size_t size,
-	      size_t align, dma_addr_t maxaddr)
+	      size_t align)
 {
 	drm_dma_handle_t *dmah;
 	int ret;
@@ -83,7 +83,7 @@ drm_pci_alloc(struct drm_device *dev, size_t size,
 	    DRM_ERROR("called while holding dma_lock\n");
 
 	ret = bus_dma_tag_create(NULL, align, 0, /* tag, align, boundary */
-	    maxaddr, BUS_SPACE_MAXADDR, /* lowaddr, highaddr */
+	    ~0, BUS_SPACE_MAXADDR, /* lowaddr, highaddr */
 	    NULL, NULL, /* filtfunc, filtfuncargs */
 	    size, 1, size, /* maxsize, nsegs, maxsegsize */
 	    0, NULL, NULL, /* flags, lockfunc, lockfuncargs */
@@ -237,8 +237,8 @@ err:
 int drm_pci_agp_init(struct drm_device *dev)
 {
 	if (drm_core_has_AGP(dev)) {
-		if (drm_device_is_agp(dev))
-			dev->agp = drm_agp_init();
+		if (drm_pci_device_is_agp(dev))
+			dev->agp = drm_agp_init(dev);
 		if (drm_core_check_feature(dev, DRIVER_REQUIRE_AGP)
 		    && (dev->agp == NULL)) {
 			DRM_ERROR("Cannot initialize the agpgart module.\n");
@@ -376,7 +376,7 @@ drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 	u32 lnkcap = 0, lnkcap2 = 0;
 
 	*mask = 0;
-	if (!drm_device_is_pcie(dev))
+	if (!drm_pci_device_is_pcie(dev))
 		return -EINVAL;
 
 	root =

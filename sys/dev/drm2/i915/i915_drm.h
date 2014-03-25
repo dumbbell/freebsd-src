@@ -222,7 +222,6 @@ typedef struct drm_i915_sarea {
 #define DRM_IOCTL_I915_GET_VBLANK_PIPE	DRM_IOR( DRM_COMMAND_BASE + DRM_I915_GET_VBLANK_PIPE, drm_i915_vblank_pipe_t)
 #define DRM_IOCTL_I915_VBLANK_SWAP	DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_VBLANK_SWAP, drm_i915_vblank_swap_t)
 #define DRM_IOCTL_I915_MMIO             DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_MMIO, drm_i915_mmio)
-#define DRM_IOCTL_I915_EXECBUFFER	DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_EXECBUFFER, struct drm_i915_execbuffer)
 #define DRM_IOCTL_I915_GEM_INIT		DRM_IOW(DRM_COMMAND_BASE + DRM_I915_GEM_INIT, struct drm_i915_gem_init)
 #define DRM_IOCTL_I915_GEM_EXECBUFFER	DRM_IOW(DRM_COMMAND_BASE + DRM_I915_GEM_EXECBUFFER, struct drm_i915_gem_execbuffer)
 #define DRM_IOCTL_I915_GEM_EXECBUFFER2	DRM_IOW(DRM_COMMAND_BASE + DRM_I915_GEM_EXECBUFFER2, struct drm_i915_gem_execbuffer2)
@@ -441,26 +440,6 @@ typedef struct drm_i915_hws_addr {
 #define I915_RELOC_TYPE_1 1
 #define I915_RELOC1_STRIDE 4
 
-
-struct drm_i915_op_arg {
-	uint64_t next;
-	uint64_t reloc_ptr;
-	int handled;
-	unsigned int pad64;
-	union {
-		struct drm_bo_op_req req;
-		struct drm_bo_arg_rep rep;
-	} d;
-
-};
-
-struct drm_i915_execbuffer {
-	uint64_t ops_list;
-	uint32_t num_buffers;
-	struct drm_i915_batchbuffer batch;
-	drm_context_t context; /* for lockless use in the future */
-	struct drm_fence_arg fence_arg;
-};
 
 struct drm_i915_gem_init {
 	/**

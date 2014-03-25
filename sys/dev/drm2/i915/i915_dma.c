@@ -80,7 +80,7 @@ static int i915_init_phys_hws(struct drm_device *dev)
 	 */
 	DRM_UNLOCK(dev);
 	dev_priv->status_page_dmah =
-		drm_pci_alloc(dev, PAGE_SIZE, PAGE_SIZE, 0xffffffff);
+		drm_pci_alloc(dev, PAGE_SIZE, PAGE_SIZE);
 	DRM_LOCK(dev);
 	if (!dev_priv->status_page_dmah) {
 		DRM_ERROR("Can not allocate hardware status page\n");
@@ -1270,8 +1270,7 @@ i915_driver_load(struct drm_device *dev, unsigned long flags)
 		ret = i915_init_phys_hws(dev);
 		if (ret != 0) {
 			drm_rmmap(dev, dev_priv->mmio_map);
-			drm_free(dev_priv, sizeof(struct drm_i915_private),
-			    DRM_MEM_DRIVER);
+			free(dev_priv, DRM_MEM_DRIVER);
 			return ret;
 		}
 	}
@@ -1405,8 +1404,7 @@ i915_driver_unload_int(struct drm_device *dev, bool locked)
 	mtx_destroy(&dev_priv->error_lock);
 	mtx_destroy(&dev_priv->error_completion_lock);
 	mtx_destroy(&dev_priv->rps_lock);
-	drm_free(dev->dev_private, sizeof(drm_i915_private_t),
-	    DRM_MEM_DRIVER);
+	free(dev->dev_private, DRM_MEM_DRIVER);
 
 	return (0);
 }
@@ -1462,7 +1460,7 @@ void i915_driver_postclose(struct drm_device *dev, struct drm_file *file_priv)
 	struct drm_i915_file_private *i915_file_priv = file_priv->driver_priv;
 
 	mtx_destroy(&i915_file_priv->mm.lck);
-	drm_free(i915_file_priv, sizeof(*i915_file_priv), DRM_MEM_FILES);
+	free(i915_file_priv, DRM_MEM_FILES);
 }
 
 struct drm_ioctl_desc i915_ioctls[] = {

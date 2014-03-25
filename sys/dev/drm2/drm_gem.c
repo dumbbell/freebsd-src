@@ -160,45 +160,6 @@ drm_gem_object_free(struct drm_gem_object *obj)
 }
 
 void
-drm_gem_object_reference(struct drm_gem_object *obj)
-{
-
-	KASSERT(obj->refcount > 0, ("Dangling obj %p", obj));
-	refcount_acquire(&obj->refcount);
-}
-
-void
-drm_gem_object_unreference(struct drm_gem_object *obj)
-{
-
-	if (obj == NULL)
-		return;
-	if (refcount_release(&obj->refcount))
-		drm_gem_object_free(obj);
-}
-
-void
-drm_gem_object_unreference_unlocked(struct drm_gem_object *obj)
-{
-	struct drm_device *dev;
-
-	if (obj == NULL)
-		return;
-	dev = obj->dev;
-	DRM_LOCK(dev);
-	drm_gem_object_unreference(obj);
-	DRM_UNLOCK(dev);
-}
-
-void
-drm_gem_object_handle_reference(struct drm_gem_object *obj)
-{
-
-	drm_gem_object_reference(obj);
-	atomic_add_rel_int(&obj->handle_count, 1);
-}
-
-void
 drm_gem_object_handle_free(struct drm_gem_object *obj)
 {
 	struct drm_device *dev;
@@ -210,32 +171,6 @@ drm_gem_object_handle_free(struct drm_gem_object *obj)
 		obj->name = 0;
 		drm_gem_object_unreference(obj1);
 	}
-}
-
-void
-drm_gem_object_handle_unreference(struct drm_gem_object *obj)
-{
-
-	if (obj == NULL ||
-	    atomic_load_acq_int(&obj->handle_count) == 0)
-		return;
-
-	if (atomic_fetchadd_int(&obj->handle_count, -1) == 1)
-		drm_gem_object_handle_free(obj);
-	drm_gem_object_unreference(obj);
-}
-
-void
-drm_gem_object_handle_unreference_unlocked(struct drm_gem_object *obj)
-{
-
-	if (obj == NULL ||
-	    atomic_load_acq_int(&obj->handle_count) == 0)
-		return;
-
-	if (atomic_fetchadd_int(&obj->handle_count, -1) == 1)
-		drm_gem_object_handle_free(obj);
-	drm_gem_object_unreference_unlocked(obj);
 }
 
 int

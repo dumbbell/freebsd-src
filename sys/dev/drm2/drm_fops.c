@@ -66,6 +66,15 @@ static int drm_setup(struct drm_device * dev)
 			return i;
 	}
 
+	/*
+	 * FIXME Linux<->FreeBSD: counter incremeneted in drm_open() and
+	 * reset to 0 here.
+	 */
+#if 0
+	for (i = 0; i < ARRAY_SIZE(dev->counts); i++)
+		atomic_set(&dev->counts[i], 0);
+#endif
+
 	dev->sigdata.lock = NULL;
 
 	dev->context_flag = 0;
@@ -126,6 +135,10 @@ int drm_open(struct cdev *kdev, int flags, int fmt, DRM_STRUCTPROC *p)
 
 	sx_xlock(&drm_global_mutex);
 
+	/*
+	 * FIXME Linux<->FreeBSD: On Linux, counter updated outisde
+	 * global mutex.
+	 */
 	if (!dev->open_count++)
 		need_setup = 1;
 
@@ -151,6 +164,7 @@ err_undo:
 	sx_xunlock(&drm_global_mutex);
 	return retcode;
 }
+EXPORT_SYMBOL(drm_open);
 
 /**
  * Called whenever a process opens /dev/drm.
@@ -263,9 +277,9 @@ static int drm_open_helper(struct cdev *kdev, int flags, int fmt,
 	device_busy(dev->dev);
 	mtx_unlock(&Giant);
 
-	ret = devfs_set_cdevpriv(priv, drm_close);
+	ret = devfs_set_cdevpriv(priv, drm_release);
 	if (ret != 0)
-		drm_close(priv);
+		drm_release(priv);
 
 	return ret;
       out_free:
@@ -320,7 +334,7 @@ static void drm_events_release(struct drm_file *file_priv)
  * data from its list and free it. Decreases the open count and if it reaches
  * zero calls drm_lastclose().
  */
-void drm_close(void *data)
+void drm_release(void *data)
 {
 	struct drm_file *file_priv = data;
 	struct drm_device *dev = file_priv->minor->dev;
@@ -451,6 +465,7 @@ void drm_close(void *data)
 	}
 	sx_xunlock(&drm_global_mutex);
 }
+EXPORT_SYMBOL(drm_release);
 
 static bool
 drm_dequeue_event(struct drm_file *file_priv, struct uio *uio,
@@ -523,6 +538,7 @@ out:
 	mtx_unlock(&dev->event_lock);
 	return (error);
 }
+EXPORT_SYMBOL(drm_read);
 
 void
 drm_event_wakeup(struct drm_pending_event *e)
@@ -567,6 +583,7 @@ drm_poll(struct cdev *kdev, int events, struct thread *td)
 	mtx_unlock(&dev->event_lock);
 	return (revents);
 }
+EXPORT_SYMBOL(drm_poll);
 
 int
 drm_mmap_single(struct cdev *kdev, vm_ooffset_t *offset, vm_size_t size,

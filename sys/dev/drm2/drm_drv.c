@@ -187,6 +187,9 @@ extern struct drm_ioctl_desc drm_compat_ioctls[];
  */
 int drm_lastclose(struct drm_device * dev)
 {
+#if defined(__linux__)
+	struct drm_vma_entry *vma, *vma_temp;
+#endif
 
 	DRM_DEBUG("\n");
 
@@ -202,18 +205,17 @@ int drm_lastclose(struct drm_device * dev)
 	/* Clear AGP information */
 	if (drm_core_has_AGP(dev) && dev->agp &&
 			!drm_core_check_feature(dev, DRIVER_MODESET)) {
-		struct drm_agp_mem *entry, *nexte;
+		struct drm_agp_mem *entry, *tempe;
 
 		/* Remove AGP resources, but leave dev->agp
 		   intact until drv_cleanup is called. */
-		for (entry = dev->agp->memory; entry; entry = nexte) {
-			nexte = entry->next;
+		list_for_each_entry_safe(entry, tempe, &dev->agp->memory, head) {
 			if (entry->bound)
-				drm_agp_unbind_memory(entry->handle);
-			drm_agp_free_memory(entry->handle);
+				drm_unbind_agp(entry->memory);
+			drm_free_agp(entry->memory, entry->pages);
 			free(entry, DRM_MEM_AGPLISTS);
 		}
-		dev->agp->memory = NULL;
+		INIT_LIST_HEAD(&dev->agp->memory);
 
 		if (dev->agp->acquired)
 			drm_agp_release(dev);
@@ -226,6 +228,14 @@ int drm_lastclose(struct drm_device * dev)
 		drm_sg_cleanup(dev->sg);
 		dev->sg = NULL;
 	}
+
+#if defined(__linux__)
+	/* Clear vma list (only built for debugging) */
+	list_for_each_entry_safe(vma, vma_temp, &dev->vmalist, head) {
+		list_del(&vma->head);
+		kfree(vma);
+	}
+#endif
 
 	if (drm_core_check_feature(dev, DRIVER_HAVE_DMA) &&
 	    !drm_core_check_feature(dev, DRIVER_MODESET))
@@ -467,6 +477,7 @@ int drm_ioctl(struct cdev *kdev, u_long cmd, caddr_t data, int flags,
 
 	return -retcode;
 }
+EXPORT_SYMBOL(drm_ioctl);
 
 struct drm_local_map *drm_getsarea(struct drm_device *dev)
 {
@@ -480,3 +491,4 @@ struct drm_local_map *drm_getsarea(struct drm_device *dev)
 	}
 	return NULL;
 }
+EXPORT_SYMBOL(drm_getsarea);

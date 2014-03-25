@@ -94,6 +94,7 @@ out_err:
 	item->object = NULL;
 	return ret;
 }
+EXPORT_SYMBOL(drm_global_item_ref);
 
 void drm_global_item_unref(struct drm_global_reference *ref)
 {
@@ -109,3 +110,4 @@ void drm_global_item_unref(struct drm_global_reference *ref)
 	}
 	sx_xunlock(&item->mutex);
 }
+EXPORT_SYMBOL(drm_global_item_unref);

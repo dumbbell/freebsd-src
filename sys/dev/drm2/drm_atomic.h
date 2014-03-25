@@ -70,6 +70,10 @@ typedef uint64_t	atomic64_t;
     atomic_set_long(__bit_addr(p, b), __bit_mask(b))
 #define	test_bit(b, p) \
     ((*__bit_addr(p, b) & __bit_mask(b)) != 0)
+#define	test_and_set_bit(b, p) \
+    (atomic_xchg((p), 1) != b)
+#define	cmpxchg(ptr, old, new) \
+    (atomic_cmpset_int((volatile u_int *)(ptr),(old),(new)) ? (old) : (0))
 
 static __inline u_long
 find_first_zero_bit(const u_long *p, u_long max)

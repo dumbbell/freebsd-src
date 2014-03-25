@@ -276,8 +276,8 @@ done:
 static int drm_bufs_info DRM_SYSCTL_HANDLER_ARGS
 {
 	struct drm_device	 *dev = arg1;
-	drm_device_dma_t *dma = dev->dma;
-	drm_device_dma_t tempdma;
+	struct drm_device_dma *dma = dev->dma;
+	struct drm_device_dma tempdma;
 	int *templists;
 	int i;
 	char buf[128];

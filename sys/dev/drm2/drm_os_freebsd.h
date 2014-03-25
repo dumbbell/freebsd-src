@@ -23,6 +23,13 @@ __FBSDID("$FreeBSD$");
 #define	BITS_PER_LONG	32
 #endif
 
+#ifndef __user
+#define __user
+#endif
+#ifndef __iomem
+#define __iomem
+#endif
+
 #define	cpu_to_le16(x)	htole16(x)
 #define	le16_to_cpu(x)	le16toh(x)
 #define	cpu_to_le32(x)	htole32(x)
@@ -36,6 +43,7 @@ __FBSDID("$FreeBSD$");
 
 typedef vm_paddr_t dma_addr_t;
 typedef vm_paddr_t resource_size_t;
+#define	wait_queue_head_t atomic_t
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -45,20 +53,17 @@ typedef int64_t s64;
 typedef int32_t s32;
 typedef int16_t s16;
 typedef int8_t  s8;
-typedef uint64_t __u64;
-typedef uint32_t __u32;
-typedef uint16_t __u16;
-typedef uint8_t  __u8;
-typedef int64_t __s64;
-typedef int32_t __s32;
-typedef int16_t __s16;
-typedef int8_t  __s8;
 typedef uint16_t __le16;
 typedef uint32_t __le32;
 typedef uint64_t __le64;
 typedef uint16_t __be16;
 typedef uint32_t __be32;
 typedef uint64_t __be64;
+
+#define	DRM_IRQ_ARGS		void *arg
+typedef void			irqreturn_t;
+#define	IRQ_HANDLED		/* nothing */
+#define	IRQ_NONE		/* nothing */
 
 #define	__init
 #define	__exit
@@ -83,7 +88,6 @@ typedef uint64_t __be64;
 				} while (0)
 #define	drm_msleep(x, msg)	pause((msg), ((int64_t)(x)) * hz / 1000)
 #define	DRM_MSLEEP(msecs)	drm_msleep((msecs), "drm_msleep")
-#define	DRM_TIME_SLICE		(hz/20)  /* Time slice for GLXContexts	  */
 
 #define	DRM_READ8(map, offset)						\
 	*(volatile u_int8_t *)(((vm_offset_t)(map)->handle) +		\
@@ -142,6 +146,11 @@ typedef uint64_t __be64;
 
 #define	KTR_DRM		KTR_DEV
 #define	KTR_DRM_REG	KTR_SPARE3
+
+#define	__OS_HAS_AGP	1
+#define	__OS_HAS_MTRR	1
+#define	DRM_AGP_KERN	struct agp_info
+#define	DRM_AGP_MEM	void
 
 #define	PCI_VENDOR_ID_APPLE		0x106b
 #define	PCI_VENDOR_ID_ASUSTEK		0x1043
@@ -229,16 +238,70 @@ ilog2(unsigned long x)
 
 #define	drm_get_device_from_kdev(_kdev)	(((struct drm_minor *)(_kdev)->si_drv1)->dev)
 
+#define DRM_IOC_VOID		IOC_VOID
+#define DRM_IOC_READ		IOC_OUT
+#define DRM_IOC_WRITE		IOC_IN
+#define DRM_IOC_READWRITE	IOC_INOUT
+#define DRM_IOC(dir, group, nr, size) _IOC(dir, group, nr, size)
+
 #define	copy_from_user(kaddr, uaddr, len)	copyin((uaddr), (kaddr), (len))
 #define	get_user(val, uaddr)			copyin((uaddr), &(val), sizeof(val))
 #define	copy_to_user(uaddr, kaddr, len)		copyout((kaddr), (uaddr), (len))
 #define	put_user(val, uaddr)			copyout(&(val), (uaddr), sizeof(val))
 
+#define	sigemptyset(set)	SIGEMPTYSET(set)
+#define	sigaddset(set, sig)	SIGADDSET(set, sig)
+
+#define DRM_LOCK(dev)		sx_xlock(&(dev)->dev_struct_lock)
+#define DRM_UNLOCK(dev) 	sx_xunlock(&(dev)->dev_struct_lock)
+
+#define jiffies			ticks
+#define	jiffies_to_msecs(x)	(((int64_t)(x)) * 1000 / hz)
+#define	msecs_to_jiffies(x)	(((int64_t)(x)) * hz / 1000)
+#define	time_after(a,b)		((long)(b) - (long)(a) < 0)
+#define	time_after_eq(a,b)	((long)(b) - (long)(a) <= 0)
+
+#define	wake_up(queue)			wakeup((void *)queue)
+#define	wake_up_interruptible(queue)	wakeup((void *)queue)
+
+MALLOC_DECLARE(DRM_MEM_DMA);
+MALLOC_DECLARE(DRM_MEM_SAREA);
+MALLOC_DECLARE(DRM_MEM_DRIVER);
+MALLOC_DECLARE(DRM_MEM_MAGIC);
+MALLOC_DECLARE(DRM_MEM_MINOR);
+MALLOC_DECLARE(DRM_MEM_IOCTLS);
+MALLOC_DECLARE(DRM_MEM_MAPS);
+MALLOC_DECLARE(DRM_MEM_BUFS);
+MALLOC_DECLARE(DRM_MEM_SEGS);
+MALLOC_DECLARE(DRM_MEM_PAGES);
+MALLOC_DECLARE(DRM_MEM_FILES);
+MALLOC_DECLARE(DRM_MEM_QUEUES);
+MALLOC_DECLARE(DRM_MEM_CMDS);
+MALLOC_DECLARE(DRM_MEM_MAPPINGS);
+MALLOC_DECLARE(DRM_MEM_BUFLISTS);
+MALLOC_DECLARE(DRM_MEM_AGPLISTS);
+MALLOC_DECLARE(DRM_MEM_CTXBITMAP);
+MALLOC_DECLARE(DRM_MEM_SGLISTS);
+MALLOC_DECLARE(DRM_MEM_MM);
+MALLOC_DECLARE(DRM_MEM_HASHTAB);
+MALLOC_DECLARE(DRM_MEM_KMS);
+
 #define	simple_strtol(a, b, c)			strtol((a), (b), (c))
 
+typedef struct drm_pci_id_list
+{
+	int vendor;
+	int device;
+	long driver_private;
+	char *name;
+} drm_pci_id_list_t;
+
 #define	EXPORT_SYMBOL(x)
-#define	module_param_named(name, var, type, perm)
+#define	MODULE_AUTHOR(author)
+#define	MODULE_DESCRIPTION(desc)
+#define	MODULE_LICENSE(license)
 #define	MODULE_PARM_DESC(name, desc)
+#define	module_param_named(name, var, type, perm)
 
 #define KIB_NOTYET()							\
 do {									\

@@ -3533,7 +3533,7 @@ i915_gem_init_phys_object(struct drm_device *dev, int id, int size, int align)
 
 	phys_obj->id = id;
 
-	phys_obj->handle = drm_pci_alloc(dev, size, align, ~0);
+	phys_obj->handle = drm_pci_alloc(dev, size, align);
 	if (phys_obj->handle == NULL) {
 		ret = -ENOMEM;
 		goto free_obj;

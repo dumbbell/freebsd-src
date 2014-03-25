@@ -43,18 +43,34 @@ unsigned int drm_debug = (DRM_DEBUGBITS_DEBUG | DRM_DEBUGBITS_KMS |
 #else
 unsigned int drm_debug = 0;	/* 1 to enable debug output */
 #endif
+EXPORT_SYMBOL(drm_debug);
 
 unsigned int drm_notyet = 0;
 
 unsigned int drm_vblank_offdelay = 5000;    /* Default to 5000 msecs. */
+EXPORT_SYMBOL(drm_vblank_offdelay);
 
 unsigned int drm_timestamp_precision = 20;  /* Default to 20 usecs. */
+EXPORT_SYMBOL(drm_timestamp_precision);
 
 /*
  * Default to use monotonic timestamps for wait-for-vblank and page-flip
  * complete events.
  */
 unsigned int drm_timestamp_monotonic = 1;
+
+MODULE_AUTHOR(CORE_AUTHOR);
+MODULE_DESCRIPTION(CORE_DESC);
+MODULE_LICENSE("GPL and additional rights");
+MODULE_PARM_DESC(debug, "Enable debug output");
+MODULE_PARM_DESC(vblankoffdelay, "Delay until vblank irq auto-disable [msecs]");
+MODULE_PARM_DESC(timestamp_precision_usec, "Max. error on timestamps [usecs]");
+MODULE_PARM_DESC(timestamp_monotonic, "Use monotonic timestamps");
+
+module_param_named(debug, drm_debug, int, 0600);
+module_param_named(vblankoffdelay, drm_vblank_offdelay, int, 0600);
+module_param_named(timestamp_precision_usec, drm_timestamp_precision, int, 0600);
+module_param_named(timestamp_monotonic, drm_timestamp_monotonic, int, 0600);
 
 static struct cdevsw drm_cdevsw = {
 	.d_version =	D_VERSION,
@@ -102,6 +118,7 @@ struct drm_master *drm_master_get(struct drm_master *master)
 	refcount_acquire(&master->refcount);
 	return master;
 }
+EXPORT_SYMBOL(drm_master_get);
 
 static void drm_master_destroy(struct drm_master *master)
 {
@@ -144,6 +161,7 @@ void drm_master_put(struct drm_master **master)
 		drm_master_destroy(*master);
 	*master = NULL;
 }
+EXPORT_SYMBOL(drm_master_put);
 
 int drm_setmaster_ioctl(struct drm_device *dev, void *data,
 			struct drm_file *file_priv)
@@ -207,7 +225,6 @@ int drm_fill_in_dev(struct drm_device *dev,
 
 	mtx_init(&dev->irq_lock, "drmirq", NULL, MTX_DEF);
 	mtx_init(&dev->vbl_lock, "drmvbl", NULL, MTX_DEF);
-	mtx_init(&dev->drw_lock, "drmdrw", NULL, MTX_DEF);
 	mtx_init(&dev->count_lock, "drmcount", NULL, MTX_DEF);
 	mtx_init(&dev->event_lock, "drmev", NULL, MTX_DEF);
 	sx_init(&dev->dev_struct_lock, "drmslk");
@@ -253,13 +270,6 @@ int drm_fill_in_dev(struct drm_device *dev,
 		}
 	}
 
-	dev->drw_unrhdr = new_unrhdr(1, INT_MAX, NULL);
-	if (dev->drw_unrhdr == NULL) {
-		DRM_ERROR("Couldn't allocate drawable number allocator\n");
-		retcode = ENOMEM;
-		goto error_out_unreg;
-	}
-
 	drm_sysctl_init(dev);
 
 	return 0;
@@ -268,6 +278,7 @@ int drm_fill_in_dev(struct drm_device *dev,
 	drm_cancel_fill_in_dev(dev);
 	return retcode;
 }
+EXPORT_SYMBOL(drm_fill_in_dev);
 
 void drm_cancel_fill_in_dev(struct drm_device *dev)
 {
@@ -276,8 +287,6 @@ void drm_cancel_fill_in_dev(struct drm_device *dev)
 	driver = dev->driver;
 
 	drm_sysctl_cleanup(dev);
-	if (dev->drw_unrhdr != NULL)
-		delete_unrhdr(dev->drw_unrhdr);
 	if (driver->driver_features & DRIVER_GEM)
 		drm_gem_destroy(dev);
 	drm_ctxbitmap_cleanup(dev);
@@ -298,7 +307,6 @@ void drm_cancel_fill_in_dev(struct drm_device *dev)
 
 	mtx_destroy(&dev->irq_lock);
 	mtx_destroy(&dev->vbl_lock);
-	mtx_destroy(&dev->drw_lock);
 	mtx_destroy(&dev->count_lock);
 	mtx_destroy(&dev->event_lock);
 	sx_destroy(&dev->dev_struct_lock);
@@ -376,6 +384,7 @@ err_idr:
 	*minor = NULL;
 	return ret;
 }
+EXPORT_SYMBOL(drm_get_minor);
 
 /**
  * Put a secondary minor number.
@@ -401,6 +410,7 @@ int drm_put_minor(struct drm_minor **minor_p)
 	*minor_p = NULL;
 	return 0;
 }
+EXPORT_SYMBOL(drm_put_minor);
 
 /**
  * Called via drm_exit() at module unload time or when pci device is
@@ -438,7 +448,6 @@ void drm_put_dev(struct drm_device *dev)
 		dev->driver->unload(dev);
 
 	drm_sysctl_cleanup(dev);
-	delete_unrhdr(dev->drw_unrhdr);
 
 	if (drm_core_has_AGP(dev) && dev->agp) {
 		free(dev->agp, DRM_MEM_AGPLISTS);
@@ -463,7 +472,6 @@ void drm_put_dev(struct drm_device *dev)
 
 	mtx_destroy(&dev->irq_lock);
 	mtx_destroy(&dev->vbl_lock);
-	mtx_destroy(&dev->drw_lock);
 	mtx_destroy(&dev->count_lock);
 	mtx_destroy(&dev->event_lock);
 	sx_destroy(&dev->dev_struct_lock);
@@ -474,3 +482,4 @@ void drm_put_dev(struct drm_device *dev)
 	list_del(&dev->driver_item);
 #endif /* FREEBSD_NOTYET */
 }
+EXPORT_SYMBOL(drm_put_dev);

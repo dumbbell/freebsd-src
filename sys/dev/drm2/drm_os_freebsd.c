@@ -4,7 +4,33 @@ __FBSDID("$FreeBSD$");
 
 #include <dev/drm2/drmP.h>
 
+#include <dev/agp/agpreg.h>
+#include <dev/pci/pcireg.h>
+
 devclass_t drm_devclass;
+
+MALLOC_DEFINE(DRM_MEM_DMA, "drm_dma", "DRM DMA Data Structures");
+MALLOC_DEFINE(DRM_MEM_SAREA, "drm_sarea", "DRM SAREA Data Structures");
+MALLOC_DEFINE(DRM_MEM_DRIVER, "drm_driver", "DRM DRIVER Data Structures");
+MALLOC_DEFINE(DRM_MEM_MAGIC, "drm_magic", "DRM MAGIC Data Structures");
+MALLOC_DEFINE(DRM_MEM_MINOR, "drm_minor", "DRM MINOR Data Structures");
+MALLOC_DEFINE(DRM_MEM_IOCTLS, "drm_ioctls", "DRM IOCTL Data Structures");
+MALLOC_DEFINE(DRM_MEM_MAPS, "drm_maps", "DRM MAP Data Structures");
+MALLOC_DEFINE(DRM_MEM_BUFS, "drm_bufs", "DRM BUFFER Data Structures");
+MALLOC_DEFINE(DRM_MEM_SEGS, "drm_segs", "DRM SEGMENTS Data Structures");
+MALLOC_DEFINE(DRM_MEM_PAGES, "drm_pages", "DRM PAGES Data Structures");
+MALLOC_DEFINE(DRM_MEM_FILES, "drm_files", "DRM FILE Data Structures");
+MALLOC_DEFINE(DRM_MEM_QUEUES, "drm_queues", "DRM QUEUE Data Structures");
+MALLOC_DEFINE(DRM_MEM_CMDS, "drm_cmds", "DRM COMMAND Data Structures");
+MALLOC_DEFINE(DRM_MEM_MAPPINGS, "drm_mapping", "DRM MAPPING Data Structures");
+MALLOC_DEFINE(DRM_MEM_BUFLISTS, "drm_buflists", "DRM BUFLISTS Data Structures");
+MALLOC_DEFINE(DRM_MEM_AGPLISTS, "drm_agplists", "DRM AGPLISTS Data Structures");
+MALLOC_DEFINE(DRM_MEM_CTXBITMAP, "drm_ctxbitmap",
+    "DRM CTXBITMAP Data Structures");
+MALLOC_DEFINE(DRM_MEM_SGLISTS, "drm_sglists", "DRM SGLISTS Data Structures");
+MALLOC_DEFINE(DRM_MEM_MM, "drm_sman", "DRM MEMORY MANAGER Data Structures");
+MALLOC_DEFINE(DRM_MEM_HASHTAB, "drm_hashtab", "DRM HASHTABLE Data Structures");
+MALLOC_DEFINE(DRM_MEM_KMS, "drm_kms", "DRM KMS Data Structures");
 
 static drm_pci_id_list_t *
 drm_find_description(int vendor, int device, drm_pci_id_list_t *idlist)
@@ -125,12 +151,79 @@ drm_add_busid_modesetting(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 	return (0);
 }
 
+static int
+drm_device_find_capability(struct drm_device *dev, int cap)
+{
+
+	return (pci_find_cap(dev->dev, cap, NULL) == 0);
+}
+
+int
+drm_pci_device_is_agp(struct drm_device *dev)
+{
+	if (dev->driver->device_is_agp != NULL) {
+		int ret;
+
+		/* device_is_agp returns a tristate, 0 = not AGP, 1 = definitely
+		 * AGP, 2 = fall back to PCI capability
+		 */
+		ret = (*dev->driver->device_is_agp)(dev);
+		if (ret != DRM_MIGHT_BE_AGP)
+			return ret;
+	}
+
+	return (drm_device_find_capability(dev, PCIY_AGP));
+}
+
+int
+drm_pci_device_is_pcie(struct drm_device *dev)
+{
+
+	return (drm_device_find_capability(dev, PCIY_EXPRESS));
+}
+
 bool
 dmi_check_system(const struct dmi_system_id *sysid)
 {
 
 	/* XXXKIB */
 	return (false);
+}
+
+int
+drm_mtrr_add(unsigned long offset, unsigned long size, unsigned int flags)
+{
+	int act;
+	struct mem_range_desc mrdesc;
+
+	mrdesc.mr_base = offset;
+	mrdesc.mr_len = size;
+	mrdesc.mr_flags = flags;
+	act = MEMRANGE_SET_UPDATE;
+	strlcpy(mrdesc.mr_owner, "drm", sizeof(mrdesc.mr_owner));
+	return mem_range_attr_set(&mrdesc, &act);
+}
+
+int
+drm_mtrr_del(int handle __unused, unsigned long offset, unsigned long size,
+    unsigned int flags)
+{
+	int act;
+	struct mem_range_desc mrdesc;
+
+	mrdesc.mr_base = offset;
+	mrdesc.mr_len = size;
+	mrdesc.mr_flags = flags;
+	act = MEMRANGE_SET_REMOVE;
+	strlcpy(mrdesc.mr_owner, "drm", sizeof(mrdesc.mr_owner));
+	return mem_range_attr_set(&mrdesc, &act);
+}
+
+void
+drm_clflush_pages(vm_page_t *pages, unsigned long num_pages)
+{
+
+	pmap_invalidate_cache_pages(pages, num_pages);
 }
 
 #if DRM_LINUX
