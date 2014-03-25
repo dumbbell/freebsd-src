@@ -226,6 +226,17 @@ drm_clflush_pages(vm_page_t *pages, unsigned long num_pages)
 	pmap_invalidate_cache_pages(pages, num_pages);
 }
 
+int
+fb_get_options(const char *conector_name, char **option)
+{
+
+	/*
+	 * TODO: store mode options pointer in ${option} for connector with
+	 * name ${connector_name}
+	 */
+	return (-ENOTSUP);
+}
+
 #if DRM_LINUX
 
 #include <sys/sysproto.h>

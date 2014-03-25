@@ -304,6 +304,8 @@ typedef struct drm_pci_id_list
 #define	MODULE_PARM_DESC(name, desc)
 #define	module_param_named(name, var, type, perm)
 
+int	fb_get_options(const char *connector_name, char **option);
+
 #define KIB_NOTYET()							\
 do {									\
 	if (drm_debug && drm_notyet)					\
