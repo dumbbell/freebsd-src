@@ -69,6 +69,7 @@ typedef void			irqreturn_t;
 #define	__exit
 #define	__read_mostly
 
+#define	BUG_ON(cond)		KASSERT(!(cond), ("BUG ON: " #cond))
 #define	unlikely(x)            __builtin_expect(!!(x), 0)
 #define	likely(x)              __builtin_expect(!!(x), 1)
 #define	container_of(ptr, type, member) ({			\
@@ -303,6 +304,9 @@ typedef struct drm_pci_id_list
 #define	MODULE_LICENSE(license)
 #define	MODULE_PARM_DESC(name, desc)
 #define	module_param_named(name, var, type, perm)
+
+#define	printk		printf
+#define	KERN_DEBUG	""
 
 int	fb_get_options(const char *connector_name, char **option);
 
