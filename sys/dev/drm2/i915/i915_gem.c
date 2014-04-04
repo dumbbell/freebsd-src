@@ -2080,11 +2080,11 @@ i915_gem_object_bind_to_gtt(struct drm_i915_gem_object *obj,
 	if (free_space != NULL) {
 		if (map_and_fenceable)
 			obj->gtt_space = drm_mm_get_block_range_generic(
-			    free_space, size, alignment, 0,
+			    free_space, size, alignment, 0, 0,
 			    dev_priv->mm.gtt_mappable_end, 1);
 		else
 			obj->gtt_space = drm_mm_get_block_generic(free_space,
-			    size, alignment, 1);
+			    size, alignment, 0, 1);
 	}
 	if (obj->gtt_space == NULL) {
 		ret = i915_gem_evict_something(dev, size, alignment,
