@@ -645,6 +645,20 @@ struct drm_master {
 #define DRM_SCANOUTPOS_INVBL        (1 << 1)
 #define DRM_SCANOUTPOS_ACCURATE     (1 << 2)
 
+struct drm_bus {
+	int bus_type;
+	int (*get_irq)(struct drm_device *dev);
+	void (*free_irq)(struct drm_device *dev);
+	const char *(*get_name)(struct drm_device *dev);
+	int (*set_busid)(struct drm_device *dev, struct drm_master *master);
+	int (*set_unique)(struct drm_device *dev, struct drm_master *master,
+			  struct drm_unique *unique);
+	int (*irq_by_busid)(struct drm_device *dev, struct drm_irq_busid *p);
+	/* hooks that are for PCI */
+	int (*agp_init)(struct drm_device *dev);
+
+};
+
 /**
  * DRM driver structure. This structure represent the common code for
  * a family of cards. There will one drm_device for each card present
@@ -860,6 +874,7 @@ struct drm_driver {
 	int dev_priv_size;
 	struct drm_ioctl_desc *ioctls;
 	int num_ioctls;
+	struct drm_bus *bus;
 #ifdef COMPAT_FREEBSD32
 	struct drm_ioctl_desc *compat_ioctls;
 	int *num_compat_ioctls;
@@ -1082,9 +1097,6 @@ struct drm_device {
 #define DRM_SWITCH_POWER_OFF 1
 #define DRM_SWITCH_POWER_CHANGING 2
 
-int	drm_pci_get_irq(struct drm_device *dev);
-void	drm_pci_free_irq(struct drm_device *dev);
-
 static __inline__ int drm_core_check_feature(struct drm_device *dev,
 					     int feature)
 {
@@ -1093,7 +1105,7 @@ static __inline__ int drm_core_check_feature(struct drm_device *dev,
 
 static inline int drm_dev_to_irq(struct drm_device *dev)
 {
-	return drm_pci_get_irq(dev);
+	return dev->driver->bus->get_irq(dev);
 }
 
 #if __OS_HAS_AGP
@@ -1736,8 +1748,6 @@ void	drm_driver_irq_preinstall(struct drm_device *dev);
 void	drm_driver_irq_postinstall(struct drm_device *dev);
 void	drm_driver_irq_uninstall(struct drm_device *dev);
 
-void drm_handle_vblank_events(struct drm_device *dev, int crtc);
-
 struct timeval ns_to_timeval(const int64_t nsec);
 int64_t timeval_to_ns(const struct timeval *tv);
 
@@ -1753,9 +1763,6 @@ extern int		drm_sysctl_cleanup(struct drm_device *dev);
 
 int	drm_version(struct drm_device *dev, void *data,
 		    struct drm_file *file_priv);
-
-/* DMA support (drm_dma.c) */
-int	drm_dma(struct drm_device *dev, void *data, struct drm_file *file_priv);
 
 /* Scatter Gather Support (drm_scatter.c) */
 int	drm_sg_alloc_ioctl(struct drm_device *dev, void *data,

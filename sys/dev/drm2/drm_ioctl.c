@@ -103,7 +103,10 @@ int drm_setunique(struct drm_device *dev, void *data,
 	if (!u->unique_len || u->unique_len > 1024)
 		return -EINVAL;
 
-	ret = drm_pci_set_unique(dev, master, u);
+	if (!dev->driver->bus->set_unique)
+		return -EINVAL;
+
+	ret = dev->driver->bus->set_unique(dev, master, u);
 	if (ret)
 		goto err;
 
@@ -122,7 +125,7 @@ static int drm_set_busid(struct drm_device *dev, struct drm_file *file_priv)
 	if (master->unique != NULL)
 		drm_unset_busid(dev, master);
 
-	ret = drm_pci_set_busid(dev, master);
+	ret = dev->driver->bus->set_busid(dev, master);
 	if (ret)
 		goto err;
 	return 0;
@@ -357,3 +360,4 @@ int drm_noop(struct drm_device *dev, void *data,
 	DRM_DEBUG("\n");
 	return 0;
 }
+EXPORT_SYMBOL(drm_noop);

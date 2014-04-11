@@ -20,9 +20,6 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Paul Mackerras <paulus@samba.org>
  */
 
 #include <sys/cdefs.h>
@@ -35,10 +32,6 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm.h>
 
-/** @file drm_ioc32.c
- * 32-bit ioctl compatibility routines for the DRM.
- */
- 
 #define DRM_IOCTL_VERSION32		DRM_IOWR(0x00, drm_version32_t)
 #define DRM_IOCTL_GET_UNIQUE32		DRM_IOWR(0x01, drm_unique32_t)
 #define DRM_IOCTL_GET_MAP32		DRM_IOWR(0x04, drm_map32_t)
@@ -71,6 +64,8 @@ __FBSDID("$FreeBSD$");
 #define DRM_IOCTL_SG_ALLOC32		DRM_IOW( 0x38, drm_scatter_gather32_t)
 #define DRM_IOCTL_SG_FREE32		DRM_IOW( 0x39, drm_scatter_gather32_t)
 
+#define DRM_IOCTL_UPDATE_DRAW32		DRM_IOW( 0x3f, drm_update_draw32_t)
+
 #define DRM_IOCTL_WAIT_VBLANK32		DRM_IOWR(0x3a, drm_wait_vblank32_t)
 
 typedef struct drm_version_32 {
@@ -97,7 +92,7 @@ static int compat_drm_version(struct drm_device *dev, void *data, struct drm_fil
 	version.date = (void *)(unsigned long)v32->date;
 	version.desc_len = v32->desc_len;
 	version.desc = (void *)(unsigned long)v32->desc;
-	
+
 	err = drm_version(dev, (void *)&version, file_priv);
 	if (err)
 		return err;
@@ -187,7 +182,7 @@ static int compat_drm_addmap(struct drm_device *dev, void *data, struct drm_file
 	struct drm_map map;
 	int err;
 	void *handle;
-	
+
 	map.offset = (unsigned long)m32->offset;
 	map.size = (unsigned long)m32->size;
 	map.type = m32->type;
@@ -200,7 +195,7 @@ static int compat_drm_addmap(struct drm_device *dev, void *data, struct drm_file
 	m32->offset = map.offset;
 	m32->mtrr = map.mtrr;
 	handle = map.handle;
-	
+
 	m32->handle = (unsigned long)handle;
 	if (m32->handle != (unsigned long)handle)
 		DRM_DEBUG("compat_drm_addmap truncated handle"
@@ -310,7 +305,7 @@ static int compat_drm_addbufs(struct drm_device *dev, void *data, struct drm_fil
 	b32->high_mark = buf.high_mark;
 	b32->flags = buf.flags;
 	b32->agp_start = buf.agp_start;
-	
+
 	return 0;
 }
 
@@ -322,7 +317,7 @@ static int compat_drm_markbufs(struct drm_device *dev, void *data, struct drm_fi
 	buf.size = b32->size;
 	buf.low_mark = b32->low_mark;
 	buf.high_mark = b32->high_mark;
-	
+
 	return drm_markbufs(dev, (void *)&buf, file_priv);
 }
 
@@ -521,6 +516,11 @@ static int compat_drm_dma(struct drm_device *dev, void *data, struct drm_file *f
 	struct drm_dma d;
 	int err;
 
+	if (!dev->driver->dma_ioctl) {
+		DRM_DEBUG("DMA ioctl on driver with no dma handler\n");
+		return -EINVAL;
+	}
+
 	d.context = d32->context;
 	d.send_count = d32->send_count;
 	d.send_indices = (int *)(unsigned long)d32->send_indices;
@@ -530,7 +530,7 @@ static int compat_drm_dma(struct drm_device *dev, void *data, struct drm_file *f
 	d.request_indices = (int *)(unsigned long)d32->request_indices;
 	d.request_sizes = (int *)(unsigned long)d32->request_sizes;
 
-	err = drm_dma(dev, (void *)&d, file_priv);
+	err = dev->driver->dma_ioctl(dev, (void *)&d, file_priv);
 	if (err)
 		return err;
 
@@ -540,6 +540,7 @@ static int compat_drm_dma(struct drm_device *dev, void *data, struct drm_file *f
 	return 0;
 }
 
+#if __OS_HAS_AGP
 typedef struct drm_agp_mode32 {
 	u32 mode;	/**< AGP mode */
 } drm_agp_mode32_t;
@@ -647,11 +648,12 @@ static int compat_drm_agp_unbind(struct drm_device *dev, void *data, struct drm_
 {
 	drm_agp_binding32_t *req32 = data;
 	struct drm_agp_binding request;
-	
+
 	request.handle = req32->handle;
-	
+
 	return drm_agp_unbind_ioctl(dev, (void *)&request, file_priv);
 }
+#endif				/* __OS_HAS_AGP */
 
 typedef struct drm_scatter_gather32 {
 	u32 size;	/**< In bytes -- will round to page boundary */
@@ -684,6 +686,21 @@ static int compat_drm_sg_free(struct drm_device *dev, void *data, struct drm_fil
 	request.handle = (unsigned long)req32->handle << PAGE_SHIFT;
 
 	return drm_sg_free(dev, (void *)&request, file_priv);
+}
+
+typedef struct drm_update_draw32 {
+	drm_drawable_t handle;
+	unsigned int type;
+	unsigned int num;
+	/* 64-bit version has a 32-bit pad here */
+	u64 data;	/**< Pointer */
+} __attribute__((packed)) drm_update_draw32_t;
+
+static int compat_drm_update_draw(struct drm_device *dev, void *data, struct drm_file *file_priv)
+{
+
+	/* drm_noop */
+	return 0;
 }
 
 struct drm_wait_vblank_request32 {
@@ -727,11 +744,11 @@ static int compat_drm_wait_vblank(struct drm_device *dev, void *data, struct drm
 }
 
 struct drm_ioctl_desc drm_compat_ioctls[256] = {
-	DRM_IOCTL_DEF(DRM_IOCTL_VERSION32, compat_drm_version, 0),
+	DRM_IOCTL_DEF(DRM_IOCTL_VERSION32, compat_drm_version, DRM_UNLOCKED),
 	DRM_IOCTL_DEF(DRM_IOCTL_GET_UNIQUE32, compat_drm_getunique, 0),
-	DRM_IOCTL_DEF(DRM_IOCTL_GET_MAP32, compat_drm_getmap, 0),
-	DRM_IOCTL_DEF(DRM_IOCTL_GET_CLIENT32, compat_drm_getclient, 0),
-	DRM_IOCTL_DEF(DRM_IOCTL_GET_STATS32, compat_drm_getstats, 0),
+	DRM_IOCTL_DEF(DRM_IOCTL_GET_MAP32, compat_drm_getmap, DRM_UNLOCKED),
+	DRM_IOCTL_DEF(DRM_IOCTL_GET_CLIENT32, compat_drm_getclient, DRM_UNLOCKED),
+	DRM_IOCTL_DEF(DRM_IOCTL_GET_STATS32, compat_drm_getstats, DRM_UNLOCKED),
 	DRM_IOCTL_DEF(DRM_IOCTL_SET_UNIQUE32, compat_drm_setunique, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_ADD_MAP32, compat_drm_addmap, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_ADD_BUFS32, compat_drm_addbufs, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
@@ -754,7 +771,7 @@ struct drm_ioctl_desc drm_compat_ioctls[256] = {
 
 	DRM_IOCTL_DEF(DRM_IOCTL_SG_ALLOC32, compat_drm_sg_alloc, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_SG_FREE32, compat_drm_sg_free, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-
+	DRM_IOCTL_DEF(DRM_IOCTL_UPDATE_DRAW32, compat_drm_update_draw, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_WAIT_VBLANK32, compat_drm_wait_vblank, DRM_UNLOCKED),
 };
 

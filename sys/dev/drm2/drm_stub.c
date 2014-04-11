@@ -224,7 +224,6 @@ int drm_fill_in_dev(struct drm_device *dev,
 	INIT_LIST_HEAD(&dev->vblank_event_list);
 
 	mtx_init(&dev->irq_lock, "drmirq", NULL, MTX_DEF);
-	mtx_init(&dev->vbl_lock, "drmvbl", NULL, MTX_DEF);
 	mtx_init(&dev->count_lock, "drmcount", NULL, MTX_DEF);
 	mtx_init(&dev->event_lock, "drmev", NULL, MTX_DEF);
 	sx_init(&dev->dev_struct_lock, "drmslk");
@@ -306,7 +305,6 @@ void drm_cancel_fill_in_dev(struct drm_device *dev)
 	drm_ht_remove(&dev->map_hash);
 
 	mtx_destroy(&dev->irq_lock);
-	mtx_destroy(&dev->vbl_lock);
 	mtx_destroy(&dev->count_lock);
 	mtx_destroy(&dev->event_lock);
 	sx_destroy(&dev->dev_struct_lock);
@@ -471,7 +469,6 @@ void drm_put_dev(struct drm_device *dev)
 	drm_put_minor(&dev->primary);
 
 	mtx_destroy(&dev->irq_lock);
-	mtx_destroy(&dev->vbl_lock);
 	mtx_destroy(&dev->count_lock);
 	mtx_destroy(&dev->event_lock);
 	sx_destroy(&dev->dev_struct_lock);

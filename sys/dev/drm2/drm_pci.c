@@ -1,5 +1,20 @@
-/*-
- * Copyright 2003 Eric Anholt.
+/* drm_pci.h -- PCI DMA memory management wrappers for DRM -*- linux-c -*- */
+/**
+ * \file drm_pci.c
+ * \brief Functions and ioctls to manage PCI memory
+ *
+ * \warning These interfaces aren't stable yet.
+ *
+ * \todo Implement the remaining ioctl's for the PCI pools.
+ * \todo The wrappers here are so thin that they would be better off inlined..
+ *
+ * \author José Fonseca <jrfonseca@tungstengraphics.com>
+ * \author Leif Delgass <ldelgass@retinalburn.net>
+ */
+
+/*
+ * Copyright 2003 José Fonseca.
+ * Copyright 2003 Leif Delgass.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -16,20 +31,13 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
-
-/**
- * \file drm_pci.h
- * \brief PCI consistent, DMA-accessible memory allocation.
- *
- * \author Eric Anholt <anholt@FreeBSD.org>
- */
 
 #include <dev/drm2/drmP.h>
 
@@ -56,12 +64,9 @@ drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error
 }
 
 /**
- * \brief Allocate a physically contiguous DMA-accessible consistent 
- * memory block.
+ * \brief Allocate a PCI consistent memory block, for DMA.
  */
-drm_dma_handle_t *
-drm_pci_alloc(struct drm_device *dev, size_t size,
-	      size_t align)
+drm_dma_handle_t *drm_pci_alloc(struct drm_device * dev, size_t size, size_t align)
 {
 	drm_dma_handle_t *dmah;
 	int ret;
@@ -113,24 +118,39 @@ drm_pci_alloc(struct drm_device *dev, size_t size,
 	return dmah;
 }
 
+EXPORT_SYMBOL(drm_pci_alloc);
+
 /**
- * \brief Free a DMA-accessible consistent memory block.
+ * \brief Free a PCI consistent memory block without freeing its descriptor.
+ *
+ * This function is for internal use in the Linux-specific DRM core code.
  */
-void
-drm_pci_free(struct drm_device *dev, drm_dma_handle_t *dmah)
+void __drm_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
 {
 	if (dmah == NULL)
 		return;
 
 	bus_dmamem_free(dmah->tag, dmah->vaddr, dmah->map);
 	bus_dma_tag_destroy(dmah->tag);
+}
 
+/**
+ * \brief Free a PCI consistent memory block
+ */
+void drm_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
+{
+	__drm_pci_free(dev, dmah);
 	free(dmah, DRM_MEM_DMA);
 }
 
-/*@}*/
+EXPORT_SYMBOL(drm_pci_free);
 
-int drm_pci_get_irq(struct drm_device *dev)
+static int drm_get_pci_domain(struct drm_device *dev)
+{
+	return dev->pci_domain;
+}
+
+static int drm_pci_get_irq(struct drm_device *dev)
 {
 
 	if (dev->irqr)
@@ -148,7 +168,7 @@ int drm_pci_get_irq(struct drm_device *dev)
 	return (dev->irq);
 }
 
-void drm_pci_free_irq(struct drm_device *dev)
+static void drm_pci_free_irq(struct drm_device *dev)
 {
 	if (dev->irqr == NULL)
 		return;
@@ -158,6 +178,11 @@ void drm_pci_free_irq(struct drm_device *dev)
 
 	dev->irqr = NULL;
 	dev->irq = 0;
+}
+
+static const char *drm_pci_get_name(struct drm_device *dev)
+{
+	return dev->driver->name;
 }
 
 int drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
@@ -234,6 +259,21 @@ err:
 	return ret;
 }
 
+
+static int drm_pci_irq_by_busid(struct drm_device *dev, struct drm_irq_busid *p)
+{
+	if ((p->busnum >> 8) != drm_get_pci_domain(dev) ||
+	    (p->busnum & 0xff) != dev->pci_bus ||
+	    p->devnum != dev->pci_slot || p->funcnum != dev->pci_func)
+		return -EINVAL;
+
+	p->irq = dev->irq;
+
+	DRM_DEBUG("%d:%d:%d => IRQ %d\n", p->busnum, p->devnum, p->funcnum,
+		  p->irq);
+	return 0;
+}
+
 int drm_pci_agp_init(struct drm_device *dev)
 {
 	if (drm_core_has_AGP(dev)) {
@@ -257,12 +297,36 @@ int drm_pci_agp_init(struct drm_device *dev)
 	return 0;
 }
 
+static struct drm_bus drm_pci_bus = {
+	.bus_type = DRIVER_BUS_PCI,
+	.get_irq = drm_pci_get_irq,
+	.free_irq = drm_pci_free_irq,
+	.get_name = drm_pci_get_name,
+	.set_busid = drm_pci_set_busid,
+	.set_unique = drm_pci_set_unique,
+	.irq_by_busid = drm_pci_irq_by_busid,
+	.agp_init = drm_pci_agp_init,
+};
+
+/**
+ * Register.
+ *
+ * \param pdev - PCI device structure
+ * \param ent entry from the PCI ID table with device type flags
+ * \return zero on success or a negative number on failure.
+ *
+ * Attempt to gets inter module "drm" information. If we are first
+ * then register the character device and inter module information.
+ * Try and register, if we fail to register, backout previous work.
+ */
 int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 		    struct drm_driver *driver)
 {
 	int ret;
 
 	DRM_DEBUG("\n");
+
+	driver->bus = &drm_pci_bus;
 
 	dev->dev = kdev;
 
@@ -332,6 +396,7 @@ err_g1:
 	sx_xunlock(&drm_global_mutex);
 	return ret;
 }
+EXPORT_SYMBOL(drm_get_pci_dev);
 
 int
 drm_pci_enable_msi(struct drm_device *dev)
@@ -368,8 +433,7 @@ drm_pci_disable_msi(struct drm_device *dev)
 	dev->irqrid = 0;
 }
 
-int
-drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
+int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 {
 	device_t root;
 	int pos;
@@ -422,3 +486,4 @@ drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 	DRM_INFO("probing gen 2 caps for device %x:%x = %x/%x\n", pci_get_vendor(root), pci_get_device(root), lnkcap, lnkcap2);
 	return 0;
 }
+EXPORT_SYMBOL(drm_pcie_get_speed_cap_mask);

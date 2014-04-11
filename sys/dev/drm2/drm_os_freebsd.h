@@ -69,6 +69,8 @@ typedef void			irqreturn_t;
 #define	__exit
 #define	__read_mostly
 
+#define	WARN_ON(cond)		KASSERT(!(cond), ("WARN ON: " #cond))
+#define	WARN_ON_SMP(cond)	WARN_ON(cond)
 #define	BUG_ON(cond)		KASSERT(!(cond), ("BUG ON: " #cond))
 #define	unlikely(x)            __builtin_expect(!!(x), 0)
 #define	likely(x)              __builtin_expect(!!(x), 1)
@@ -123,8 +125,12 @@ typedef void			irqreturn_t;
 #define	DRM_READMEMORYBARRIER()		rmb()
 #define	DRM_WRITEMEMORYBARRIER()	wmb()
 #define	DRM_MEMORYBARRIER()		mb()
+#define	smp_rmb()			rmb()
+#define	smp_mb__before_atomic_inc()	mb()
+#define	smp_mb__after_atomic_inc()	mb()
 
 #define	do_div(a, b)		((a) /= (b))
+#define	div64_u64(a, b)		((a) / (b))
 #define	lower_32_bits(n)	((u32)(n))
 
 #define min_t(type, x, y) ({			\
@@ -236,6 +242,16 @@ ilog2(unsigned long x)
 	return (flsl(x) - 1);
 }
 
+static inline int64_t
+abs64(int64_t x)
+{
+
+	return (x < 0 ? -x : x);
+}
+
+int64_t		timeval_to_ns(const struct timeval *tv);
+struct timeval	ns_to_timeval(const int64_t nsec);
+
 #define PAGE_ALIGN(addr) round_page(addr)
 
 #define	drm_get_device_from_kdev(_kdev)	(((struct drm_minor *)(_kdev)->si_drv1)->dev)
@@ -250,6 +266,8 @@ ilog2(unsigned long x)
 #define	get_user(val, uaddr)			copyin((uaddr), &(val), sizeof(val))
 #define	copy_to_user(uaddr, kaddr, len)		copyout((kaddr), (uaddr), (len))
 #define	put_user(val, uaddr)			copyout(&(val), (uaddr), sizeof(val))
+#define	__get_user(val, uaddr)			get_user(val, uaddr)
+#define	__put_user(val, uaddr)			put_user(val, uaddr)
 
 #define	sigemptyset(set)	SIGEMPTYSET(set)
 #define	sigaddset(set, sig)	SIGADDSET(set, sig)
@@ -287,6 +305,7 @@ MALLOC_DECLARE(DRM_MEM_SGLISTS);
 MALLOC_DECLARE(DRM_MEM_MM);
 MALLOC_DECLARE(DRM_MEM_HASHTAB);
 MALLOC_DECLARE(DRM_MEM_KMS);
+MALLOC_DECLARE(DRM_MEM_VBLANK);
 
 #define	simple_strtol(a, b, c)			strtol((a), (b), (c))
 
