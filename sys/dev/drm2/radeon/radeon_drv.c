@@ -127,7 +127,6 @@ int radeon_pcie_gen2 = -1;
 int radeon_msi = -1;
 int radeon_lockup_timeout = 10000;
 
-#ifdef FREEBSD_WIP
 MODULE_PARM_DESC(no_wb, "Disable AGP writeback for scratch registers");
 module_param_named(no_wb, radeon_no_wb, int, 0444);
 
@@ -179,165 +178,11 @@ module_param_named(msi, radeon_msi, int, 0444);
 MODULE_PARM_DESC(lockup_timeout, "GPU lockup timeout in ms (defaul 10000 = 10 seconds, 0 = disable)");
 module_param_named(lockup_timeout, radeon_lockup_timeout, int, 0444);
 
-static int radeon_suspend(struct drm_device *dev, pm_message_t state)
-{
-	drm_radeon_private_t *dev_priv = dev->dev_private;
-
-	if ((dev_priv->flags & RADEON_FAMILY_MASK) >= CHIP_R600)
-		return 0;
-
-	/* Disable *all* interrupts */
-	if ((dev_priv->flags & RADEON_FAMILY_MASK) >= CHIP_RS600)
-		RADEON_WRITE(R500_DxMODE_INT_MASK, 0);
-	RADEON_WRITE(RADEON_GEN_INT_CNTL, 0);
-	return 0;
-}
-
-static int radeon_resume(struct drm_device *dev)
-{
-	drm_radeon_private_t *dev_priv = dev->dev_private;
-
-	if ((dev_priv->flags & RADEON_FAMILY_MASK) >= CHIP_R600)
-		return 0;
-
-	/* Restore interrupt registers */
-	if ((dev_priv->flags & RADEON_FAMILY_MASK) >= CHIP_RS600)
-		RADEON_WRITE(R500_DxMODE_INT_MASK, dev_priv->r500_disp_irq_reg);
-	RADEON_WRITE(RADEON_GEN_INT_CNTL, dev_priv->irq_enable_reg);
-	return 0;
-}
-#endif /* FREEBSD_WIP */
-
 static drm_pci_id_list_t pciidlist[] = {
 	radeon_PCI_IDS
 };
 
-#ifdef FREEBSD_WIP
-static const struct file_operations radeon_driver_old_fops = {
-	.owner = THIS_MODULE,
-	.open = drm_open,
-	.release = drm_release,
-	.unlocked_ioctl = drm_ioctl,
-	.mmap = drm_mmap,
-	.poll = drm_poll,
-	.fasync = drm_fasync,
-	.read = drm_read,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = radeon_compat_ioctl,
-#endif
-	.llseek = noop_llseek,
-};
-
-static struct drm_driver driver_old = {
-	.driver_features =
-	    DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_PCI_DMA | DRIVER_SG |
-	    DRIVER_HAVE_IRQ | DRIVER_HAVE_DMA | DRIVER_IRQ_SHARED,
-	.dev_priv_size = sizeof(drm_radeon_buf_priv_t),
-	.load = radeon_driver_load,
-	.firstopen = radeon_driver_firstopen,
-	.open = radeon_driver_open,
-	.preclose = radeon_driver_preclose,
-	.postclose = radeon_driver_postclose,
-	.lastclose = radeon_driver_lastclose,
-	.unload = radeon_driver_unload,
-#ifdef FREEBSD_WIP
-	.suspend = radeon_suspend,
-	.resume = radeon_resume,
-#endif /* FREEBSD_WIP */
-	.get_vblank_counter = radeon_get_vblank_counter,
-	.enable_vblank = radeon_enable_vblank,
-	.disable_vblank = radeon_disable_vblank,
-	.master_create = radeon_master_create,
-	.master_destroy = radeon_master_destroy,
-	.irq_preinstall = radeon_driver_irq_preinstall,
-	.irq_postinstall = radeon_driver_irq_postinstall,
-	.irq_uninstall = radeon_driver_irq_uninstall,
-	.irq_handler = radeon_driver_irq_handler,
-	.ioctls = radeon_ioctls,
-	.dma_ioctl = radeon_cp_buffers,
-	.fops = &radeon_driver_old_fops,
-	.name = DRIVER_NAME,
-	.desc = DRIVER_DESC,
-	.date = DRIVER_DATE,
-	.major = DRIVER_MAJOR,
-	.minor = DRIVER_MINOR,
-	.patchlevel = DRIVER_PATCHLEVEL,
-};
-#endif /* FREEBSD_WIP */
-
 static struct drm_driver kms_driver;
-
-#ifdef FREEBSD_WIP
-static int radeon_kick_out_firmware_fb(struct pci_dev *pdev)
-{
-	struct apertures_struct *ap;
-	bool primary = false;
-
-	ap = alloc_apertures(1);
-	if (!ap)
-		return -ENOMEM;
-
-	ap->ranges[0].base = pci_resource_start(pdev, 0);
-	ap->ranges[0].size = pci_resource_len(pdev, 0);
-
-#ifdef CONFIG_X86
-	primary = pdev->resource[PCI_ROM_RESOURCE].flags & IORESOURCE_ROM_SHADOW;
-#endif
-	remove_conflicting_framebuffers(ap, "radeondrmfb", primary);
-	kfree(ap);
-
-	return 0;
-}
-
-static int radeon_pci_probe(struct pci_dev *pdev,
-			    const struct pci_device_id *ent)
-{
-	int ret;
-
-	/* Get rid of things like offb */
-	ret = radeon_kick_out_firmware_fb(pdev);
-	if (ret)
-		return ret;
-
-	return drm_get_pci_dev(pdev, ent, &kms_driver);
-}
-
-static void
-radeon_pci_remove(struct pci_dev *pdev)
-{
-	struct drm_device *dev = pci_get_drvdata(pdev);
-
-	drm_put_dev(dev);
-}
-
-static int
-radeon_pci_suspend(struct pci_dev *pdev, pm_message_t state)
-{
-	struct drm_device *dev = pci_get_drvdata(pdev);
-	return radeon_suspend_kms(dev, state);
-}
-
-static int
-radeon_pci_resume(struct pci_dev *pdev)
-{
-	struct drm_device *dev = pci_get_drvdata(pdev);
-	return radeon_resume_kms(dev);
-}
-
-static const struct file_operations radeon_driver_kms_fops = {
-	.owner = THIS_MODULE,
-	.open = drm_open,
-	.release = drm_release,
-	.unlocked_ioctl = drm_ioctl,
-	.mmap = radeon_mmap,
-	.poll = drm_poll,
-	.fasync = drm_fasync,
-	.read = drm_read,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = radeon_kms_compat_ioctl,
-#endif
-};
-#endif /* FREEBSD_WIP */
 
 static int radeon_sysctl_init(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 			      struct sysctl_oid *top)
@@ -349,7 +194,7 @@ static struct drm_driver kms_driver = {
 	.driver_features =
 	    DRIVER_USE_AGP | DRIVER_USE_MTRR | DRIVER_PCI_DMA | DRIVER_SG |
 	    DRIVER_HAVE_IRQ | DRIVER_HAVE_DMA | DRIVER_IRQ_SHARED | DRIVER_GEM |
-	    DRIVER_PRIME /* | DRIVE_MODESET */,
+	    DRIVER_PRIME,
 #ifdef FREEBSD_WIP
 	.dev_priv_size = 0,
 #endif /* FREEBSD_WIP */
@@ -475,9 +320,13 @@ radeon_suspend(device_t kdev)
 	int ret;
 
 	dev = device_get_softc(kdev);
-	ret = radeon_suspend_kms(dev);
+	ret = -radeon_suspend_kms(dev);
+	if (ret)
+		return (ret);
 
-	return (-ret);
+	ret = bus_generic_suspend(kdev);
+
+	return (ret);
 }
 
 static int
@@ -487,9 +336,13 @@ radeon_resume(device_t kdev)
 	int ret;
 
 	dev = device_get_softc(kdev);
-	ret = radeon_resume_kms(dev);
+	ret = -radeon_resume_kms(dev);
+	if (ret)
+		return (ret);
 
-	return (-ret);
+	ret = bus_generic_resume(kdev);
+
+	return (ret);
 }
 
 extern struct fb_info *	radeon_fb_helper_getinfo(device_t kdev);
