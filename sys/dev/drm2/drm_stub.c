@@ -269,7 +269,11 @@ int drm_fill_in_dev(struct drm_device *dev,
 		}
 	}
 
-	drm_sysctl_init(dev);
+	retcode = drm_sysctl_init(dev);
+	if (retcode != 0) {
+		DRM_ERROR("Failed to create hw.dri sysctl entry: %d\n",
+		    retcode);
+	}
 
 	return 0;
 
