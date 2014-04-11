@@ -868,7 +868,7 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 
 		kdev = fb_helper->dev->dev;
 		fbd = device_add_child(kdev, "fbd", device_get_unit(kdev));
-		if (fbd != NULL) 
+		if (fbd != NULL)
 			ret = device_probe_and_attach(fbd);
 		else
 			ret = ENODEV;
