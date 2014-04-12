@@ -37,6 +37,9 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drm_edid.h>
 #include <dev/drm2/drm_fourcc.h>
 
+static void drm_property_destroy_blob(struct drm_device *dev,
+    struct drm_property_blob *blob);
+
 /* Avoid boilerplate.  I'm tired of typing. */
 #define DRM_ENUM_NAME_FN(fnname, list)				\
 	char *fnname(int val)					\
@@ -1016,6 +1019,12 @@ int drm_mode_group_init(struct drm_device *dev, struct drm_mode_group *group)
 	return 0;
 }
 
+void drm_mode_group_free(struct drm_mode_group *group)
+{
+	free(group->id_list, DRM_MEM_KMS);
+	group->id_list = NULL;
+}
+
 int drm_mode_group_init_legacy_group(struct drm_device *dev,
 				     struct drm_mode_group *group)
 {
@@ -1061,6 +1070,7 @@ void drm_mode_config_cleanup(struct drm_device *dev)
 	struct drm_encoder *encoder, *enct;
 	struct drm_framebuffer *fb, *fbt;
 	struct drm_property *property, *pt;
+	struct drm_property_blob *blob, *bt;
 	struct drm_plane *plane, *plt;
 
 	list_for_each_entry_safe(encoder, enct, &dev->mode_config.encoder_list,
@@ -1076,6 +1086,11 @@ void drm_mode_config_cleanup(struct drm_device *dev)
 	list_for_each_entry_safe(property, pt, &dev->mode_config.property_list,
 				 head) {
 		drm_property_destroy(dev, property);
+	}
+
+        list_for_each_entry_safe(blob, bt, &dev->mode_config.property_blob_list,
+				 head) {
+		drm_property_destroy_blob(dev, blob);
 	}
 
 	list_for_each_entry_safe(fb, fbt, &dev->mode_config.fb_list, head) {
