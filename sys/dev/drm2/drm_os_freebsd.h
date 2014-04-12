@@ -327,7 +327,8 @@ typedef struct drm_pci_id_list
 #define	printk		printf
 #define	KERN_DEBUG	""
 
-int	fb_get_options(const char *connector_name, char **option);
+struct fb_info *	framebuffer_alloc(void);
+void			framebuffer_release(struct fb_info *info);
 
 #define KIB_NOTYET()							\
 do {									\

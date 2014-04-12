@@ -219,7 +219,11 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 
 	rbo = gem_to_radeon_bo(gobj);
 
-	info = malloc(sizeof(*info), DRM_MEM_KMS, M_WAITOK | M_ZERO);
+	info = framebuffer_alloc();
+	if (info == NULL) {
+		ret = -ENOMEM;
+		goto out_unref;
+	}
 
 	ret = radeon_framebuffer_init(rdev->ddev, &rfbdev->rfb, &mode_cmd, gobj);
 	if (ret) {
@@ -235,13 +239,15 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 
 	memset(rbo->kptr, 0x0, radeon_bo_size(rbo));
 
+	drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
+
 	tmp = radeon_bo_gpu_offset(rbo) - rdev->mc.vram_start;
 	info->fb_size  = radeon_bo_size(rbo);
 	info->fb_bpp = sizes->surface_bpp;
-	info->fb_width = sizes->surface_width;
-	info->fb_height = sizes->surface_height;
 	info->fb_pbase = rdev->mc.aper_base + tmp;
 	info->fb_vbase = (vm_offset_t)rbo->kptr;
+
+	drm_fb_helper_fill_var(info, &rfbdev->helper, sizes->fb_width, sizes->fb_height);
 
 	DRM_INFO("fb mappable at 0x%" PRIXPTR "\n",  info->fb_pbase);
 	DRM_INFO("vram apper at 0x%lX\n",  (unsigned long)rdev->mc.aper_base);
@@ -291,7 +297,7 @@ static int radeon_fbdev_destroy(struct drm_device *dev, struct radeon_fbdev *rfb
 
 	if (rfbdev->helper.fbdev) {
 		info = rfbdev->helper.fbdev;
-		free(info, DRM_MEM_KMS);
+		framebuffer_release(info);
 	}
 
 	if (rfb->obj) {

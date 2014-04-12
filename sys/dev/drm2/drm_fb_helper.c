@@ -46,12 +46,9 @@ static DRM_LIST_HEAD(kernel_fb_helper_list);
 
 #if defined(__FreeBSD__)
 struct vt_kms_softc {
-	struct drm_fb_helper *fb_helper;
-	struct task	fb_mode_task;
+	struct drm_fb_helper	*fb_helper;
+	struct task		 fb_mode_task;
 };
-
-static fb_enter_t	vt_kms_postswitch;
-static void vt_restore_fbdev_mode(void *, int);
 
 /* Call restore out of vt(9) locks. */
 static void
@@ -76,6 +73,42 @@ vt_kms_postswitch(void *arg)
 	taskqueue_enqueue_fast(taskqueue_thread, &sc->fb_mode_task);
 
 	return (0);
+}
+
+struct fb_info *
+framebuffer_alloc()
+{
+	struct fb_info *info;
+	struct vt_kms_softc *sc;
+
+	info = malloc(sizeof(*info), DRM_MEM_KMS, M_WAITOK | M_ZERO);
+
+	sc = malloc(sizeof(*sc), DRM_MEM_KMS, M_WAITOK | M_ZERO);
+	TASK_INIT(&sc->fb_mode_task, 0, vt_restore_fbdev_mode, sc);
+
+	info->fb_priv = sc;
+	info->enter = &vt_kms_postswitch;
+
+	return (info);
+}
+
+void
+framebuffer_release(struct fb_info *info)
+{
+
+	free(info->fb_priv, DRM_MEM_KMS);
+	free(info, DRM_MEM_KMS);
+}
+
+static int
+fb_get_options(const char *conector_name, char **option)
+{
+
+	/*
+	 * TODO: store mode options pointer in ${option} for connector with
+	 * name ${connector_name}
+	 */
+	return (-ENOTSUP);
 }
 #endif /* defined(__FreeBSD__) */
 
@@ -759,7 +792,6 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 	struct drm_fb_helper_surface_size sizes;
 	int gamma_size = 0;
 #if defined(__FreeBSD__)
-	struct vt_kms_softc *sc;
 	device_t kdev;
 #endif
 
@@ -838,24 +870,7 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 	if (new_fb < 0)
 		return new_fb;
 
-#if defined(__FreeBSD__)
-	sc = malloc(sizeof(struct vt_kms_softc), DRM_MEM_KMS,
-	    M_WAITOK | M_ZERO);
-	sc->fb_helper = fb_helper;
-	TASK_INIT(&sc->fb_mode_task, 0, vt_restore_fbdev_mode, sc);
-#endif
-
 	info = fb_helper->fbdev;
-
-#if defined(__FreeBSD__)
-	info->fb_name = device_get_nameunit(fb_helper->dev->dev);
-	info->fb_depth = fb_helper->fb->bits_per_pixel;
-	info->fb_height = fb_helper->fb->height;
-	info->fb_width = fb_helper->fb->width;
-	info->fb_stride = fb_helper->fb->pitches[0];
-	info->fb_priv = sc;
-	info->enter = &vt_kms_postswitch;
-#endif
 
 	/* set the fb pointer */
 	for (i = 0; i < fb_helper->crtc_count; i++)
@@ -908,23 +923,11 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 }
 EXPORT_SYMBOL(drm_fb_helper_single_fb_probe);
 
-#if 0 && defined(FREEBSD_WIP)
 void drm_fb_helper_fill_fix(struct fb_info *info, uint32_t pitch,
 			    uint32_t depth)
 {
-	info->fix.type = FB_TYPE_PACKED_PIXELS;
-	info->fix.visual = depth == 8 ? FB_VISUAL_PSEUDOCOLOR :
-		FB_VISUAL_TRUECOLOR;
-	info->fix.mmio_start = 0;
-	info->fix.mmio_len = 0;
-	info->fix.type_aux = 0;
-	info->fix.xpanstep = 1; /* doing it in hw */
-	info->fix.ypanstep = 1; /* doing it in hw */
-	info->fix.ywrapstep = 0;
-	info->fix.accel = FB_ACCEL_NONE;
-	info->fix.type_aux = 0;
+	info->fb_stride = pitch;
 
-	info->fix.line_length = pitch;
 	return;
 }
 EXPORT_SYMBOL(drm_fb_helper_fill_fix);
@@ -933,76 +936,17 @@ void drm_fb_helper_fill_var(struct fb_info *info, struct drm_fb_helper *fb_helpe
 			    uint32_t fb_width, uint32_t fb_height)
 {
 	struct drm_framebuffer *fb = fb_helper->fb;
-	info->pseudo_palette = fb_helper->pseudo_palette;
-	info->var.xres_virtual = fb->width;
-	info->var.yres_virtual = fb->height;
-	info->var.bits_per_pixel = fb->bits_per_pixel;
-	info->var.accel_flags = FB_ACCELF_TEXT;
-	info->var.xoffset = 0;
-	info->var.yoffset = 0;
-	info->var.activate = FB_ACTIVATE_NOW;
-	info->var.height = -1;
-	info->var.width = -1;
+	struct vt_kms_softc *sc;
 
-	switch (fb->depth) {
-	case 8:
-		info->var.red.offset = 0;
-		info->var.green.offset = 0;
-		info->var.blue.offset = 0;
-		info->var.red.length = 8; /* 8bit DAC */
-		info->var.green.length = 8;
-		info->var.blue.length = 8;
-		info->var.transp.offset = 0;
-		info->var.transp.length = 0;
-		break;
-	case 15:
-		info->var.red.offset = 10;
-		info->var.green.offset = 5;
-		info->var.blue.offset = 0;
-		info->var.red.length = 5;
-		info->var.green.length = 5;
-		info->var.blue.length = 5;
-		info->var.transp.offset = 15;
-		info->var.transp.length = 1;
-		break;
-	case 16:
-		info->var.red.offset = 11;
-		info->var.green.offset = 5;
-		info->var.blue.offset = 0;
-		info->var.red.length = 5;
-		info->var.green.length = 6;
-		info->var.blue.length = 5;
-		info->var.transp.offset = 0;
-		break;
-	case 24:
-		info->var.red.offset = 16;
-		info->var.green.offset = 8;
-		info->var.blue.offset = 0;
-		info->var.red.length = 8;
-		info->var.green.length = 8;
-		info->var.blue.length = 8;
-		info->var.transp.offset = 0;
-		info->var.transp.length = 0;
-		break;
-	case 32:
-		info->var.red.offset = 16;
-		info->var.green.offset = 8;
-		info->var.blue.offset = 0;
-		info->var.red.length = 8;
-		info->var.green.length = 8;
-		info->var.blue.length = 8;
-		info->var.transp.offset = 24;
-		info->var.transp.length = 8;
-		break;
-	default:
-		break;
-	}
+	info->fb_name = device_get_nameunit(fb_helper->dev->dev);
+	info->fb_width = fb->width;
+	info->fb_height = fb->height;
+	info->fb_depth = fb->bits_per_pixel;
 
-	info->var.xres = fb_width;
-	info->var.yres = fb_height;
+	sc = (struct vt_kms_softc *)info->fb_priv;
+	sc->fb_helper = fb_helper;
 }
 EXPORT_SYMBOL(drm_fb_helper_fill_var);
-#endif /* FREEBSD_WIP */
 
 static int drm_fb_helper_probe_connector_modes(struct drm_fb_helper *fb_helper,
 					       uint32_t maxX,
