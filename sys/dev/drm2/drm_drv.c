@@ -241,8 +241,6 @@ int drm_lastclose(struct drm_device * dev)
 	    !drm_core_check_feature(dev, DRIVER_MODESET))
 		drm_dma_takedown(dev);
 
-	drm_sysctl_cleanup(dev);
-
 	DRM_UNLOCK(dev);
 
 	DRM_DEBUG("lastclose completed\n");
