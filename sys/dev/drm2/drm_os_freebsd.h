@@ -317,6 +317,9 @@ typedef struct drm_pci_id_list
 	char *name;
 } drm_pci_id_list_t;
 
+#define	CONFIG_FB	1
+extern const char *fb_mode_option;
+
 #define	EXPORT_SYMBOL(x)
 #define	MODULE_AUTHOR(author)
 #define	MODULE_DESCRIPTION(desc)

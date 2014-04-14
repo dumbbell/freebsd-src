@@ -687,10 +687,10 @@ static struct timeval get_drm_timestamp(void)
 	struct timeval now;
 
 	microtime(&now);
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 	if (!drm_timestamp_monotonic)
 		now = ktime_sub(now, ktime_get_monotonic_offset());
-#endif /* defined(FREEBSD_WIP) */
+#endif /* defined(FREEBSD_NOTYET) */
 
 	return now;
 }

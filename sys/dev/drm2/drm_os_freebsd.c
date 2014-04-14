@@ -33,6 +33,8 @@ MALLOC_DEFINE(DRM_MEM_HASHTAB, "drm_hashtab", "DRM HASHTABLE Data Structures");
 MALLOC_DEFINE(DRM_MEM_KMS, "drm_kms", "DRM KMS Data Structures");
 MALLOC_DEFINE(DRM_MEM_VBLANK, "drm_vblank", "DRM VBLANK Handling Data");
 
+const char *fb_mode_option = NULL;
+
 #define NSEC_PER_USEC	1000L
 #define NSEC_PER_SEC	1000000000L
 

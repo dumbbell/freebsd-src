@@ -152,12 +152,12 @@ int drm_helper_probe_single_connector_modes(struct drm_connector *connector,
 		goto prune;
 	}
 
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 #ifdef CONFIG_DRM_LOAD_EDID_FIRMWARE
 	count = drm_load_edid_firmware(connector);
 	if (count == 0)
 #endif
-#endif /* FREEBSD_WIP */
+#endif /* FREEBSD_NOTYET */
 		count = (*connector_funcs->get_modes)(connector);
 
 	if (count == 0 && connector->status == connector_status_connected)
@@ -965,9 +965,9 @@ EXPORT_SYMBOL(drm_helper_resume_force_mode);
 void drm_kms_helper_hotplug_event(struct drm_device *dev)
 {
 	/* send a uevent + call fbdev */
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 	drm_sysfs_hotplug_event(dev);
-#endif /* FREEBSD_WIP */
+#endif /* FREEBSD_NOTYET */
 	if (dev->mode_config.funcs->output_poll_changed)
 		dev->mode_config.funcs->output_poll_changed(dev);
 }

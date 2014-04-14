@@ -424,7 +424,7 @@ struct drm_agp_head *drm_agp_init(struct drm_device *dev)
 	return head;
 }
 
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 /**
  * Binds a collection of pages into AGP memory at the given offset, returning
  * the AGP memory structure containing them.
@@ -467,6 +467,6 @@ drm_agp_bind_pages(struct drm_device *dev,
 	return mem;
 }
 EXPORT_SYMBOL(drm_agp_bind_pages);
-#endif /* FREEBSD_WIP */
+#endif /* FREEBSD_NOTYET */
 
 #endif /* __OS_HAS_AGP */

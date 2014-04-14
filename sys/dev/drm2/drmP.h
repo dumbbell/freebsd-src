@@ -320,15 +320,15 @@ struct drm_freelist {
 	atomic_t count;		       /**< Number of free buffers */
 	struct drm_buf *next;	       /**< End pointer */
 
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 	wait_queue_head_t waiting;     /**< Processes waiting on free bufs */
-#endif /* defined(FREEBSD_WIP) */
+#endif /* defined(FREEBSD_NOTYET) */
 	int low_mark;		       /**< Low water mark */
 	int high_mark;		       /**< High water mark */
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 	atomic_t wfh;		       /**< If waiting for high mark */
 	spinlock_t lock;
-#endif /* defined(FREEBSD_WIP) */
+#endif /* defined(FREEBSD_NOTYET) */
 };
 
 typedef struct drm_dma_handle {
@@ -594,13 +594,13 @@ struct drm_gem_object {
 
 	void *driver_private;
 
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 	/* dma buf exported from this GEM object */
 	struct dma_buf *export_dma_buf;
 
 	/* dma buf attachment backing this object */
 	struct dma_buf_attachment *import_attach;
-#endif /* FREEBSD_WIP */
+#endif /* FREEBSD_NOTYET */
 };
 
 #include <dev/drm2/drm_crtc.h>
@@ -829,7 +829,7 @@ struct drm_driver {
 	int (*gem_open_object) (struct drm_gem_object *, struct drm_file *);
 	void (*gem_close_object) (struct drm_gem_object *, struct drm_file *);
 
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 	/* prime: */
 	/* export handle -> fd (see drm_gem_prime_handle_to_fd() helper) */
 	int (*prime_handle_to_fd)(struct drm_device *dev, struct drm_file *file_priv,
@@ -843,7 +843,7 @@ struct drm_driver {
 	/* import dmabuf -> GEM */
 	struct drm_gem_object * (*gem_prime_import)(struct drm_device *dev,
 				struct dma_buf *dma_buf);
-#endif /* defined(FREEBSD_WIP) */
+#endif /* defined(FREEBSD_NOTYET) */
 
 	/* dumb alloc support */
 	int (*dumb_create)(struct drm_file *file_priv,
@@ -1169,13 +1169,13 @@ d_poll_t drm_poll;
 				/* Memory management support (drm_memory.h) */
 extern void drm_free_agp(DRM_AGP_MEM * handle, int pages);
 extern int drm_bind_agp(DRM_AGP_MEM * handle, unsigned int start);
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 extern DRM_AGP_MEM *drm_agp_bind_pages(struct drm_device *dev,
 				       struct page **pages,
 				       unsigned long num_pages,
 				       uint32_t gtt_offset,
 				       uint32_t type);
-#endif /* FREEBSD_WIP */
+#endif /* FREEBSD_NOTYET */
 extern int drm_unbind_agp(DRM_AGP_MEM * handle);
 
 				/* Misc. IOCTL support (drm_ioctl.h) */
@@ -1373,7 +1373,7 @@ extern unsigned int drm_timestamp_monotonic;
 extern struct drm_local_map *drm_getsarea(struct drm_device *dev);
 
 
-#ifdef FREEBSD_WIP
+#ifdef FREEBSD_NOTYET
 extern int drm_gem_prime_handle_to_fd(struct drm_device *dev,
 		struct drm_file *file_priv, uint32_t handle, uint32_t flags,
 		int *prime_fd);
@@ -1400,7 +1400,7 @@ void drm_prime_remove_imported_buf_handle(struct drm_prime_file_private *prime_f
 int drm_prime_add_dma_buf(struct drm_device *dev, struct drm_gem_object *obj);
 int drm_prime_lookup_obj(struct drm_device *dev, struct dma_buf *buf,
 			 struct drm_gem_object **obj);
-#endif /* FREEBSD_WIP */
+#endif /* FREEBSD_NOTYET */
 
 				/* Scatter Gather Support (drm_scatter.h) */
 extern void drm_sg_cleanup(struct drm_sg_mem * entry);
