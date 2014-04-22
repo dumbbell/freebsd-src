@@ -43,9 +43,9 @@ static void *agp_remap(unsigned long offset, unsigned long size,
 		       struct drm_device * dev)
 {
 	/*
-	 * FIXME Linux<->FreeBSD: Not implement. This is never called on
-	 * FreeBSD anyway, because drm_agp_mem->cant_use_aperture is set
-	 * to 0.
+	 * FIXME Linux<->FreeBSD: Not implemented. This is never called
+	 * on FreeBSD anyway, because drm_agp_mem->cant_use_aperture is
+	 * set to 0.
 	 */
 	return NULL;
 }
