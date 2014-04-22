@@ -1231,6 +1231,11 @@ i915_driver_load(struct drm_device *dev, unsigned long flags)
 
 	ret = drm_addmap(dev, base, size, _DRM_REGISTERS,
 	    _DRM_KERNEL | _DRM_DRIVER, &dev_priv->mmio_map);
+	if (ret != 0) {
+		DRM_ERROR("Failed to allocate mmio_map: %d\n", ret);
+		free(dev_priv, DRM_MEM_DRIVER);
+		return (ret);
+	}
 
 	dev_priv->tq = taskqueue_create("915", M_WAITOK,
 	    taskqueue_thread_enqueue, &dev_priv->tq);
