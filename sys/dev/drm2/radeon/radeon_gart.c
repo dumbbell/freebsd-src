@@ -916,7 +916,12 @@ uint64_t radeon_vm_map_gart(struct radeon_device *rdev, uint64_t addr)
 	result = rdev->gart.pages_addr[addr >> PAGE_SHIFT];
 
 	/* in case cpu page size != gpu page size*/
-	result |= addr & (~PAGE_MASK);
+	/*
+	 * FreeBSD port note: FreeBSD's PAGE_MASK is the inverse of
+	 * Linux's one. That's why the test below doesn't inverse the
+	 * constant.
+	 */
+	result |= addr & (PAGE_MASK);
 
 	return result;
 }
