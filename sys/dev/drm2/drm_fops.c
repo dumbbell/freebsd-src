@@ -162,7 +162,7 @@ err_undo:
 	mtx_unlock(&Giant);
 	dev->open_count--;
 	sx_xunlock(&drm_global_mutex);
-	return retcode;
+	return -retcode;
 }
 EXPORT_SYMBOL(drm_open);
 
