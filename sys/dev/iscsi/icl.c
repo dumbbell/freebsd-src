@@ -45,6 +45,7 @@
 #include <sys/mbuf.h>
 #include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
@@ -62,24 +63,24 @@ SYSCTL_NODE(_kern, OID_AUTO, icl, CTLFLAG_RD, 0, "iSCSI Common Layer");
 static int debug = 1;
 TUNABLE_INT("kern.icl.debug", &debug);
 SYSCTL_INT(_kern_icl, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &debug, 1, "Enable debug messages");
+    &debug, 0, "Enable debug messages");
 static int coalesce = 1;
 TUNABLE_INT("kern.icl.coalesce", &coalesce);
 SYSCTL_INT(_kern_icl, OID_AUTO, coalesce, CTLFLAG_RWTUN,
-    &coalesce, 1, "Try to coalesce PDUs before sending");
-static int partial_receive_len = 1 * 1024; /* XXX: More? */
+    &coalesce, 0, "Try to coalesce PDUs before sending");
+static int partial_receive_len = 128 * 1024;
 TUNABLE_INT("kern.icl.partial_receive_len", &partial_receive_len);
 SYSCTL_INT(_kern_icl, OID_AUTO, partial_receive_len, CTLFLAG_RWTUN,
-    &partial_receive_len, 1 * 1024, "Minimum read size for partially received "
+    &partial_receive_len, 0, "Minimum read size for partially received "
     "data segment");
 static int sendspace = 1048576;
 TUNABLE_INT("kern.icl.sendspace", &sendspace);
 SYSCTL_INT(_kern_icl, OID_AUTO, sendspace, CTLFLAG_RWTUN,
-    &sendspace, 1048576, "Default send socket buffer size");
+    &sendspace, 0, "Default send socket buffer size");
 static int recvspace = 1048576;
 TUNABLE_INT("kern.icl.recvspace", &recvspace);
 SYSCTL_INT(_kern_icl, OID_AUTO, recvspace, CTLFLAG_RWTUN,
-    &recvspace, 1048576, "Default receive socket buffer size");
+    &recvspace, 0, "Default receive socket buffer size");
 
 static uma_zone_t icl_conn_zone;
 static uma_zone_t icl_pdu_zone;
@@ -104,6 +105,8 @@ static volatile u_int	icl_ncons;
 #define ICL_CONN_UNLOCK(X)		mtx_unlock(X->ic_lock)
 #define ICL_CONN_LOCK_ASSERT(X)		mtx_assert(X->ic_lock, MA_OWNED)
 #define ICL_CONN_LOCK_ASSERT_NOT(X)	mtx_assert(X->ic_lock, MA_NOTOWNED)
+
+STAILQ_HEAD(icl_pdu_stailq, icl_pdu);
 
 static void
 icl_conn_fail(struct icl_conn *ic)
@@ -748,12 +751,19 @@ icl_receive_thread(void *arg)
 			break;
 		}
 
+		/*
+		 * Set the low watermark, to be checked by
+		 * soreadable() in icl_soupcall_receive()
+		 * to avoid unneccessary wakeups until there
+		 * is enough data received to read the PDU.
+		 */
 		SOCKBUF_LOCK(&so->so_rcv);
 		available = so->so_rcv.sb_cc;
 		if (available < ic->ic_receive_len) {
 			so->so_rcv.sb_lowat = ic->ic_receive_len;
 			cv_wait(&ic->ic_receive_cv, &so->so_rcv.sb_mtx);
-		}
+		} else
+			so->so_rcv.sb_lowat = so->so_rcv.sb_hiwat + 1;
 		SOCKBUF_UNLOCK(&so->so_rcv);
 
 		icl_conn_receive_pdus(ic, available);
@@ -769,6 +779,9 @@ static int
 icl_soupcall_receive(struct socket *so, void *arg, int waitflag)
 {
 	struct icl_conn *ic;
+
+	if (!soreadable(so))
+		return (SU_OK);
 
 	ic = arg;
 	cv_signal(&ic->ic_receive_cv);
@@ -831,9 +844,8 @@ icl_pdu_finalize(struct icl_pdu *request)
 }
 
 static void
-icl_conn_send_pdus(struct icl_conn *ic, void *fts)
+icl_conn_send_pdus(struct icl_conn *ic, struct icl_pdu_stailq *queue)
 {
-	STAILQ_HEAD(, icl_pdu) *queue = fts; /* XXX */
 	struct icl_pdu *request, *request2;
 	struct socket *so;
 	size_t available, size, size2;
@@ -853,10 +865,10 @@ icl_conn_send_pdus(struct icl_conn *ic, void *fts)
 	available = sbspace(&so->so_snd);
 
 	/*
-	 * Notify the socket layer that it doesn't need to call
-	 * send socket upcall for the time being.
+	 * Notify the socket upcall that we don't need wakeups
+	 * for the time being.
 	 */
-	so->so_snd.sb_lowat = so->so_snd.sb_hiwat;
+	so->so_snd.sb_lowat = so->so_snd.sb_hiwat + 1;
 	SOCKBUF_UNLOCK(&so->so_snd);
 
 	while (!STAILQ_EMPTY(queue)) {
@@ -865,21 +877,26 @@ icl_conn_send_pdus(struct icl_conn *ic, void *fts)
 		request = STAILQ_FIRST(queue);
 		size = icl_pdu_size(request);
 		if (available < size) {
-#if 1
-			ICL_DEBUG("no space to send; "
-			    "have %zd, need %zd",
-			    available, size);
-#endif
 
 			/*
-			 * Set the low watermark on the socket,
+			 * Set the low watermark, to be checked by
+			 * sowriteable() in icl_soupcall_send()
 			 * to avoid unneccessary wakeups until there
 			 * is enough space for the PDU to fit.
 			 */
 			SOCKBUF_LOCK(&so->so_snd);
-			so->so_snd.sb_lowat = size;
+			available = sbspace(&so->so_snd);
+			if (available < size) {
+#if 1
+				ICL_DEBUG("no space to send; "
+				    "have %zd, need %zd",
+				    available, size);
+#endif
+				so->so_snd.sb_lowat = size;
+				SOCKBUF_UNLOCK(&so->so_snd);
+				return;
+			}
 			SOCKBUF_UNLOCK(&so->so_snd);
-			return;
 		}
 		STAILQ_REMOVE_HEAD(queue, ip_next);
 		error = icl_pdu_finalize(request);
@@ -943,7 +960,7 @@ static void
 icl_send_thread(void *arg)
 {
 	struct icl_conn *ic;
-	STAILQ_HEAD(, icl_pdu) queue;
+	struct icl_pdu_stailq queue;
 
 	ic = arg;
 
@@ -1014,6 +1031,9 @@ static int
 icl_soupcall_send(struct socket *so, void *arg, int waitflag)
 {
 	struct icl_conn *ic;
+
+	if (!sowriteable(so))
+		return (SU_OK);
 
 	ic = arg;
 
