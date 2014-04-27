@@ -317,6 +317,13 @@ typedef struct drm_pci_id_list
 	char *name;
 } drm_pci_id_list_t;
 
+#ifdef __amd64__
+#define	CONFIG_X86_64	1
+#endif
+#ifdef __ia64__
+#define	CONFIG_IA64	1
+#endif
+
 #define	CONFIG_FB	1
 extern const char *fb_mode_option;
 
