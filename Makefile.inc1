@@ -45,7 +45,7 @@
 .error "Both TARGET and TARGET_ARCH must be defined."
 .endif
 
-.include <bsd.own.mk>
+.include "share/mk/src.opts.mk"
 .include <bsd.arch.inc.mk>
 .include <bsd.compiler.mk>
 
@@ -1001,7 +1001,7 @@ buildkernel:
 	cd ${KRNLCONFDIR}; \
 		PATH=${TMPPATH} \
 		    config ${CONFIGARGS} -d ${KRNLOBJDIR}/${_kernel} \
-			-I ${KERNCONFDIR} ${KERNCONFDIR}/${_kernel}
+			-I '${KERNCONFDIR}' '${KERNCONFDIR}/${_kernel}'
 .endif
 .if !defined(NO_CLEAN) && !defined(NO_KERNELCLEAN)
 	@echo
@@ -1808,7 +1808,7 @@ check-old: check-old-files check-old-libs check-old-dirs
 # showconfig - show build configuration.
 #
 showconfig:
-	@${MAKE} -n -f bsd.own.mk -V dummy -dg1 2>&1 | grep ^MK_ | sort
+	@${MAKE} -n -f src.opts.mk -V dummy -dg1 2>&1 | grep ^MK_ | sort
 
 .if !empty(KRNLOBJDIR) && !empty(KERNCONF)
 DTBOUTPUTPATH= ${KRNLOBJDIR}/${KERNCONF}/
@@ -1816,7 +1816,7 @@ DTBOUTPUTPATH= ${KRNLOBJDIR}/${KERNCONF}/
 .if !defined(FDT_DTS_FILE) || empty(FDT_DTS_FILE)
 .if exists(${KERNCONFDIR}/${KERNCONF})
 FDT_DTS_FILE!= awk 'BEGIN {FS="="} /^makeoptions[[:space:]]+FDT_DTS_FILE/ {print $$2}' \
-	${KERNCONFDIR}/${KERNCONF} ; echo
+	'${KERNCONFDIR}/${KERNCONF}' ; echo
 .endif
 .endif
 
