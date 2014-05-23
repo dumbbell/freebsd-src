@@ -280,11 +280,11 @@ vt_proc_window_switch(struct vt_window *vw)
 	struct vt_device *vd;
 	int ret;
 
-	if (vw->vw_flags & VWF_VTYLOCK)
-		return (EBUSY);
-
 	vd = vw->vw_device;
 	curvw = vd->vd_curwindow;
+
+	if (curvw->vw_flags & VWF_VTYLOCK)
+		return (EBUSY);
 
 	/* Ask current process permitions to switch away. */
 	if (curvw->vw_smode.mode == VT_PROCESS) {
@@ -675,6 +675,22 @@ vtterm_bell(struct terminal *tm)
 		return;
 
 	sysbeep(1193182 / VT_BELLPITCH, VT_BELLDURATION);
+}
+
+static void
+vtterm_beep(struct terminal *tm, u_int param)
+{
+	u_int freq, period;
+
+	if ((param == 0) || ((param & 0xffff) == 0)) {
+		vtterm_bell(tm);
+		return;
+	}
+
+	period = ((param >> 16) & 0xffff) * hz / 1000;
+	freq = 1193182 / (param & 0xffff);
+
+	sysbeep(freq, period);
 }
 
 static void
@@ -1732,17 +1748,9 @@ skip_thunk:
 		td->td_frame->tf_rflags &= ~PSL_IOPL;
 #endif
 		return (0);
-	case KDMKTONE: {      	/* sound the bell */
-		int freq, period;
-
-		freq = 1193182 / ((*(int*)data) & 0xffff);
-		period = (((*(int*)data)>>16) & 0xffff) * hz / 1000;
-		if(*(int*)data)
-			sysbeep(freq, period);
-		else
-			vtterm_bell(tm);
+	case KDMKTONE:      	/* sound the bell */
+		vtterm_beep(tm, *(u_int *)data);
 		return (0);
-	}
 	case KIOCSOUND:     	/* make tone (*data) hz */
 		/* TODO */
 		return (0);
@@ -1806,10 +1814,12 @@ skip_thunk:
 		return (0);
 	case VT_LOCKSWITCH:
 		/* TODO: Check current state, switching can be in progress. */
-		if ((*(int *)data) & 0x01)
+		if ((*(int *)data) == 0x01)
 			vw->vw_flags |= VWF_VTYLOCK;
-		else
+		else if ((*(int *)data) == 0x02)
 			vw->vw_flags &= ~VWF_VTYLOCK;
+		else
+			return (EINVAL);
 		return (0);
 	case VT_OPENQRY:
 		VT_LOCK(vd);
@@ -1973,8 +1983,11 @@ vt_upgrade(struct vt_device *vd)
 	unsigned int i;
 
 	/* Device didn't pass vd_init() or already upgraded. */
-	if (vd->vd_flags & (VDF_ASYNC|VDF_DEAD))
+	if (vd->vd_flags & (VDF_ASYNC|VDF_DEAD)) {
+		/* Refill settings with new sizes anyway. */
+		vt_resize(vd);
 		return;
+	}
 	vd->vd_flags |= VDF_ASYNC;
 
 	for (i = 0; i < VT_MAXWINDOWS; i++) {
@@ -2008,6 +2021,9 @@ vt_upgrade(struct vt_device *vd)
 	/* Start timer when everything ready. */
 	callout_reset(&vd->vd_timer, hz / VT_TIMERFREQ, vt_timer, vd);
 	VT_UNLOCK(vd);
+
+	/* Refill settings with new sizes. */
+	vt_resize(vd);
 }
 
 static void
@@ -2081,9 +2097,6 @@ vt_allocate(struct vt_driver *drv, void *softc)
 	VT_UNLOCK(vd);
 
 	vt_upgrade(vd);
-
-	/* Refill settings with new sizes. */
-	vt_resize(vd);
 
 #ifdef DEV_SPLASH
 	if (vd->vd_flags & VDF_SPLASH)

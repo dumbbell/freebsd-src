@@ -60,6 +60,7 @@ __FBSDID("$FreeBSD$");
 #include "mevent.h"
 #include "mptbl.h"
 #include "pci_emul.h"
+#include "pci_irq.h"
 #include "pci_lpc.h"
 #include "smbiostbl.h"
 #include "xmsr.h"
@@ -68,7 +69,6 @@ __FBSDID("$FreeBSD$");
 
 #define GUEST_NIO_PORT		0x488	/* guest upcalls via i/o port */
 
-#define	VMEXIT_SWITCH		0	/* force vcpu switch in mux mode */
 #define	VMEXIT_CONTINUE		1	/* continue from next instruction */
 #define	VMEXIT_RESTART		2	/* restart current instruction */
 #define	VMEXIT_ABORT		3	/* abort the vm run loop */
@@ -135,6 +135,7 @@ usage(int code)
 		"       -A: create an ACPI table\n"
 		"       -g: gdb port\n"
 		"       -c: # cpus (default 1)\n"
+		"       -C: include guest memory in core file\n"
 		"       -p: pin 'vcpu' to 'hostcpu'\n"
 		"       -H: vmexit from the guest on hlt\n"
 		"       -P: vmexit from the guest on pause\n"
@@ -272,12 +273,6 @@ fbsdrun_deletecpu(struct vmctx *ctx, int vcpu)
 }
 
 static int
-vmexit_catch_inout(void)
-{
-	return (VMEXIT_ABORT);
-}
-
-static int
 vmexit_handle_notify(struct vmctx *ctx, struct vm_exit *vme, int *pvcpu,
 		     uint32_t eax)
 {
@@ -293,33 +288,34 @@ static int
 vmexit_inout(struct vmctx *ctx, struct vm_exit *vme, int *pvcpu)
 {
 	int error;
-	int bytes, port, in, out;
-	uint32_t eax;
+	int bytes, port, in, out, string;
 	int vcpu;
 
 	vcpu = *pvcpu;
 
 	port = vme->u.inout.port;
 	bytes = vme->u.inout.bytes;
-	eax = vme->u.inout.eax;
+	string = vme->u.inout.string;
 	in = vme->u.inout.in;
 	out = !in;
 
-	/* We don't deal with these */
-	if (vme->u.inout.string || vme->u.inout.rep)
-		return (VMEXIT_ABORT);
-
         /* Extra-special case of host notifications */
-        if (out && port == GUEST_NIO_PORT)
-                return (vmexit_handle_notify(ctx, vme, pvcpu, eax));
+        if (out && port == GUEST_NIO_PORT) {
+                error = vmexit_handle_notify(ctx, vme, pvcpu, vme->u.inout.eax);
+		return (error);
+	}
 
-	error = emulate_inout(ctx, vcpu, in, port, bytes, &eax, strictio);
-	if (error == INOUT_OK && in)
-		error = vm_set_register(ctx, vcpu, VM_REG_GUEST_RAX, eax);
+	error = emulate_inout(ctx, vcpu, vme, strictio);
+	if (error == INOUT_OK && in && !string) {
+		error = vm_set_register(ctx, vcpu, VM_REG_GUEST_RAX,
+		    vme->u.inout.eax);
+	}
 
 	switch (error) {
 	case INOUT_OK:
 		return (VMEXIT_CONTINUE);
+	case INOUT_RESTART:
+		return (VMEXIT_RESTART);
 	case INOUT_RESET:
 		stats.io_reset++;
 		return (VMEXIT_RESET);
@@ -330,7 +326,7 @@ vmexit_inout(struct vmctx *ctx, struct vm_exit *vme, int *pvcpu)
 		fprintf(stderr, "Unhandled %s%c 0x%04x\n",
 			in ? "in" : "out",
 			bytes == 1 ? 'b' : (bytes == 2 ? 'w' : 'l'), port);
-		return (vmexit_catch_inout());
+		return (VMEXIT_ABORT);
 	}
 }
 
@@ -519,6 +515,7 @@ vmexit_suspend(struct vmctx *ctx, struct vm_exit *vmexit, int *pvcpu)
 
 static vmexit_handler_t handler[VM_EXITCODE_MAX] = {
 	[VM_EXITCODE_INOUT]  = vmexit_inout,
+	[VM_EXITCODE_INOUT_STR]  = vmexit_inout,
 	[VM_EXITCODE_VMX]    = vmexit_vmx,
 	[VM_EXITCODE_BOGUS]  = vmexit_bogus,
 	[VM_EXITCODE_RDMSR]  = vmexit_rdmsr,
@@ -575,6 +572,8 @@ vm_loop(struct vmctx *ctx, int vcpu, uint64_t rip)
 			assert(error == 0 || errno == EALREADY);
                         rip = vmexit[vcpu].rip + vmexit[vcpu].inst_length;
 			break;
+		case VMEXIT_ABORT:
+			abort();
 		default:
 			exit(1);
 		}
@@ -647,19 +646,20 @@ int
 main(int argc, char *argv[])
 {
 	int c, error, gdb_port, err, bvmcons;
-	int max_vcpus, mptgen;
+	int dump_guest_memory, max_vcpus, mptgen;
 	struct vmctx *ctx;
 	uint64_t rip;
 	size_t memsize;
 
 	bvmcons = 0;
+	dump_guest_memory = 0;
 	progname = basename(argv[0]);
 	gdb_port = 0;
 	guest_ncpus = 1;
 	memsize = 256 * MB;
 	mptgen = 1;
 
-	while ((c = getopt(argc, argv, "abehwxAHIPWYp:g:c:s:m:l:U:")) != -1) {
+	while ((c = getopt(argc, argv, "abehwxACHIPWYp:g:c:s:m:l:U:")) != -1) {
 		switch (c) {
 		case 'a':
 			x2apic_mode = 0;
@@ -678,6 +678,9 @@ main(int argc, char *argv[])
 			break;
                 case 'c':
 			guest_ncpus = atoi(optarg);
+			break;
+		case 'C':
+			dump_guest_memory = 1;
 			break;
 		case 'g':
 			gdb_port = atoi(optarg);
@@ -760,6 +763,8 @@ main(int argc, char *argv[])
 
 	fbsdrun_set_capabilities(ctx, BSP);
 
+	if (dump_guest_memory)
+		vm_set_memflags(ctx, VM_MEM_F_INCORE);
 	err = vm_setup_memory(ctx, memsize, VM_MMAP_ALL);
 	if (err) {
 		fprintf(stderr, "Unable to setup memory (%d)\n", err);
@@ -768,9 +773,11 @@ main(int argc, char *argv[])
 
 	init_mem();
 	init_inout();
+	pci_irq_init(ctx);
 	ioapic_init(ctx);
 
 	rtc_init(ctx);
+	sci_init(ctx);
 
 	/*
 	 * Exit if a device emulation finds an error in it's initilization

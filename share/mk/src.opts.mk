@@ -24,22 +24,13 @@
 #
 # Makefiles should never test WITH_FOO or WITHOUT_FOO directly (although an
 # exception is made for _WITHOUT_SRCONF which turns off this mechanism
-# completely).
+# completely inside bsd.*.mk files).
 #
 
 .if !target(__<src.opts.mk>__)
 __<src.opts.mk>__:
 
-# Compat -- needed still?
 .include <bsd.own.mk>
-
-# Allow user to configure things, but in the future this will move
-# elsehwere...
-
-SRCCONF?=	/etc/src.conf
-.if exists(${SRCCONF}) || ${SRCCONF} != "/etc/src.conf"
-.include "${SRCCONF}"
-.endif
 
 #
 # Define MK_* variables (which are either "yes" or "no") for users
@@ -86,7 +77,6 @@ __DEFAULT_YES_OPTIONS = \
     FDT \
     FLOPPY \
     FMTREE \
-    FORMAT_EXTENSIONS \
     FORTH \
     FP_LIBC \
     FREEBSD_UPDATE \
@@ -107,7 +97,6 @@ __DEFAULT_YES_OPTIONS = \
     IPFW \
     JAIL \
     KDUMP \
-    KERNEL_SYMBOLS \
     KVM \
     LDNS \
     LDNS_UTILS \
@@ -123,7 +112,6 @@ __DEFAULT_YES_OPTIONS = \
     MAIL \
     MAILWRAPPER \
     MAKE \
-    NCURSESW \
     NDIS \
     NETCAT \
     NETGRAPH \
@@ -169,6 +157,7 @@ __DEFAULT_NO_OPTIONS = \
     BSD_GREP \
     CLANG_EXTRAS \
     EISA \
+    FMAKE \
     HESIOD \
     LLDB \
     NAND \
@@ -229,24 +218,6 @@ __DEFAULT_YES_OPTIONS+=GCC GNUCXX GCC_BOOTSTRAP
 .endif
 
 .include <bsd.mkopt.mk>
-
-#
-# Supported NO_* options (if defined, MK_* will be forced to "no",
-# regardless of user's setting).
-#
-# These are transitional and will disappaer in the FreeBSD 12.
-#
-.for var in \
-    CTF \
-    DEBUG_FILES \
-    INSTALLLIB \
-    MAN \
-    PROFILE
-.if defined(NO_${var})
-.warning "NO_${var} is defined, but deprecated. Please use MK_${var}=no instead."
-MK_${var}:=no
-.endif
-.endfor
 
 #
 # MK_* options that default to "yes" if the compiler is a C++11 compiler.

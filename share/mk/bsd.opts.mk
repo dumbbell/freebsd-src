@@ -45,6 +45,7 @@ __<bsd.opts.mk>__:
 
 __DEFAULT_YES_OPTIONS = \
     ASSERT_DEBUG \
+    DOCCOMPRESS \
     INFO \
     INSTALLLIB \
     KERBEROS \
@@ -56,7 +57,8 @@ __DEFAULT_YES_OPTIONS = \
     PROFILE \
     SSP \
     SYMVER \
-    TOOLCHAIN
+    TOOLCHAIN \
+    WARNS
 
 __DEFAULT_NO_OPTIONS = \
     CTF \
@@ -64,6 +66,26 @@ __DEFAULT_NO_OPTIONS = \
     INSTALL_AS_USER
 
 .include <bsd.mkopt.mk>
+
+#
+# Supported NO_* options (if defined, MK_* will be forced to "no",
+# regardless of user's setting).
+#
+# These are transitional and will disappaer in the FreeBSD 12.
+#
+.for var in \
+    CTF \
+    DEBUG_FILES \
+    INSTALLLIB \
+    MAN \
+    PROFILE \
+    WARNS
+.if defined(NO_${var})
+# This warning may be premature...
+#.warning "NO_${var} is defined, but deprecated. Please use MK_${var}=no instead."
+MK_${var}:=no
+.endif
+.endfor
 
 .endif # !_WITHOUT_SRCCONF
 

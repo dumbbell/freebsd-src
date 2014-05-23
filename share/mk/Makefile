@@ -26,7 +26,7 @@ FILES=	\
 	bsd.nls.mk \
 	bsd.obj.mk \
 	bsd.opts.mk \
-	src.opts.mk \
+	bsd.own.mk \
 	bsd.port.mk \
 	bsd.port.options.mk \
 	bsd.port.post.mk \
@@ -41,9 +41,6 @@ FILES=	\
 	bsd.test.mk \
 	sys.mk \
 	version_gen.awk
-
-# Installed for the moment, but not may not be in the future.
-FILES+=	src.opts.mk
 
 NO_OBJ=
 FILESDIR=	${BINDIR}/mk
