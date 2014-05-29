@@ -51,6 +51,7 @@ __FBSDID("$FreeBSD$");
 
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
+#include <machine/vmm_instruction_emul.h>
 #include "vmm_host.h"
 #include "vmm_ioport.h"
 #include "vmm_ipi.h"
@@ -1379,8 +1380,30 @@ vmx_emulate_xsetbv(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 		return (HANDLED);
 	}
 
-	if ((xcrval & (XFEATURE_ENABLED_AVX | XFEATURE_ENABLED_SSE)) ==
-	    XFEATURE_ENABLED_AVX) {
+	/* AVX (YMM_Hi128) requires SSE. */
+	if (xcrval & XFEATURE_ENABLED_AVX &&
+	    (xcrval & XFEATURE_AVX) != XFEATURE_AVX) {
+		vm_inject_gp(vmx->vm, vcpu);
+		return (HANDLED);
+	}
+
+	/*
+	 * AVX512 requires base AVX (YMM_Hi128) as well as OpMask,
+	 * ZMM_Hi256, and Hi16_ZMM.
+	 */
+	if (xcrval & XFEATURE_AVX512 &&
+	    (xcrval & (XFEATURE_AVX512 | XFEATURE_AVX)) !=
+	    (XFEATURE_AVX512 | XFEATURE_AVX)) {
+		vm_inject_gp(vmx->vm, vcpu);
+		return (HANDLED);
+	}
+
+	/*
+	 * Intel MPX requires both bound register state flags to be
+	 * set.
+	 */
+	if (((xcrval & XFEATURE_ENABLED_BNDREGS) != 0) !=
+	    ((xcrval & XFEATURE_ENABLED_BNDCSR) != 0)) {
 		vm_inject_gp(vmx->vm, vcpu);
 		return (HANDLED);
 	}
@@ -1517,7 +1540,7 @@ vmx_cpl(void)
 	return ((ssar >> 5) & 0x3);
 }
 
-static enum vie_cpu_mode
+static enum vm_cpu_mode
 vmx_cpu_mode(void)
 {
 
@@ -1527,7 +1550,7 @@ vmx_cpu_mode(void)
 		return (CPU_MODE_COMPATIBILITY);
 }
 
-static enum vie_paging_mode
+static enum vm_paging_mode
 vmx_paging_mode(void)
 {
 
@@ -1607,15 +1630,21 @@ inout_str_seginfo(struct vmx *vmx, int vcpuid, uint32_t inst_info, int in,
 }
 
 static void
+vmx_paging_info(struct vm_guest_paging *paging)
+{
+	paging->cr3 = vmcs_guest_cr3();
+	paging->cpl = vmx_cpl();
+	paging->cpu_mode = vmx_cpu_mode();
+	paging->paging_mode = vmx_paging_mode();
+}
+
+static void
 vmexit_inst_emul(struct vm_exit *vmexit, uint64_t gpa, uint64_t gla)
 {
 	vmexit->exitcode = VM_EXITCODE_INST_EMUL;
 	vmexit->u.inst_emul.gpa = gpa;
 	vmexit->u.inst_emul.gla = gla;
-	vmexit->u.inst_emul.cr3 = vmcs_guest_cr3();
-	vmexit->u.inst_emul.cpu_mode = vmx_cpu_mode();
-	vmexit->u.inst_emul.paging_mode = vmx_paging_mode();
-	vmexit->u.inst_emul.cpl = vmx_cpl();
+	vmx_paging_info(&vmexit->u.inst_emul.paging);
 }
 
 static int
@@ -1998,17 +2027,13 @@ vmx_exit_process(struct vmx *vmx, int vcpu, struct vm_exit *vmexit)
 			inst_info = vmcs_read(VMCS_EXIT_INSTRUCTION_INFO);
 			vmexit->exitcode = VM_EXITCODE_INOUT_STR;
 			vis = &vmexit->u.inout_str;
-			vis->cpu_mode = vmx_cpu_mode();
-			vis->paging_mode = vmx_paging_mode();
+			vmx_paging_info(&vis->paging);
 			vis->rflags = vmcs_read(VMCS_GUEST_RFLAGS);
 			vis->cr0 = vmcs_read(VMCS_GUEST_CR0);
-			vis->cr3 = vmcs_read(VMCS_GUEST_CR3);
-			vis->cpl = vmx_cpl();
 			vis->index = inout_str_index(vmx, vcpu, in);
 			vis->count = inout_str_count(vmx, vcpu, vis->inout.rep);
 			vis->addrsize = inout_str_addrsize(inst_info);
 			inout_str_seginfo(vmx, vcpu, inst_info, in, vis);
-			vis->gla = vmcs_gla();
 		}
 		break;
 	case EXIT_REASON_CPUID:
@@ -2383,6 +2408,8 @@ vmxctx_regptr(struct vmxctx *vmxctx, int reg)
 		return (&vmxctx->guest_r14);
 	case VM_REG_GUEST_R15:
 		return (&vmxctx->guest_r15);
+	case VM_REG_GUEST_CR2:
+		return (&vmxctx->guest_cr2);
 	default:
 		break;
 	}
