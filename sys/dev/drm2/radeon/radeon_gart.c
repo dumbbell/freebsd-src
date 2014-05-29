@@ -72,7 +72,7 @@ int radeon_gart_table_ram_alloc(struct radeon_device *rdev)
 	drm_dma_handle_t *dmah;
 
 	dmah = drm_pci_alloc(rdev->ddev, rdev->gart.table_size,
-	    PAGE_SIZE);
+	    PAGE_SIZE, BUS_SPACE_MAXADDR);
 	if (dmah == NULL) {
 		return -ENOMEM;
 	}
