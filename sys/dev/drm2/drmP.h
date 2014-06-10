@@ -1748,9 +1748,6 @@ void	drm_driver_irq_preinstall(struct drm_device *dev);
 void	drm_driver_irq_postinstall(struct drm_device *dev);
 void	drm_driver_irq_uninstall(struct drm_device *dev);
 
-struct timeval ns_to_timeval(const int64_t nsec);
-int64_t timeval_to_ns(const struct timeval *tv);
-
 /* AGP/PCI Express/GART support (drm_agpsupport.c) */
 void	*drm_agp_allocate_memory(size_t pages, u32 type);
 int	drm_agp_free_memory(void *handle);
@@ -1762,12 +1759,6 @@ extern int		drm_sysctl_init(struct drm_device *dev);
 extern int		drm_sysctl_cleanup(struct drm_device *dev);
 
 int	drm_version(struct drm_device *dev, void *data,
-		    struct drm_file *file_priv);
-
-/* Scatter Gather Support (drm_scatter.c) */
-int	drm_sg_alloc_ioctl(struct drm_device *dev, void *data,
-			   struct drm_file *file_priv);
-int	drm_sg_free(struct drm_device *dev, void *data,
 		    struct drm_file *file_priv);
 
 /* consistent PCI memory functions (drm_pci.c) */
