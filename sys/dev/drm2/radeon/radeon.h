@@ -72,8 +72,10 @@ __FBSDID("$FreeBSD$");
 #include <sys/linker.h>
 #include <sys/firmware.h>
 
+#if defined(CONFIG_ACPI)
 #include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+#endif
 
 #include <dev/drm2/ttm/ttm_bo_api.h>
 #include <dev/drm2/ttm/ttm_bo_driver.h>
@@ -1636,10 +1638,12 @@ struct radeon_device {
 	struct sx dc_hw_i2c_mutex; /* display controller hw i2c mutex */
 	bool audio_enabled;
 	struct r600_audio audio_status; /* audio stuff */
+#if defined(CONFIG_ACPI)
 	struct {
 		ACPI_HANDLE		handle;
 		ACPI_NOTIFY_HANDLER	notifier_call;
 	} acpi;
+#endif
 	/* only one userspace can use Hyperz features or CMASK at a time */
 	struct drm_file *hyperz_filp;
 	struct drm_file *cmask_filp;
@@ -1984,8 +1988,13 @@ extern int ni_mc_load_microcode(struct radeon_device *rdev);
 extern void ni_fini_microcode(struct radeon_device *rdev);
 
 /* radeon_acpi.c */
+#if defined(CONFIG_ACPI)
 extern int radeon_acpi_init(struct radeon_device *rdev);
 extern void radeon_acpi_fini(struct radeon_device *rdev);
+#else
+static inline int radeon_acpi_init(struct radeon_device *rdev) { return 0; }
+static inline void radeon_acpi_fini(struct radeon_device *rdev) { }
+#endif
 
 /* Prototypes added by @dumbbell. */
 
