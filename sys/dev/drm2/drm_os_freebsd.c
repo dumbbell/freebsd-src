@@ -258,7 +258,11 @@ void
 drm_clflush_pages(vm_page_t *pages, unsigned long num_pages)
 {
 
+#if defined(__i386__) || defined(__amd64__)
 	pmap_invalidate_cache_pages(pages, num_pages);
+#else
+	DRM_ERROR("drm_clflush_pages not implemented on this architecture");
+#endif
 }
 
 #if DRM_LINUX
