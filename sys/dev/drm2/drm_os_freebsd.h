@@ -324,6 +324,10 @@ typedef struct drm_pci_id_list
 #define	CONFIG_IA64	1
 #endif
 
+#if defined(__i386__) || defined(__amd64__)
+#define	CONFIG_ACPI
+#endif
+
 #define	CONFIG_FB	1
 extern const char *fb_mode_option;
 

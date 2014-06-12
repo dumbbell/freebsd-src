@@ -144,7 +144,7 @@ struct opregion_asle {
 #define ACPI_DIGITAL_OUTPUT (3<<8)
 #define ACPI_LVDS_OUTPUT (4<<8)
 
-#ifdef CONFIG_ACPI
+#if defined(CONFIG_ACPI) && 0
 static u32 asle_set_backlight(struct drm_device *dev, u32 bclp)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
