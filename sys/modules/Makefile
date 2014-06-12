@@ -847,6 +847,7 @@ _wi=		wi
 .endif
 
 .if ${MACHINE_ARCH} == "powerpc64"
+_drm2=		drm2
 .if ${MK_ZFS} != "no" || defined(ALL_MODULES)
 _zfs=		zfs
 .endif
