@@ -202,7 +202,6 @@ struct mbuf {
 #define	m_type		m_hdr.mh_type
 #define	m_flags		m_hdr.mh_flags
 #define	m_nextpkt	m_hdr.mh_nextpkt
-#define	m_act		m_nextpkt
 #define	m_pkthdr	M_dat.MH.MH_pkthdr
 #define	m_ext		M_dat.MH.MH_dat.MH_ext
 #define	m_pktdat	M_dat.MH.MH_dat.MH_databuf
@@ -279,6 +278,7 @@ struct mbuf {
  * that provide an opaque flow identifier, allowing for ordering and
  * distribution without explicit affinity.
  */
+/* Microsoft RSS standard hash types */
 #define	M_HASHTYPE_NONE			0
 #define	M_HASHTYPE_RSS_IPV4		1	/* IPv4 2-tuple */
 #define	M_HASHTYPE_RSS_TCP_IPV4		2	/* TCPv4 4-tuple */
@@ -286,6 +286,12 @@ struct mbuf {
 #define	M_HASHTYPE_RSS_TCP_IPV6		4	/* TCPv6 4-tuple */
 #define	M_HASHTYPE_RSS_IPV6_EX		5	/* IPv6 2-tuple + ext hdrs */
 #define	M_HASHTYPE_RSS_TCP_IPV6_EX	6	/* TCPv6 4-tiple + ext hdrs */
+/* Non-standard RSS hash types */
+#define	M_HASHTYPE_RSS_UDP_IPV4		7	/* IPv4 UDP 4-tuple */
+#define	M_HASHTYPE_RSS_UDP_IPV4_EX	8	/* IPv4 UDP 4-tuple + ext hdrs */
+#define	M_HASHTYPE_RSS_UDP_IPV6		9	/* IPv6 UDP 4-tuple */
+#define	M_HASHTYPE_RSS_UDP_IPV6_EX	10	/* IPv6 UDP 4-tuple + ext hdrs */
+
 #define	M_HASHTYPE_OPAQUE		255	/* ordering, not affinity */
 
 #define	M_HASHTYPE_CLEAR(m)	((m)->m_pkthdr.rsstype = 0)
@@ -372,6 +378,12 @@ struct mbuf {
     "\21EXT_FLAG_VENDOR1\22EXT_FLAG_VENDOR2\23EXT_FLAG_VENDOR3" \
     "\24EXT_FLAG_VENDOR4\25EXT_FLAG_EXP1\26EXT_FLAG_EXP2\27EXT_FLAG_EXP3" \
     "\30EXT_FLAG_EXP4"
+
+/*
+ * External reference/free functions.
+ */
+void sf_ext_ref(void *, void *);
+void sf_ext_free(void *, void *);
 
 /*
  * Flags indicating checksum, segmentation and other offload work to be

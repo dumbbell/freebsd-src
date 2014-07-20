@@ -34,6 +34,7 @@ enum vm_suspend_how {
 	VM_SUSPEND_RESET,
 	VM_SUSPEND_POWEROFF,
 	VM_SUSPEND_HALT,
+	VM_SUSPEND_TRIPLEFAULT,
 	VM_SUSPEND_LAST
 };
 
@@ -75,6 +76,10 @@ enum vm_reg_name {
 	VM_REG_GUEST_GDTR,
 	VM_REG_GUEST_EFER,
 	VM_REG_GUEST_CR2,
+	VM_REG_GUEST_PDPTE0,
+	VM_REG_GUEST_PDPTE1,
+	VM_REG_GUEST_PDPTE2,
+	VM_REG_GUEST_PDPTE3,
 	VM_REG_LAST
 };
 
@@ -83,6 +88,16 @@ enum x2apic_state {
 	X2APIC_ENABLED,
 	X2APIC_STATE_LAST
 };
+
+#define	VM_INTINFO_VECTOR(info)	((info) & 0xff)
+#define	VM_INTINFO_DEL_ERRCODE	0x800
+#define	VM_INTINFO_RSVD		0x7ffff000
+#define	VM_INTINFO_VALID	0x80000000
+#define	VM_INTINFO_TYPE		0x700
+#define	VM_INTINFO_HWINTR	(0 << 8)
+#define	VM_INTINFO_NMI		(2 << 8)
+#define	VM_INTINFO_HWEXCEPTION	(3 << 8)
+#define	VM_INTINFO_SWINTR	(4 << 8)
 
 #ifdef _KERNEL
 
@@ -274,14 +289,31 @@ struct vatpit *vm_atpit(struct vm *vm);
 int vm_inject_exception(struct vm *vm, int vcpuid, struct vm_exception *vme);
 
 /*
- * Returns 0 if there is no exception pending for this vcpu. Returns 1 if an
- * exception is pending and also updates 'vme'. The pending exception is
- * cleared when this function returns.
+ * This function is called after a VM-exit that occurred during exception or
+ * interrupt delivery through the IDT. The format of 'intinfo' is described
+ * in Figure 15-1, "EXITINTINFO for All Intercepts", APM, Vol 2.
  *
- * This function should only be called in the context of the thread that is
- * executing this vcpu.
+ * If a VM-exit handler completes the event delivery successfully then it
+ * should call vm_exit_intinfo() to extinguish the pending event. For e.g.,
+ * if the task switch emulation is triggered via a task gate then it should
+ * call this function with 'intinfo=0' to indicate that the external event
+ * is not pending anymore.
+ *
+ * Return value is 0 on success and non-zero on failure.
  */
-int vm_exception_pending(struct vm *vm, int vcpuid, struct vm_exception *vme);
+int vm_exit_intinfo(struct vm *vm, int vcpuid, uint64_t intinfo);
+
+/*
+ * This function is called before every VM-entry to retrieve a pending
+ * event that should be injected into the guest. This function combines
+ * nested events into a double or triple fault.
+ *
+ * Returns 0 if there are no events that need to be injected into the guest
+ * and non-zero otherwise.
+ */
+int vm_entry_intinfo(struct vm *vm, int vcpuid, uint64_t *info);
+
+int vm_get_intinfo(struct vm *vm, int vcpuid, uint64_t *info1, uint64_t *info2);
 
 void vm_inject_gp(struct vm *vm, int vcpuid); /* general protection fault */
 void vm_inject_ud(struct vm *vm, int vcpuid); /* undefined instruction fault */
@@ -322,11 +354,12 @@ struct seg_desc {
 	uint32_t	limit;
 	uint32_t	access;
 };
-#define	SEG_DESC_TYPE(desc)		((desc)->access & 0x001f)
-#define	SEG_DESC_PRESENT(desc)		((desc)->access & 0x0080)
-#define	SEG_DESC_DEF32(desc)		((desc)->access & 0x4000)
-#define	SEG_DESC_GRANULARITY(desc)	((desc)->access & 0x8000)
-#define	SEG_DESC_UNUSABLE(desc)		((desc)->access & 0x10000)
+#define	SEG_DESC_TYPE(access)		((access) & 0x001f)
+#define	SEG_DESC_DPL(access)		(((access) >> 5) & 0x3)
+#define	SEG_DESC_PRESENT(access)	(((access) & 0x0080) ? 1 : 0)
+#define	SEG_DESC_DEF32(access)		(((access) & 0x4000) ? 1 : 0)
+#define	SEG_DESC_GRANULARITY(access)	(((access) & 0x8000) ? 1 : 0)
+#define	SEG_DESC_UNUSABLE(access)	(((access) & 0x10000) ? 1 : 0)
 
 enum vm_cpu_mode {
 	CPU_MODE_REAL,
@@ -366,11 +399,14 @@ struct vie {
 	uint8_t		num_valid;		/* size of the instruction */
 	uint8_t		num_processed;
 
+	uint8_t		addrsize:4, opsize:4;	/* address and operand sizes */
 	uint8_t		rex_w:1,		/* REX prefix */
 			rex_r:1,
 			rex_x:1,
 			rex_b:1,
-			rex_present:1;
+			rex_present:1,
+			opsize_override:1,	/* Operand size override */
+			addrsize_override:1;	/* Address size override */
 
 	uint8_t		mod:2,			/* ModRM byte */
 			reg:4,
@@ -412,6 +448,7 @@ enum vm_exitcode {
 	VM_EXITCODE_IOAPIC_EOI,
 	VM_EXITCODE_SUSPENDED,
 	VM_EXITCODE_INOUT_STR,
+	VM_EXITCODE_TASK_SWITCH,
 	VM_EXITCODE_MAX
 };
 
@@ -436,6 +473,22 @@ struct vm_inout_str {
 	struct seg_desc seg_desc;
 };
 
+enum task_switch_reason {
+	TSR_CALL,
+	TSR_IRET,
+	TSR_JMP,
+	TSR_IDT_GATE,	/* task gate in IDT */
+};
+
+struct vm_task_switch {
+	uint16_t	tsssel;		/* new TSS selector */
+	int		ext;		/* task switch due to external event */
+	uint32_t	errcode;
+	int		errcode_valid;	/* push 'errcode' on the new stack */
+	enum task_switch_reason reason;
+	struct vm_guest_paging paging;
+};
+
 struct vm_exit {
 	enum vm_exitcode	exitcode;
 	int			inst_length;	/* 0 means unknown */
@@ -450,6 +503,7 @@ struct vm_exit {
 		struct {
 			uint64_t	gpa;
 			uint64_t	gla;
+			int		cs_d;		/* CS.D */
 			struct vm_guest_paging paging;
 			struct vie	vie;
 		} inst_emul;
@@ -489,6 +543,7 @@ struct vm_exit {
 		struct {
 			enum vm_suspend_how how;
 		} suspended;
+		struct vm_task_switch task_switch;
 	} u;
 };
 
