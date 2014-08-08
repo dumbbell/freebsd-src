@@ -1,4 +1,4 @@
-Updating Information for FreeBSD current users
+Updating Information for FreeBSD current users.
 
 This file is maintained and copyrighted by M. Warner Losh <imp@freebsd.org>.
 See end of file for further details.  For commonly done items, please see the
@@ -30,6 +30,13 @@ NOTE TO PEOPLE WHO THINK THAT FreeBSD 11.x IS SLOW:
 	debugging, define MALLOC_PRODUCTION in /etc/make.conf, or to merely
 	disable the most expensive debugging functionality run
 	"ln -s 'abort:false,junk:false' /etc/malloc.conf".)
+
+20140729:
+	The ofwfb driver, used to provide a graphics console on PowerPC when
+	using vt(4), no longer allows mmap() of all of physical memory. This
+	will prevent Xorg on PowerPC with some ATI graphics cards from
+	initializing properly unless x11-servers/xorg-server is updated to
+	1.12.4_8 or newer.
 
 20140723:
 	The xdev targets have been converted to using TARGET and

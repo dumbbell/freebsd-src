@@ -61,7 +61,6 @@ static struct vt_driver vt_efifb_driver = {
 	.vd_init = vt_efifb_init,
 	.vd_blank = vt_fb_blank,
 	.vd_bitbltchr = vt_fb_bitbltchr,
-	.vd_maskbitbltchr = vt_fb_maskbitbltchr,
 	.vd_fb_ioctl = vt_fb_ioctl,
 	.vd_fb_mmap = vt_fb_mmap,
 	/* Better than VGA, but still generic driver. */
@@ -154,11 +153,7 @@ vt_efifb_init(struct vt_device *vd)
 	info->fb_width = MIN(info->fb_width, VT_FB_DEFAULT_WIDTH);
 	info->fb_height = MIN(info->fb_height, VT_FB_DEFAULT_HEIGHT);
 
-	fb_probe(info);
 	vt_fb_init(vd);
-
-	/* Clear the screen. */
-	vt_fb_blank(vd, TC_BLACK);
 
 	return (CN_INTERNAL);
 }

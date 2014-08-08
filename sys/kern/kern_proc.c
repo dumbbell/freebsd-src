@@ -263,14 +263,15 @@ proc_fini(void *mem, int size)
  * Is p an inferior of the current process?
  */
 int
-inferior(p)
-	register struct proc *p;
+inferior(struct proc *p)
 {
 
 	sx_assert(&proctree_lock, SX_LOCKED);
-	for (; p != curproc; p = p->p_pptr)
+	PROC_LOCK_ASSERT(p, MA_OWNED);
+	for (; p != curproc; p = proc_realparent(p)) {
 		if (p->p_pid == 0)
 			return (0);
+	}
 	return (1);
 }
 
@@ -2147,7 +2148,7 @@ kern_proc_vmmap_resident(vm_map_t map, vm_map_entry_t entry,
 	obj = entry->object.vm_object;
 	addr = entry->start;
 	m_adv = NULL;
-	pi = OFF_TO_IDX(entry->offset + addr - entry->start);
+	pi = OFF_TO_IDX(entry->offset);
 	for (; addr < entry->end; addr += IDX_TO_OFF(pi_adv), pi += pi_adv) {
 		if (m_adv != NULL) {
 			m = m_adv;

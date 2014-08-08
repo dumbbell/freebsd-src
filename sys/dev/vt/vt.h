@@ -87,6 +87,12 @@ static int vt_##_name = _default;					\
 SYSCTL_INT(_kern_vt, OID_AUTO, _name, CTLFLAG_RWTUN, &vt_##_name, _default,\
 		_descr);
 
+/* Allow to disable some special keys by users. */
+#define	VT_DEBUG_KEY_ENABLED	(1 << 0)
+#define	VT_REBOOT_KEY_ENABLED	(1 << 1)
+#define	VT_HALT_KEY_ENABLED	(1 << 2)
+#define	VT_POWEROFF_KEY_ENABLED	(1 << 3)
+
 struct vt_driver;
 
 void vt_allocate(struct vt_driver *, void *);
@@ -284,9 +290,6 @@ typedef void vd_blank_t(struct vt_device *vd, term_color_t color);
 typedef void vd_bitbltchr_t(struct vt_device *vd, const uint8_t *src,
     const uint8_t *mask, int bpl, vt_axis_t top, vt_axis_t left,
     unsigned int width, unsigned int height, term_color_t fg, term_color_t bg);
-typedef void vd_maskbitbltchr_t(struct vt_device *vd, const uint8_t *src,
-    const uint8_t *mask, int bpl, vt_axis_t top, vt_axis_t left,
-    unsigned int width, unsigned int height, term_color_t fg, term_color_t bg);
 typedef void vd_putchar_t(struct vt_device *vd, term_char_t,
     vt_axis_t top, vt_axis_t left, term_color_t fg, term_color_t bg);
 typedef int vd_fb_ioctl_t(struct vt_device *, u_long, caddr_t, struct thread *);
@@ -305,7 +308,6 @@ struct vt_driver {
 	/* Drawing. */
 	vd_blank_t	*vd_blank;
 	vd_bitbltchr_t	*vd_bitbltchr;
-	vd_maskbitbltchr_t *vd_maskbitbltchr;
 	vd_drawrect_t	*vd_drawrect;
 	vd_setpixel_t	*vd_setpixel;
 
@@ -346,54 +348,6 @@ void vt_upgrade(struct vt_device *vd);
 #ifndef VT_FB_DEFAULT_HEIGHT
 #define	VT_FB_DEFAULT_HEIGHT	1200
 #endif
-
-#define	VT_CONSDEV_DECLARE(driver, width, height, softc)		\
-static struct terminal	driver ## _consterm;				\
-static struct vt_window	driver ## _conswindow;				\
-static struct vt_device	driver ## _consdev = {				\
-	.vd_driver = &driver,						\
-	.vd_softc = (softc),						\
-	.vd_flags = VDF_INVALID,					\
-	.vd_windows = { [VT_CONSWINDOW] =  &driver ## _conswindow, },	\
-	.vd_curwindow = &driver ## _conswindow,				\
-	.vd_markedwin = NULL,						\
-	.vd_kbstate = 0,						\
-};									\
-static term_char_t	driver ## _constextbuf[(width) * 		\
-	    (VBF_DEFAULT_HISTORY_SIZE)];				\
-static term_char_t	*driver ## _constextbufrows[			\
-	    VBF_DEFAULT_HISTORY_SIZE];					\
-static struct vt_window	driver ## _conswindow = {			\
-	.vw_number = VT_CONSWINDOW,					\
-	.vw_flags = VWF_CONSOLE,					\
-	.vw_buf = {							\
-		.vb_buffer = driver ## _constextbuf,			\
-		.vb_rows = driver ## _constextbufrows,			\
-		.vb_history_size = VBF_DEFAULT_HISTORY_SIZE,		\
-		.vb_curroffset = 0,					\
-		.vb_roffset = 0,					\
-		.vb_flags = VBF_STATIC,					\
-		.vb_mark_start = {					\
-			.tp_row = 0,					\
-			.tp_col = 0,					\
-		},							\
-		.vb_mark_end = {					\
-			.tp_row = 0,					\
-			.tp_col = 0,					\
-		},							\
-		.vb_scr_size = {					\
-			.tp_row = height,				\
-			.tp_col = width,				\
-		},							\
-	},								\
-	.vw_device = &driver ## _consdev,				\
-	.vw_terminal = &driver ## _consterm,				\
-	.vw_kbdmode = K_XLATE,						\
-};									\
-TERMINAL_DECLARE_EARLY(driver ## _consterm, vt_termclass,		\
-    &driver ## _conswindow);						\
-SYSINIT(vt_early_cons, SI_SUB_INT_CONFIG_HOOKS, SI_ORDER_ANY,		\
-    vt_upgrade, &driver ## _consdev)
 
 /* name argument is not used yet. */
 #define VT_DRIVER_DECLARE(name, drv) DATA_SET(vt_drv_set, drv)
