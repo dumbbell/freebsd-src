@@ -1,9 +1,7 @@
+#!/usr/sbin/dtrace -s
 /*-
- * Copyright (c) 2013 The FreeBSD Foundation
+ * Copyright 2014 John-Mark Gurney.
  * All rights reserved.
- *
- * This software was developed by Aleksandr Rybalko under sponsorship from the
- * FreeBSD Foundation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,25 +24,44 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD$
+ *	$FreeBSD$
+ *
  */
 
-enum vt_color_format {
-	COLOR_FORMAT_BW = 0,
-	COLOR_FORMAT_GRAY,
-	COLOR_FORMAT_VGA,		/* Color Index. */
-	COLOR_FORMAT_RGB,
-	COLOR_FORMAT_ARGB,
-        COLOR_FORMAT_CMYK,
-        COLOR_FORMAT_HSL,
-        COLOR_FORMAT_YUV,
-        COLOR_FORMAT_YCbCr,
-        COLOR_FORMAT_YPbPr,
+#pragma D option quiet
+#pragma D option dynvarsize=16m
 
-        COLOR_FORMAT_MAX = 15,
-};
+dtrace:::BEGIN
+{
+	printf("Tracing... Hit Ctrl-C to end.\n");
+}
 
-/* Helper to fill color map used by driver */
-int vt_generate_cons_palette(uint32_t *palette, int format, uint32_t rmax,
-    int roffset, uint32_t gmax, int goffset, uint32_t bmax, int boffset);
+io:::start
+{
+	start_time[arg0] = timestamp;
+}
 
+io:::done
+/this->start = start_time[arg0]/
+{
+	this->delta = (timestamp - this->start) / 1000;
+	@q[args[1]->device_name, args[1]->unit_number] =
+	    lquantize(this->delta, 4000, 80000, 4000);
+	@max[args[1]->device_name, args[1]->unit_number] = max(this->delta);
+	@avg[args[1]->device_name, args[1]->unit_number] = avg(this->delta);
+	@stddev[args[1]->device_name, args[1]->unit_number] = stddev(this->delta);
+	start_time[arg0] = 0;
+}
+
+tick-10s
+{
+	printa("   %s (%d), us:\n%@d\n", @q);
+	printa("max%s (%d), us:\n%@d\n", @max);
+	printa("avg%s (%d), us:\n%@d\n", @avg);
+	printa("stddev%s (%d), us:\n%@d\n", @stddev);
+
+	clear(@q);
+	clear(@max);
+	clear(@avg);
+	clear(@stddev);
+}

@@ -1,9 +1,6 @@
 /*-
- * Copyright (c) 2013 The FreeBSD Foundation
+ * Copyright (c) 2014 Gleb Smirnoff <glebius@FreeBSD.org>
  * All rights reserved.
- *
- * This software was developed by Aleksandr Rybalko under sponsorship from the
- * FreeBSD Foundation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,22 +26,10 @@
  * $FreeBSD$
  */
 
-enum vt_color_format {
-	COLOR_FORMAT_BW = 0,
-	COLOR_FORMAT_GRAY,
-	COLOR_FORMAT_VGA,		/* Color Index. */
-	COLOR_FORMAT_RGB,
-	COLOR_FORMAT_ARGB,
-        COLOR_FORMAT_CMYK,
-        COLOR_FORMAT_HSL,
-        COLOR_FORMAT_YUV,
-        COLOR_FORMAT_YCbCr,
-        COLOR_FORMAT_YPbPr,
+#ifndef _MACHINE_SF_BUF_H_
+#define _MACHINE_SF_BUF_H_
 
-        COLOR_FORMAT_MAX = 15,
-};
+void sf_buf_map(struct sf_buf *, int);
+int sf_buf_unmap(struct sf_buf *);
 
-/* Helper to fill color map used by driver */
-int vt_generate_cons_palette(uint32_t *palette, int format, uint32_t rmax,
-    int roffset, uint32_t gmax, int goffset, uint32_t bmax, int boffset);
-
+#endif /* !_MACHINE_SF_BUF_H_ */
