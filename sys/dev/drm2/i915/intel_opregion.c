@@ -350,7 +350,7 @@ static void intel_didl_outputs(struct drm_device *dev)
 	ACPI_STATUS status;
 	int i = 0;
 
-	handle = acpi_get_handle(dev->device);
+	handle = acpi_get_handle(dev->dev);
 	if (!handle)
 		return;
 
@@ -377,7 +377,7 @@ static void intel_didl_outputs(struct drm_device *dev)
 	}
 
 	if (!acpi_video_bus) {
-		device_printf(dev->device, "No ACPI video bus found\n");
+		device_printf(dev->dev, "No ACPI video bus found\n");
 		return;
 	}
 
@@ -385,7 +385,7 @@ static void intel_didl_outputs(struct drm_device *dev)
 	while (AcpiGetNextObject(ACPI_TYPE_DEVICE, acpi_video_bus, acpi_cdev,
 				&acpi_cdev) != AE_NOT_FOUND) {
 		if (i >= 8) {
-			device_printf(dev->device, "More than 8 outputs detected\n");
+			device_printf(dev->dev, "More than 8 outputs detected\n");
 			return;
 		}
 		status = acpi_GetInteger(acpi_cdev, "_ADR", &device_id);
