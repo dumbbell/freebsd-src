@@ -258,7 +258,7 @@ struct vt_window {
 	struct terminal		*vw_terminal;	/* (c) Terminal. */
 	struct vt_buf		 vw_buf;	/* (u) Screen buffer. */
 	struct vt_font		*vw_font;	/* (d) Graphical font. */
-	term_pos_t		 vw_offset;	/* (?) Pixel offset. */
+	term_rect_t		 vw_draw_area;	/* (?) Drawable area. */
 	unsigned int		 vw_number;	/* (c) Window number. */
 	int			 vw_kbdmode;	/* (?) Keyboard mode. */
 	char			*vw_kbdsq;	/* Escape sequence queue*/
@@ -294,17 +294,12 @@ typedef int vd_init_t(struct vt_device *vd);
 typedef int vd_probe_t(struct vt_device *vd);
 typedef void vd_postswitch_t(struct vt_device *vd);
 typedef void vd_blank_t(struct vt_device *vd, term_color_t color);
-/*
- * FIXME: Remove vd_bitblt_t and vd_putchar_t, once vd_bitblt_text_t is
- * provided by all drivers.
- */
-typedef void vd_bitbltchr_t(struct vt_device *vd, const uint8_t *src,
-    const uint8_t *mask, int bpl, vt_axis_t top, vt_axis_t left,
-    unsigned int width, unsigned int height, term_color_t fg, term_color_t bg);
-typedef void vd_putchar_t(struct vt_device *vd, term_char_t,
-    vt_axis_t top, vt_axis_t left, term_color_t fg, term_color_t bg);
 typedef void vd_bitblt_text_t(struct vt_device *vd, const struct vt_window *vw,
     const term_rect_t *area);
+typedef void vd_bitblt_bmp_t(struct vt_device *vd, const struct vt_window *vw,
+    const uint8_t *pattern, const uint8_t *mask,
+    unsigned int width, unsigned int height,
+    unsigned int x, unsigned int y, term_color_t fg, term_color_t bg);
 typedef int vd_fb_ioctl_t(struct vt_device *, u_long, caddr_t, struct thread *);
 typedef int vd_fb_mmap_t(struct vt_device *, vm_ooffset_t, vm_paddr_t *, int,
     vm_memattr_t *);
@@ -320,19 +315,16 @@ struct vt_driver {
 
 	/* Drawing. */
 	vd_blank_t	*vd_blank;
-	vd_bitbltchr_t	*vd_bitbltchr; /* FIXME: Deprecated. */
 	vd_drawrect_t	*vd_drawrect;
 	vd_setpixel_t	*vd_setpixel;
 	vd_bitblt_text_t *vd_bitblt_text;
+	vd_bitblt_bmp_t	*vd_bitblt_bmp;
 
 	/* Framebuffer ioctls, if present. */
 	vd_fb_ioctl_t	*vd_fb_ioctl;
 
 	/* Framebuffer mmap, if present. */
 	vd_fb_mmap_t	*vd_fb_mmap;
-
-	/* Text mode operation. */
-	vd_putchar_t	*vd_putchar; /* FIXME: Deprecated. */
 
 	/* Update display setting on vt switch. */
 	vd_postswitch_t	*vd_postswitch;

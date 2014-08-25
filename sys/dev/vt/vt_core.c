@@ -415,6 +415,31 @@ vt_winsize(struct vt_device *vd, struct vt_font *vf, struct winsize *size)
 	}
 }
 
+static inline void
+vt_compute_drawable_area(struct vt_window *vw)
+{
+	struct vt_device *vd;
+	struct vt_font *vf;
+
+	if (vw->vw_font == NULL)
+		return;
+
+	vd = vw->vw_device;
+	vf = vw->vw_font;
+
+	/*
+	 * Compute the drawable area, so that the text is centered on
+	 * the screen.
+	 */
+
+	vw->vw_draw_area.tr_begin.tp_col = (vd->vd_width % vf->vf_width) / 2;
+	vw->vw_draw_area.tr_begin.tp_row = (vd->vd_height % vf->vf_height) / 2;
+	vw->vw_draw_area.tr_end.tp_col = vw->vw_draw_area.tr_begin.tp_col +
+	    vd->vd_width / vf->vf_width * vf->vf_width;
+	vw->vw_draw_area.tr_end.tp_row = vw->vw_draw_area.tr_begin.tp_row +
+	    vd->vd_height / vf->vf_height * vf->vf_height;
+}
+
 static void
 vt_scroll(struct vt_window *vw, int offset, int whence)
 {
@@ -828,8 +853,8 @@ vt_is_cursor_in_area(const struct vt_device *vd, const term_rect_t *area)
 	 * We use the cursor position saved during the current refresh,
 	 * in case the cursor moved since.
 	 */
-	mx = vd->vd_mx_drawn;
-	my = vd->vd_my_drawn;
+	mx = vd->vd_mx_drawn + vd->vd_curwindow->vw_draw_area.tr_begin.tp_col;
+	my = vd->vd_my_drawn + vd->vd_curwindow->vw_draw_area.tr_begin.tp_row;
 
 	x1 = area->tr_begin.tp_col;
 	y1 = area->tr_begin.tp_row;
@@ -860,16 +885,12 @@ vt_mark_mouse_position_as_dirty(struct vt_device *vd)
 	y = vd->vd_my_drawn;
 
 	if (vf != NULL) {
-		area.tr_begin.tp_col = (x - vw->vw_offset.tp_col) /
-		    vf->vf_width;
-		area.tr_begin.tp_row = (y - vw->vw_offset.tp_row) /
-		    vf->vf_height;
+		area.tr_begin.tp_col = x / vf->vf_width;
+		area.tr_begin.tp_row = y / vf->vf_height;
 		area.tr_end.tp_col =
-		    ((x + vd->vd_mcursor->width - vw->vw_offset.tp_col) /
-		     vf->vf_width) + 1;
+		    ((x + vd->vd_mcursor->width) / vf->vf_width) + 1;
 		area.tr_end.tp_row =
-		    ((y + vd->vd_mcursor->height - vw->vw_offset.tp_row) /
-		     vf->vf_height) + 1;
+		    ((y + vd->vd_mcursor->height) / vf->vf_height) + 1;
 	} else {
 		/*
 		 * No font loaded (ie. vt_vga operating in textmode).
@@ -888,47 +909,15 @@ vt_mark_mouse_position_as_dirty(struct vt_device *vd)
 #endif
 
 static void
-vt_bitblt_char(struct vt_device *vd, struct vt_font *vf, term_char_t c,
-    int iscursor, unsigned int row, unsigned int col)
-{
-	term_color_t fg, bg;
-
-	vt_determine_colors(c, iscursor, &fg, &bg);
-
-	if (vf != NULL) {
-		const uint8_t *src;
-		vt_axis_t top, left;
-
-		src = vtfont_lookup(vf, c);
-
-		/*
-		 * Align the terminal to the centre of the screen.
-		 * Fonts may not always be able to fill the entire
-		 * screen.
-		 */
-		top = row * vf->vf_height + vd->vd_curwindow->vw_offset.tp_row;
-		left = col * vf->vf_width + vd->vd_curwindow->vw_offset.tp_col;
-
-		vd->vd_driver->vd_bitbltchr(vd, src, NULL, 0, top, left,
-		    vf->vf_width, vf->vf_height, fg, bg);
-	} else {
-		vd->vd_driver->vd_putchar(vd, TCHAR_CHARACTER(c),
-		    row, col, fg, bg);
-	}
-}
-
-static void
 vt_flush(struct vt_device *vd)
 {
 	struct vt_window *vw;
 	struct vt_font *vf;
 	struct vt_bufmask tmask;
-	unsigned int row, col;
 	term_rect_t tarea;
 	term_pos_t size;
-	term_char_t *r;
 #ifndef SC_NO_CUTPASTE
-	int cursor_was_shown, cursor_moved, bpl, h, w;
+	int cursor_was_shown, cursor_moved;
 #endif
 
 	vw = vd->vd_curwindow;
@@ -992,50 +981,8 @@ vt_flush(struct vt_device *vd)
 		vd->vd_flags &= ~VDF_INVALID;
 	}
 
-	if (vd->vd_driver->vd_bitblt_text != NULL) {
-		if (tarea.tr_begin.tp_col < tarea.tr_end.tp_col) {
-			vd->vd_driver->vd_bitblt_text(vd, vw, &tarea);
-		}
-	} else {
-		/*
-		 * FIXME: Once all backend drivers expose the
-		 * vd_bitblt_text_t callback, this code can be removed.
-		 */
-		for (row = tarea.tr_begin.tp_row; row < tarea.tr_end.tp_row; row++) {
-			if (!VTBUF_DIRTYROW(&tmask, row))
-				continue;
-			r = VTBUF_GET_ROW(&vw->vw_buf, row);
-			for (col = tarea.tr_begin.tp_col;
-			    col < tarea.tr_end.tp_col; col++) {
-				if (!VTBUF_DIRTYCOL(&tmask, col))
-					continue;
-
-				vt_bitblt_char(vd, vf, r[col],
-				    VTBUF_ISCURSOR(&vw->vw_buf, row, col), row, col);
-			}
-		}
-
-#ifndef SC_NO_CUTPASTE
-		if (vd->vd_mshown) {
-			/* Bytes per source line. */
-			bpl = (vd->vd_mcursor->width + 7) >> 3;
-			w = vd->vd_mcursor->width;
-			h = vd->vd_mcursor->height;
-
-			if ((vd->vd_mx + vd->vd_mcursor->width) >
-			    (size.tp_col * vf->vf_width))
-				w = (size.tp_col * vf->vf_width) - vd->vd_mx - 1;
-			if ((vd->vd_my + vd->vd_mcursor->height) >
-			    (size.tp_row * vf->vf_height))
-				h = (size.tp_row * vf->vf_height) - vd->vd_my - 1;
-
-			vd->vd_driver->vd_bitbltchr(vd,
-			    vd->vd_mcursor->map, vd->vd_mcursor->mask, bpl,
-			    vw->vw_offset.tp_row + vd->vd_my,
-			    vw->vw_offset.tp_col + vd->vd_mx,
-			    w, h, vd->vd_mcursor_fg, vd->vd_mcursor_bg);
-		}
-#endif
+	if (tarea.tr_begin.tp_col < tarea.tr_end.tp_col) {
+		vd->vd_driver->vd_bitblt_text(vd, vw, &tarea);
 	}
 }
 
@@ -1087,8 +1034,9 @@ vtterm_splash(struct vt_device *vd)
 		switch (vt_logo_depth) {
 		case 1:
 			/* XXX: Unhardcode colors! */
-			vd->vd_driver->vd_bitbltchr(vd, vt_logo_image, NULL, 0,
-			    top, left, vt_logo_width, vt_logo_height, 0xf, 0x0);
+			vd->vd_driver->vd_bitblt_bmp(vd, vd->vd_curwindow,
+			    vt_logo_image, NULL, vt_logo_width, vt_logo_height,
+			    left, top, TC_WHITE, TC_BLACK);
 		}
 		vd->vd_flags |= VDF_SPLASH;
 	}
@@ -1144,8 +1092,10 @@ vtterm_cnprobe(struct terminal *tm, struct consdev *cp)
 	sprintf(cp->cn_name, "ttyv%r", VT_UNIT(vw));
 
 	/* Attach default font if not in TEXTMODE. */
-	if ((vd->vd_flags & VDF_TEXTMODE) == 0)
+	if ((vd->vd_flags & VDF_TEXTMODE) == 0) {
 		vw->vw_font = vtfont_ref(&vt_font_default);
+		vt_compute_drawable_area(vw);
+	}
 
 	vtbuf_init_early(&vw->vw_buf);
 	vt_winsize(vd, vw->vw_font, &wsz);
@@ -1279,8 +1229,8 @@ vt_set_border(struct vt_window *vw, struct vt_font *vf, term_color_t c)
 
 	x = vd->vd_width - 1;
 	y = vd->vd_height - 1;
-	off_x = vw->vw_offset.tp_col;
-	off_y = vw->vw_offset.tp_row;
+	off_x = vw->vw_draw_area.tr_begin.tp_col;
+	off_y = vw->vw_draw_area.tr_begin.tp_row;
 
 	/* Top bar. */
 	if (off_y > 0)
@@ -1334,9 +1284,6 @@ vt_change_font(struct vt_window *vw, struct vt_font *vf)
 
 	vt_termsize(vd, vf, &size);
 	vt_winsize(vd, vf, &wsz);
-	/* Save offset to font aligned area. */
-	vw->vw_offset.tp_col = (vd->vd_width % vf->vf_width) / 2;
-	vw->vw_offset.tp_row = (vd->vd_height % vf->vf_height) / 2;
 
 	/* Grow the screen buffer and terminal. */
 	terminal_mute(tm, 1);
@@ -1353,6 +1300,7 @@ vt_change_font(struct vt_window *vw, struct vt_font *vf)
 		 */
 		vtfont_unref(vw->vw_font);
 		vw->vw_font = vtfont_ref(vf);
+		vt_compute_drawable_area(vw);
 	}
 
 	/* Force a full redraw the next timer tick. */
@@ -2140,8 +2088,10 @@ vt_allocate_window(struct vt_device *vd, unsigned int window)
 	vw->vw_number = window;
 	vw->vw_kbdmode = K_XLATE;
 
-	if ((vd->vd_flags & VDF_TEXTMODE) == 0)
+	if ((vd->vd_flags & VDF_TEXTMODE) == 0) {
 		vw->vw_font = vtfont_ref(&vt_font_default);
+		vt_compute_drawable_area(vw);
+	}
 
 	vt_termsize(vd, vw->vw_font, &size);
 	vt_winsize(vd, vw->vw_font, &wsz);
@@ -2215,8 +2165,10 @@ vt_resize(struct vt_device *vd)
 		vw = vd->vd_windows[i];
 		VT_LOCK(vd);
 		/* Assign default font to window, if not textmode. */
-		if (!(vd->vd_flags & VDF_TEXTMODE) && vw->vw_font == NULL)
+		if (!(vd->vd_flags & VDF_TEXTMODE) && vw->vw_font == NULL) {
 			vw->vw_font = vtfont_ref(&vt_font_default);
+			vt_compute_drawable_area(vw);
+		}
 		VT_UNLOCK(vd);
 		/* Resize terminal windows */
 		while (vt_change_font(vw, vw->vw_font) == EBUSY) {
