@@ -12,7 +12,6 @@ _radeonkmsfw=	radeonkmsfw
 .endif
 
 .if ${MACHINE_CPUARCH} == "i386"
-_i915kms=	i915kms
 . if ${MACHINE} != "pc98"
 _i915kms=	i915kms
 _radeonkms=	radeonkms
