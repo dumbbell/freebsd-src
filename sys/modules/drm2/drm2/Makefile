@@ -24,7 +24,6 @@ SRCS	= \
 	drm_hashtab.c \
 	drm_ioctl.c \
 	drm_irq.c \
-	drm_linux_list_sort.c \
 	drm_lock.c \
 	drm_memory.c \
 	drm_mm.c \
@@ -54,6 +53,9 @@ SRCS	+= drm_ioc32.c
 .endif
 
 SRCS	+=device_if.h bus_if.h pci_if.h device_if.h iicbus_if.h opt_drm.h \
-	opt_vm.h opt_compat.h opt_syscons.h
+	opt_vm.h opt_compat.h opt_syscons.h \
+	opt_ofed.h vnode_if.h
+
+CFLAGS+=			-I${.CURDIR}/../../../ofed/include
 
 .include <bsd.kmod.mk>

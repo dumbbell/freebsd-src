@@ -97,6 +97,7 @@ SRCS	+=								\
 	opt_acpi.h							\
 	opt_compat.h							\
 	opt_drm.h							\
+	opt_ofed.h							\
 	opt_syscons.h							\
 	acpi_if.h							\
 	bus_if.h							\
@@ -104,8 +105,11 @@ SRCS	+=								\
 	device_if.h							\
 	iicbb_if.h							\
 	iicbus_if.h							\
-	pci_if.h
+	pci_if.h							\
+	vnode_if.h
 
-CFLAGS  += -I${.CURDIR}/../../../dev/drm2/radeon ${GCC_MS_EXTENSIONS}
+CFLAGS  += -I${.CURDIR}/../../../ofed/include				\
+	   -I${.CURDIR}/../../../dev/drm2/radeon			\
+	   ${GCC_MS_EXTENSIONS}
 
 .include <bsd.kmod.mk>

@@ -7,6 +7,7 @@ SRCS	= \
 	i915_dma.c \
 	i915_drv.c \
 	i915_gem.c \
+	i915_gem_context.c \
 	i915_gem_execbuffer.c \
 	i915_gem_evict.c \
 	i915_gem_gtt.c \
@@ -38,6 +39,7 @@ SRCS	+=								\
 	opt_acpi.h							\
 	opt_compat.h							\
 	opt_drm.h							\
+	opt_ofed.h							\
 	opt_syscons.h							\
 	acpi_if.h							\
 	bus_if.h							\
@@ -45,7 +47,10 @@ SRCS	+=								\
 	device_if.h							\
 	iicbb_if.h							\
 	iicbus_if.h							\
-	pci_if.h
+	pci_if.h							\
+	vnode_if.h
+
+CFLAGS+=			-I${.CURDIR}/../../../ofed/include
 
 .include <bsd.kmod.mk>
 

@@ -37,7 +37,7 @@ __FBSDID("$FreeBSD$");
 #ifndef _DRM_MM_H_
 #define _DRM_MM_H_
 
-#include <dev/drm2/drm_linux_list.h>
+#include <linux/list.h>
 
 struct drm_mm_node {
 	struct list_head node_list;

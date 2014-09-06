@@ -33,11 +33,10 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <linux/bitops.h>
+
 typedef u_int		atomic_t;
 typedef uint64_t	atomic64_t;
-
-#define	BITS_PER_LONG			(sizeof(long) * NBBY)
-#define	BITS_TO_LONGS(x)		howmany(x, BITS_PER_LONG)
 
 #define	atomic_read(p)			(*(volatile u_int *)(p))
 #define	atomic_set(p, v)		do { *(u_int *)(p) = (v); } while (0)
@@ -63,24 +62,3 @@ typedef uint64_t	atomic64_t;
 #define	__bit_word(b)			((b) / BITS_PER_LONG)
 #define	__bit_mask(b)			(1UL << (b) % BITS_PER_LONG)
 #define	__bit_addr(p, b)		((volatile u_long *)(p) + __bit_word(b))
-
-#define	clear_bit(b, p) \
-    atomic_clear_long(__bit_addr(p, b), __bit_mask(b))
-#define	set_bit(b, p) \
-    atomic_set_long(__bit_addr(p, b), __bit_mask(b))
-#define	test_bit(b, p) \
-    ((*__bit_addr(p, b) & __bit_mask(b)) != 0)
-
-static __inline u_long
-find_first_zero_bit(const u_long *p, u_long max)
-{
-	u_long i, n;
-
-	KASSERT(max % BITS_PER_LONG == 0, ("invalid bitmap size %lu", max));
-	for (i = 0; i < max / BITS_PER_LONG; i++) {
-		n = ~p[i];
-		if (n != 0)
-			return (i * BITS_PER_LONG + ffsl(n) - 1);
-	}
-	return (max);
-}

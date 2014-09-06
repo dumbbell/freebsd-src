@@ -39,6 +39,9 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/i915/intel_ringbuffer.h>
 #include <dev/drm2/i915/intel_bios.h>
 
+#include <sys/param.h>
+#include <linux/idr.h>
+
 /* General customization:
  */
 
@@ -172,6 +175,17 @@ struct i915_hw_ppgtt {
 	uint32_t pd_offset;
 	vm_paddr_t *pt_dma_addr;
 	vm_paddr_t scratch_page_dma_addr;
+};
+
+
+/* This must match up with the value previously used for execbuf2.rsvd1. */
+#define DEFAULT_CONTEXT_ID 0
+struct i915_hw_context {
+	int id;
+	bool is_initialized;
+	struct drm_i915_file_private *file_priv;
+	struct intel_ring_buffer *ring;
+	struct drm_i915_gem_object *obj;
 };
 
 enum no_fbc_reason {
@@ -700,6 +714,8 @@ typedef struct drm_i915_private {
 
 	enum no_fbc_reason no_fbc_reason;
 
+	unsigned int stop_rings;
+
 	unsigned long cfb_size;
 	unsigned int cfb_fb;
 	int cfb_plane;
@@ -723,7 +739,15 @@ typedef struct drm_i915_private {
 
 	struct drm_property *broadcast_rgb_property;
 	struct drm_property *force_audio_property;
+
+	bool hw_contexts_disabled;
+	uint32_t hw_context_size;
 } drm_i915_private_t;
+
+/* Iterate over initialised rings */
+#define for_each_ring(ring__, dev_priv__, i__) \
+	for ((i__) = 0; (i__) < I915_NUM_RINGS; (i__)++) \
+		if (((ring__) = &(dev_priv__)->rings[(i__)]), intel_ring_initialized((ring__)))
 
 enum hdmi_force_audio {
 	HDMI_AUDIO_OFF_DVI = -2,	/* no aux data for HDMI-DVI converter */
@@ -832,6 +856,7 @@ struct drm_i915_gem_object {
 	unsigned int cache_level:2;
 
 	unsigned int has_aliasing_ppgtt_mapping:1;
+	unsigned int has_global_gtt_mapping:1;
 
 	vm_page_t *pages;
 
@@ -927,6 +952,7 @@ struct drm_i915_file_private {
 		struct list_head request_list;
 		struct mtx lck;
 	} mm;
+	struct idr context_idr;
 };
 
 struct drm_i915_error_state {
@@ -1026,7 +1052,8 @@ extern int i915_enable_hangcheck;
 
 const struct intel_device_info *i915_get_device_id(int device);
 
-int i915_reset(struct drm_device *dev, u8 flags);
+extern int intel_gpu_reset(struct drm_device *dev);
+int i915_reset(struct drm_device *dev);
 
 /* i915_debug.c */
 int i915_sysctl_init(struct drm_device *dev, struct sysctl_ctx_list *ctx,
@@ -1204,6 +1231,17 @@ int i915_gem_fault(struct drm_device *dev, uint64_t offset, int prot,
 void i915_gem_release(struct drm_device *dev, struct drm_file *file);
 int i915_gem_object_set_cache_level(struct drm_i915_gem_object *obj,
     enum i915_cache_level cache_level);
+
+/* i915_gem_context.c */
+void i915_gem_context_init(struct drm_device *dev);
+void i915_gem_context_fini(struct drm_device *dev);
+void i915_gem_context_close(struct drm_device *dev, struct drm_file *file);
+int i915_switch_context(struct intel_ring_buffer *ring,
+			struct drm_file *file, int to_id);
+int i915_gem_context_create_ioctl(struct drm_device *dev, void *data,
+				  struct drm_file *file);
+int i915_gem_context_destroy_ioctl(struct drm_device *dev, void *data,
+				   struct drm_file *file);
 
 void i915_gem_free_all_phys_object(struct drm_device *dev);
 void i915_gem_detach_phys_object(struct drm_device *dev,
@@ -1444,6 +1482,7 @@ __i915_write(64, 64)
 #define HAS_LLC(dev)            (INTEL_INFO(dev)->has_llc)
 #define I915_NEED_GFX_HWS(dev)	(INTEL_INFO(dev)->need_gfx_hws)
 
+#define HAS_HW_CONTEXTS(dev)	(INTEL_INFO(dev)->gen >= 6)
 #define HAS_ALIASING_PPGTT(dev)	(INTEL_INFO(dev)->gen >=6)
 
 #define HAS_OVERLAY(dev)		(INTEL_INFO(dev)->has_overlay)

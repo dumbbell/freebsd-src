@@ -112,6 +112,9 @@ int drm_addmap(struct drm_device * dev, unsigned long offset,
 		DRM_ERROR("Requested removable map for non-DRM_SHM\n");
 		return EINVAL;
 	}
+#if PAGE_MASK == (~(PAGE_SIZE-1))
+#error PAGE_MASK from Linux
+#endif
 	if ((offset & PAGE_MASK) || (size & PAGE_MASK)) {
 		DRM_ERROR("offset/size not page aligned: 0x%lx/0x%lx\n",
 		    offset, size);
