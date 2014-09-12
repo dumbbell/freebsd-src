@@ -93,7 +93,6 @@ __FBSDID("$FreeBSD$");
 #include "i915_drv.h"
 
 #include <../../ofed/include/linux/err.h>
-#include <dev/drm2/drm_idr.h>
 
 /* This is a HW constraint. The value below is the largest known requirement
  * I've seen in a spec to date, and that was a workaround for a non-shipping
@@ -135,11 +134,13 @@ static int get_context_size(struct drm_device *dev)
 
 static void do_destroy(struct i915_hw_context *ctx)
 {
+#if defined(INVARIANTS)
 	struct drm_device *dev = ctx->obj->base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
+#endif
 
 	if (ctx->file_priv)
-		idr_remove(&ctx->file_priv->context_idr, ctx->id);
+		drm_gem_names_remove(&ctx->file_priv->context_idr, ctx->id);
 	else
 		KASSERT(ctx == dev_priv->rings[RCS].default_context,
 		    ("i915_gem_context: ctx != default_context"));
@@ -156,7 +157,7 @@ create_hw_context(struct drm_device *dev,
 	struct i915_hw_context *ctx;
 	int ret, id;
 
-	ctx = malloc(sizeof(*ctx), DRM_I915_GEM, M_ZERO);
+	ctx = malloc(sizeof(*ctx), DRM_I915_GEM, M_NOWAIT | M_ZERO);
 	if (ctx == NULL)
 		return ERR_PTR(-ENOMEM);
 
@@ -187,14 +188,7 @@ create_hw_context(struct drm_device *dev,
 	ctx->file_priv = file_priv;
 
 again:
-	if (idr_pre_get(&file_priv->context_idr, GFP_KERNEL) == 0) {
-		ret = -ENOMEM;
-		DRM_DEBUG_DRIVER("idr allocation failed\n");
-		goto err_out;
-	}
-
-	ret = idr_get_new_above(&file_priv->context_idr, ctx,
-				DEFAULT_CONTEXT_ID + 1, &id);
+	ret = drm_gem_name_create(&file_priv->context_idr, ctx, &id);
 	if (ret == 0)
 		ctx->id = id;
 
@@ -305,7 +299,7 @@ void i915_gem_context_fini(struct drm_device *dev)
 	do_destroy(dev_priv->rings[RCS].default_context);
 }
 
-static int context_idr_cleanup(int id, void *p, void *data)
+static int context_idr_cleanup(uint32_t id, void *p, void *data)
 {
 	struct i915_hw_context *ctx = p;
 
@@ -321,15 +315,15 @@ void i915_gem_context_close(struct drm_device *dev, struct drm_file *file)
 	struct drm_i915_file_private *file_priv = file->driver_priv;
 
 	//DRM_LOCK(dev); /* Called from preclose(), the lock is already owned. */
-	idr_for_each(&file_priv->context_idr, context_idr_cleanup, NULL);
-	idr_destroy(&file_priv->context_idr);
+	drm_gem_names_foreach(&file_priv->context_idr, context_idr_cleanup, NULL);
+	drm_gem_names_fini(&file_priv->context_idr);
 	//DRM_UNLOCK(dev);
 }
 
 static struct i915_hw_context *
 i915_gem_context_get(struct drm_i915_file_private *file_priv, u32 id)
 {
-	return (struct i915_hw_context *)idr_find(&file_priv->context_idr, id);
+	return (struct i915_hw_context *)drm_gem_find_ptr(&file_priv->context_idr, id);
 }
 
 static inline int

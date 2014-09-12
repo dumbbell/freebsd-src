@@ -22,7 +22,6 @@ SRCS	= \
 	drm_gem_names.c \
 	drm_global.c \
 	drm_hashtab.c \
-	drm_idr.c \
 	drm_ioctl.c \
 	drm_irq.c \
 	drm_linux_list_sort.c \

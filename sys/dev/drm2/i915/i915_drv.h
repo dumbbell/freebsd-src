@@ -39,8 +39,6 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/i915/intel_ringbuffer.h>
 #include <dev/drm2/i915/intel_bios.h>
 
-#include <dev/drm2/drm_idr.h>
-
 /* General customization:
  */
 
@@ -180,7 +178,7 @@ struct i915_hw_ppgtt {
 /* This must match up with the value previously used for execbuf2.rsvd1. */
 #define DEFAULT_CONTEXT_ID 0
 struct i915_hw_context {
-	int id;
+	uint32_t id;
 	bool is_initialized;
 	struct drm_i915_file_private *file_priv;
 	struct intel_ring_buffer *ring;
@@ -951,7 +949,7 @@ struct drm_i915_file_private {
 		struct list_head request_list;
 		struct mtx lck;
 	} mm;
-	struct idr context_idr;
+	struct drm_gem_names context_idr;
 };
 
 struct drm_i915_error_state {

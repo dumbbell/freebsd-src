@@ -1414,7 +1414,7 @@ i915_driver_open(struct drm_device *dev, struct drm_file *file_priv)
 	INIT_LIST_HEAD(&i915_file_priv->mm.request_list);
 	file_priv->driver_priv = i915_file_priv;
 
-	idr_init(&i915_file_priv->context_idr);
+	drm_gem_names_init(&i915_file_priv->context_idr);
 
 	return (0);
 }
