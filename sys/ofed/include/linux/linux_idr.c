@@ -27,8 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef USERLAND_TEST
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
@@ -45,55 +43,6 @@
 #include <linux/idr.h>
 #include <linux/err.h>
 
-static MALLOC_DEFINE(M_IDR, "idr", "Linux IDR compat");
-
-#else /* defined(USERLAND_TEST) */
-
-struct mtx {
-};
-
-#include <sys/param.h>
-#include <sys/queue.h>
-
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-
-typedef	unsigned int	gfp_t;
-typedef	unsigned long	u_long;
-
-#define	malloc(s, m, f)	calloc(1, (s))
-#define	malloc(s, m, f)	calloc(1, (s))
-#define	free(p, m)	free(p)
-
-#define	mtx_lock(p)
-#define	mtx_unlock(p)
-#define	mtx_init(p, s, a, f)
-
-#define	panic	printf
-
-#define min(x, y)	((x) < (y) ? (x) : (y))
-#define max(x, y)	((x) > (y) ? (x) : (y))
-
-static int
-atomic_cmpset_long(long *dst, long old, long new)
-{
-
-	if (*dst == old) {
-		*dst = new;
-		return (1);
-	} else
-		return (0);
-}
-
-#include <linux/bitops.h>
-#include <linux/err.h>
-#include <linux/idr.h>
-
-#endif
-
 /*
  * IDR Implementation.
  *
@@ -101,6 +50,7 @@ atomic_cmpset_long(long *dst, long old, long new)
  * however it should be fairly fast.  It is basically a radix tree with
  * a builtin bitmap for allocation.
  */
+static MALLOC_DEFINE(M_IDR, "idr", "Linux IDR compat");
 
 static inline int
 idr_max(struct idr *idr)
@@ -257,45 +207,6 @@ idr_find(struct idr *idr, int id)
 out:
 	mtx_unlock(&idr->lock);
 	return (res);
-}
-
-static int
-idr_for_each_layer(struct idr_layer *il, int layer, int id,
-    int (*fn)(int id, void *p, void *data), void *data)
-{
-	int idx, ret, sub_id;
-
-	if (il == NULL)
-		return (0);
-
-	for (idx = 0; idx < IDR_SIZE; ++idx) {
-		if (il->ary[idx] == NULL)
-			continue;
-
-		sub_id = id | idx << (layer * IDR_BITS);
-
-		if (layer > 0)
-			ret = idr_for_each_layer(il->ary[idx], layer - 1, sub_id,
-			    fn, data);
-		else
-			ret = fn(sub_id, il->ary[idx], data);
-
-		if (ret != 0)
-			return (ret);
-	}
-
-	return (0);
-}
-
-int
-idr_for_each(struct idr *idr,
-    int (*fn)(int id, void *p, void *data), void *data)
-{
-	int ret;
-
-	ret = idr_for_each_layer(idr->top, idr->layers - 1, 0, fn, data);
-
-	return (ret);
 }
 
 int
@@ -535,67 +446,3 @@ out:
 #endif
 	return (error);
 }
-
-#ifdef USERLAND_TEST
-static int
-foreach_fn(int id, void *res, void *data)
-{
-
-	printf("%s: id=%d, value=%08x\n\n", (char *)data, id, (int)res);
-
-	return (0);
-}
-
-int
-main(int argc, char *argv[])
-{
-	char buf[256];
-	struct idr idr;
-	intptr_t generation = 0x10000000;
-	int error;
-	int id;
-
-	idr_init(&idr);
-
-	printf("cmd> ");
-	fflush(stdout);
-	while (fgets(buf, sizeof(buf), stdin) != NULL) {
-		if (sscanf(buf, "a %d", &id) == 1) {
-			for (;;) {
-				if (idr_pre_get(&idr, 0) == 0) {
-					fprintf(stderr, "pre_get failed\n");
-					exit(1);
-				}
-				error = idr_get_new_above(&idr,
-							  (void *)generation,
-							  id, &id);
-				if (error == -EAGAIN)
-					continue;
-				if (error) {
-					fprintf(stderr, "get_new err %d\n",
-						error);
-					exit(1);
-				}
-				printf("allocated %d value %08x\n",
-					id, (int)generation);
-				++generation;
-				break;
-			}
-		} else if (strcmp(buf, "l\n") == 0) {
-			printf("Entries:\n");
-			idr_for_each(&idr, foreach_fn, "Entry");
-		} else if (sscanf(buf, "r %d", &id) == 1) {
-			idr_remove(&idr, id);
-		} else if (sscanf(buf, "f %d", &id) == 1) {
-			void *res = idr_find(&idr, id);
-			printf("find %d res %p\n", id, res);
-		}
-		printf("cmd> ");
-		fflush(stdout);
-	}
-
-	//idr_destroy(&idr);
-
-	return 0;
-}
-#endif

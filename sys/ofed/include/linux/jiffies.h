@@ -30,6 +30,7 @@
 #define	_LINUX_JIFFIES_H_
 
 #include <linux/types.h>
+#include <linux/kernel.h>
 
 #include <sys/time.h>
 #include <sys/kernel.h>

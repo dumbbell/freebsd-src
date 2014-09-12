@@ -131,19 +131,9 @@ list_del_init(struct list_head *entry)
 	    n = list_entry(p->field.next, typeof(*p), field); &p->field != (h);\
 	    p = n, n = list_entry(n->field.next, typeof(*n), field))
 
-#define	list_for_each_entry_safe_from(pos, n, head, member) 		\
-	for (n = list_entry(pos->member.next, __typeof(*pos), member);	\
-	     &pos->member != (head);					\
-	     pos = n, n = list_entry(n->member.next, __typeof(*n), member))
-
 #define	list_for_each_entry_reverse(p, h, field)			\
 	for (p = list_entry((h)->prev, typeof(*p), field); &p->field != (h); \
 	    p = list_entry(p->field.prev, typeof(*p), field))
-
-#define	list_for_each_entry_continue_reverse(pos, head, member)		\
-	for (pos = list_entry(pos->member.prev, __typeof(*pos), member);\
-	    &pos->member != (head);					\
-	    pos = list_entry(pos->member.prev, __typeof(*pos), member))
 
 #define	list_for_each_prev(p, h) for (p = (h)->prev; p != (h); p = p->prev)
 
@@ -175,16 +165,6 @@ list_move_tail(struct list_head *entry, struct list_head *head)
 
 	list_del(entry);
 	list_add_tail(entry, head);
-}
-
-static inline void
-list_replace(struct list_head *old, struct list_head *new)
-{
-
-	new->next = old->next;
-	new->next->prev = new;
-	new->prev = old->prev;
-	new->prev->next = new;
 }
 
 static inline void
@@ -414,49 +394,5 @@ static inline int list_is_last(const struct list_head *list,
 	     (pos) != 0 && ({ n = (pos)->next; \
 		 tpos = hlist_entry((pos), typeof(*(tpos)), member); 1;}); \
 	     pos = (n))
-
-struct _list_sort_thunk {
-	int (*cmp)(void *, struct list_head *, struct list_head *);
-	void *priv;
-};
-
-static int
-_list_le_cmp(void *priv, const void *d1, const void *d2)
-{
-	struct list_head *le1, *le2;
-	struct _list_sort_thunk *thunk;
-
-	thunk = priv;
-	le1 = *(__DECONST(struct list_head **, d1));
-	le2 = *(__DECONST(struct list_head **, d2));
-	return ((thunk->cmp)(thunk->priv, le1, le2));
-}
-
-/*
- * Punt and use array sort.
- */
-static inline void
-list_sort(void *priv, struct list_head *head,
-    int (*cmp)(void *priv, struct list_head *a, struct list_head *b))
-{
-	struct _list_sort_thunk thunk;
-	struct list_head **ar, *le;
-	int count, i;
-
-	count = 0;
-	list_for_each(le, head)
-		count++;
-	ar = malloc(sizeof(struct list_head *) * count, M_TEMP, M_WAITOK);
-	i = 0;
-	list_for_each(le, head)
-		ar[i++] = le;
-	thunk.cmp = cmp;
-	thunk.priv = priv;
-	qsort_r(ar, count, sizeof(struct list_head *), &thunk, _list_le_cmp);
-	INIT_LIST_HEAD(head);
-	for (i = 0; i < count; i++)
-		list_add_tail(ar[i], head);
-	free(ar, M_TEMP);
-}
 
 #endif /* _LINUX_LIST_H_ */
