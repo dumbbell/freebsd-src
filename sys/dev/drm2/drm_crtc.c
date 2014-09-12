@@ -39,8 +39,6 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drm_fourcc.h>
 #include <sys/limits.h>
 
-#include <linux/list.h>
-
 /* Avoid boilerplate.  I'm tired of typing. */
 #define DRM_ENUM_NAME_FN(fnname, list)				\
 	char *fnname(int val)					\
@@ -2447,7 +2445,7 @@ int drm_mode_attachmode_crtc(struct drm_device *dev, struct drm_crtc *crtc,
 	struct drm_connector *connector;
 	int ret = 0;
 	struct drm_display_mode *dup_mode, *next;
-	LIST_HEAD(list);
+	DRM_LIST_HEAD(list);
 
 	list_for_each_entry(connector, &dev->mode_config.connector_list, head) {
 		if (!connector->encoder)

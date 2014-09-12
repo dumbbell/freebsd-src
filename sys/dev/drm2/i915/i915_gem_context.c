@@ -92,10 +92,8 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/i915/i915_drm.h>
 #include "i915_drv.h"
 
-#include <linux/err.h>
-#include <linux/gfp.h>
-#include <linux/kernel.h>
-#include <linux/slab.h>
+#include <../../ofed/include/linux/err.h>
+#include <dev/drm2/drm_idr.h>
 
 /* This is a HW constraint. The value below is the largest known requirement
  * I've seen in a spec to date, and that was a workaround for a non-shipping
@@ -128,7 +126,8 @@ static int get_context_size(struct drm_device *dev)
 			ret = GEN7_CXT_TOTAL_SIZE(reg) * 64;
 		break;
 	default:
-		BUG();
+		panic("i915_gem_context: Unsupported Intel GPU generation %d",
+		    INTEL_INFO(dev)->gen);
 	}
 
 	return ret;
@@ -142,10 +141,11 @@ static void do_destroy(struct i915_hw_context *ctx)
 	if (ctx->file_priv)
 		idr_remove(&ctx->file_priv->context_idr, ctx->id);
 	else
-		BUG_ON(ctx != dev_priv->rings[RCS].default_context);
+		KASSERT(ctx == dev_priv->rings[RCS].default_context,
+		    ("i915_gem_context: ctx != default_context"));
 
 	drm_gem_object_unreference(&ctx->obj->base);
-	kfree(ctx);
+	free(ctx, DRM_I915_GEM);
 }
 
 static struct i915_hw_context *
@@ -156,13 +156,13 @@ create_hw_context(struct drm_device *dev,
 	struct i915_hw_context *ctx;
 	int ret, id;
 
-	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
+	ctx = malloc(sizeof(*ctx), DRM_I915_GEM, M_ZERO);
 	if (ctx == NULL)
 		return ERR_PTR(-ENOMEM);
 
 	ctx->obj = i915_gem_alloc_object(dev, dev_priv->hw_context_size);
 	if (ctx->obj == NULL) {
-		kfree(ctx);
+		free(ctx, DRM_I915_GEM);
 		DRM_DEBUG_DRIVER("Context object allocated failed\n");
 		return ERR_PTR(-ENOMEM);
 	}
@@ -225,7 +225,7 @@ static int create_default_context(struct drm_i915_private *dev_priv)
 	struct i915_hw_context *ctx;
 	int ret;
 
-	BUG_ON(!sx_xlocked(&dev_priv->dev->dev_struct_lock));
+	KASSERT(sx_xlocked(&dev_priv->dev->dev_struct_lock), ("i915_gem_context: dev_struct_lock not locked"));
 
 	ctx = create_hw_context(dev_priv->dev, NULL);
 	if (IS_ERR(ctx))
@@ -273,7 +273,7 @@ void i915_gem_context_init(struct drm_device *dev)
 
 	ctx_size = get_context_size(dev);
 	dev_priv->hw_context_size = get_context_size(dev);
-	dev_priv->hw_context_size = round_up(dev_priv->hw_context_size, 4096);
+	dev_priv->hw_context_size = roundup(dev_priv->hw_context_size, 4096);
 
 	if (ctx_size <= 0 || ctx_size > (1<<20)) {
 		dev_priv->hw_contexts_disabled = true;
@@ -309,7 +309,7 @@ static int context_idr_cleanup(int id, void *p, void *data)
 {
 	struct i915_hw_context *ctx = p;
 
-	BUG_ON(id == DEFAULT_CONTEXT_ID);
+	KASSERT(id != DEFAULT_CONTEXT_ID, ("i915_gem_context: id == DEFAULT_CONTEXT_ID in cleanup"));
 
 	do_destroy(ctx);
 
@@ -386,7 +386,8 @@ static int do_switch(struct i915_hw_context *to)
 	u32 hw_flags = 0;
 	int ret;
 
-	BUG_ON(from_obj != NULL && from_obj->pin_count == 0);
+	KASSERT(!(from_obj != NULL && from_obj->pin_count == 0),
+	    ("i915_gem_context: invalid \"from\" context"));
 
 	if (from_obj == to->obj)
 		return 0;
@@ -438,7 +439,7 @@ static int do_switch(struct i915_hw_context *to)
 		 * swapped, but there is no way to do that yet.
 		 */
 		from_obj->dirty = 1;
-		BUG_ON(from_obj->ring != ring);
+		KASSERT(from_obj->ring == ring, ("i915_gem_context: from_ring != ring"));
 		i915_gem_object_unpin(from_obj);
 
 		drm_gem_object_unreference(&from_obj->base);

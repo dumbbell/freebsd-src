@@ -6,12 +6,42 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
-#include <linux/types.h>
-
 #include <sys/fbio.h>
+
+#if _BYTE_ORDER == _BIG_ENDIAN
+#define	__BIG_ENDIAN 4321
+#else
+#define	__LITTLE_ENDIAN 1234
+#endif
+
+#define	cpu_to_le16(x)	htole16(x)
+#define	le16_to_cpu(x)	le16toh(x)
+#define	cpu_to_le32(x)	htole32(x)
+#define	le32_to_cpu(x)	le32toh(x)
+
+#define	cpu_to_be16(x)	htobe16(x)
+#define	be16_to_cpu(x)	be16toh(x)
+#define	cpu_to_be32(x)	htobe32(x)
+#define	be32_to_cpu(x)	be32toh(x)
+#define	be32_to_cpup(x)	be32toh(*x)
+
+typedef vm_paddr_t dma_addr_t;
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
+typedef int64_t s64;
+typedef int32_t s32;
+typedef int16_t s16;
+typedef int8_t s8;
+typedef uint32_t __u32;
+typedef int32_t __be32;
 
 #define	unlikely(x)            __builtin_expect(!!(x), 0)
 #define	likely(x)              __builtin_expect(!!(x), 1)
+#define	container_of(ptr, type, member) ({			\
+	__typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+	(type *)( (char *)__mptr - offsetof(type,member) );})
 
 #define DRM_HZ			hz
 #define DRM_UDELAY(udelay)	DELAY(udelay)
@@ -23,6 +53,16 @@ __FBSDID("$FreeBSD$");
 
 #define	do_div(a, b)		((a) /= (b))
 #define	lower_32_bits(n)	((u32)(n))
+
+#define min_t(type, x, y) ({			\
+	type __min1 = (x);			\
+	type __min2 = (y);			\
+	__min1 < __min2 ? __min1 : __min2; })
+
+#define max_t(type, x, y) ({			\
+	type __max1 = (x);			\
+	type __max2 = (y);			\
+	__max1 > __max2 ? __max1 : __max2; })
 
 #define	memset_io(a, b, c)	memset((a), (b), (c))
 #define	memcpy_fromio(a, b, c)	memcpy((a), (b), (c))
@@ -47,7 +87,14 @@ __FBSDID("$FreeBSD$");
 #define	PCI_VENDOR_ID_SONY		0x104d
 #define	PCI_VENDOR_ID_VIA		0x1106
 
+#define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
 #define	hweight32(i)	bitcount32(i)
+
+static inline unsigned long
+roundup_pow_of_two(unsigned long x)
+{
+	return (1UL << flsl(x - 1));
+}
 
 /**
  * ror32 - rotate a 32-bit value right

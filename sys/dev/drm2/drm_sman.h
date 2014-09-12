@@ -44,6 +44,7 @@ __FBSDID("$FreeBSD$");
 #define DRM_SMAN_H
 
 #include <dev/drm2/drm_hashtab.h>
+#include <dev/drm2/drm_linux_list.h>
 #include <dev/drm2/drm_mm.h>
 
 /*

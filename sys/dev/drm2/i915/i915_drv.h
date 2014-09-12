@@ -39,8 +39,7 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/i915/intel_ringbuffer.h>
 #include <dev/drm2/i915/intel_bios.h>
 
-#include <sys/param.h>
-#include <linux/idr.h>
+#include <dev/drm2/drm_idr.h>
 
 /* General customization:
  */

@@ -213,9 +213,7 @@ i915_gem_object_set_to_gpu_domain(struct drm_i915_gem_object *obj,
 
 struct eb_objects {
 	u_long hashmask;
-	struct { /* Was: LIST_HEAD(, drm_i915_gem_object) *buckets */
-		struct drm_i915_gem_object *lh_first;
-	} *buckets;
+	LIST_HEAD(, drm_i915_gem_object) *buckets;
 };
 
 static struct eb_objects *
