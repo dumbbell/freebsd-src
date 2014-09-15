@@ -980,13 +980,13 @@ struct drm_intel_sprite_colorkey {
 
 struct drm_i915_gem_context_create {
 	/*  output: id of new context*/
-	__u32 ctx_id;
-	__u32 pad;
+	uint32_t ctx_id;
+	uint32_t pad;
 };
 
 struct drm_i915_gem_context_destroy {
-	__u32 ctx_id;
-	__u32 pad;
+	uint32_t ctx_id;
+	uint32_t pad;
 };
 
 #endif				/* _I915_DRM_H_ */

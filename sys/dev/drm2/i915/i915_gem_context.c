@@ -92,8 +92,6 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/i915/i915_drm.h>
 #include "i915_drv.h"
 
-#include <../../ofed/include/linux/err.h>
-
 /* This is a HW constraint. The value below is the largest known requirement
  * I've seen in a spec to date, and that was a workaround for a non-shipping
  * part. It should be safe to decrease this, but it's more future proof as is.
@@ -149,9 +147,10 @@ static void do_destroy(struct i915_hw_context *ctx)
 	free(ctx, DRM_I915_GEM);
 }
 
-static struct i915_hw_context *
+static int
 create_hw_context(struct drm_device *dev,
-		  struct drm_i915_file_private *file_priv)
+		  struct drm_i915_file_private *file_priv,
+		  struct i915_hw_context **ret_ctx)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct i915_hw_context *ctx;
@@ -159,13 +158,13 @@ create_hw_context(struct drm_device *dev,
 
 	ctx = malloc(sizeof(*ctx), DRM_I915_GEM, M_NOWAIT | M_ZERO);
 	if (ctx == NULL)
-		return ERR_PTR(-ENOMEM);
+		return (-ENOMEM);
 
 	ctx->obj = i915_gem_alloc_object(dev, dev_priv->hw_context_size);
 	if (ctx->obj == NULL) {
 		free(ctx, DRM_I915_GEM);
 		DRM_DEBUG_DRIVER("Context object allocated failed\n");
-		return ERR_PTR(-ENOMEM);
+		return (-ENOMEM);
 	}
 
 	if (INTEL_INFO(dev)->gen >= 7) {
@@ -182,12 +181,15 @@ create_hw_context(struct drm_device *dev,
 	ctx->ring = &dev_priv->rings[RCS];
 
 	/* Default context will never have a file_priv */
-	if (file_priv == NULL)
-		return ctx;
+	if (file_priv == NULL) {
+		*ret_ctx = ctx;
+		return (0);
+	}
 
 	ctx->file_priv = file_priv;
 
 again:
+	id = 0;
 	ret = drm_gem_name_create(&file_priv->context_idr, ctx, &id);
 	if (ret == 0)
 		ctx->id = id;
@@ -197,11 +199,12 @@ again:
 	else if (ret)
 		goto err_out;
 
-	return ctx;
+	*ret_ctx = ctx;
+	return (0);
 
 err_out:
 	do_destroy(ctx);
-	return ERR_PTR(ret);
+	return (ret);
 }
 
 static inline bool is_default_context(struct i915_hw_context *ctx)
@@ -219,11 +222,11 @@ static int create_default_context(struct drm_i915_private *dev_priv)
 	struct i915_hw_context *ctx;
 	int ret;
 
-	KASSERT(sx_xlocked(&dev_priv->dev->dev_struct_lock), ("i915_gem_context: dev_struct_lock not locked"));
+	DRM_LOCK_ASSERT(dev_priv->dev);
 
-	ctx = create_hw_context(dev_priv->dev, NULL);
-	if (IS_ERR(ctx))
-		return PTR_ERR(ctx);
+	ret = create_hw_context(dev_priv->dev, NULL, &ctx);
+	if (ret != 0)
+		return (ret);
 
 	/* We may need to do things with the shrinker which require us to
 	 * immediately switch back to the default context. This can cause a
@@ -505,10 +508,10 @@ int i915_gem_context_create_ioctl(struct drm_device *dev, void *data,
 	if (ret)
 		return ret;
 
-	ctx = create_hw_context(dev, file_priv);
+	ret = create_hw_context(dev, file_priv, &ctx);
 	DRM_UNLOCK(dev);
-	if (IS_ERR(ctx))
-		return PTR_ERR(ctx);
+	if (ret != 0)
+		return (ret);
 
 	args->ctx_id = ctx->id;
 	DRM_DEBUG_DRIVER("HW context %d created\n", args->ctx_id);
