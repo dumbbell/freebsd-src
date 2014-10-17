@@ -1378,6 +1378,7 @@ i915_driver_unload_int(struct drm_device *dev, bool locked)
 			DRM_LOCK(dev);
 		i915_gem_free_all_phys_object(dev);
 		i915_gem_cleanup_ringbuffer(dev);
+		i915_gem_context_fini(dev);
 		if (!locked)
 			DRM_UNLOCK(dev);
 		i915_gem_cleanup_aliasing_ppgtt(dev);
@@ -1433,6 +1434,8 @@ i915_driver_open(struct drm_device *dev, struct drm_file *file_priv)
 	INIT_LIST_HEAD(&i915_file_priv->mm.request_list);
 	file_priv->driver_priv = i915_file_priv;
 
+	drm_gem_names_init(&i915_file_priv->context_idr);
+
 	return (0);
 }
 
@@ -1457,6 +1460,7 @@ i915_driver_lastclose(struct drm_device * dev)
 void i915_driver_preclose(struct drm_device * dev, struct drm_file *file_priv)
 {
 
+	i915_gem_context_close(dev, file_priv);
 	i915_gem_release(dev, file_priv);
 }
 
@@ -1511,6 +1515,8 @@ struct drm_ioctl_desc i915_ioctls[] = {
 	DRM_IOCTL_DEF(DRM_I915_OVERLAY_ATTRS, intel_overlay_attrs, DRM_MASTER|DRM_CONTROL_ALLOW|DRM_UNLOCKED),
 	DRM_IOCTL_DEF(DRM_I915_SET_SPRITE_COLORKEY, intel_sprite_set_colorkey, DRM_MASTER|DRM_CONTROL_ALLOW|DRM_UNLOCKED),
 	DRM_IOCTL_DEF(DRM_I915_GET_SPRITE_COLORKEY, intel_sprite_get_colorkey, DRM_MASTER|DRM_CONTROL_ALLOW|DRM_UNLOCKED),
+	DRM_IOCTL_DEF(DRM_I915_GEM_CONTEXT_CREATE, i915_gem_context_create_ioctl, DRM_UNLOCKED),
+	DRM_IOCTL_DEF(DRM_I915_GEM_CONTEXT_DESTROY, i915_gem_context_destroy_ioctl, DRM_UNLOCKED),
 };
 
 #ifdef COMPAT_FREEBSD32

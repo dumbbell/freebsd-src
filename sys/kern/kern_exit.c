@@ -104,8 +104,12 @@ proc_realparent(struct proc *child)
 
 	sx_assert(&proctree_lock, SX_LOCKED);
 	if ((child->p_treeflag & P_TREE_ORPHANED) == 0) {
-		return (child->p_pptr->p_pid == child->p_oppid ?
-		    child->p_pptr : initproc);
+		if (child->p_oppid == 0 ||
+		    child->p_pptr->p_pid == child->p_oppid)
+			parent = child->p_pptr;
+		else
+			parent = initproc;
+		return (parent);
 	}
 	for (p = child; (p->p_treeflag & P_TREE_FIRST_ORPHAN) == 0;) {
 		/* Cannot use LIST_PREV(), since the list head is not known. */
@@ -261,8 +265,8 @@ exit1(struct thread *td, int rv)
 	AUDIT_SYSCALL_EXIT(0, td);
 #endif
 
-	/* Are we a task leader? */
-	if (p == p->p_leader) {
+	/* Are we a task leader with peers? */
+	if (p->p_peers != NULL && p == p->p_leader) {
 		mtx_lock(&ppeers_lock);
 		q = p->p_peers;
 		while (q != NULL) {
@@ -333,15 +337,17 @@ exit1(struct thread *td, int rv)
 	/*
 	 * Remove ourself from our leader's peer list and wake our leader.
 	 */
-	mtx_lock(&ppeers_lock);
-	if (p->p_leader->p_peers) {
-		q = p->p_leader;
-		while (q->p_peers != p)
-			q = q->p_peers;
-		q->p_peers = p->p_peers;
-		wakeup(p->p_leader);
+	if (p->p_leader->p_peers != NULL) {
+		mtx_lock(&ppeers_lock);
+		if (p->p_leader->p_peers != NULL) {
+			q = p->p_leader;
+			while (q->p_peers != p)
+				q = q->p_peers;
+			q->p_peers = p->p_peers;
+			wakeup(p->p_leader);
+		}
+		mtx_unlock(&ppeers_lock);
 	}
-	mtx_unlock(&ppeers_lock);
 
 	vmspace_exit(td);
 

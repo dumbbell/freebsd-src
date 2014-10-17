@@ -791,6 +791,8 @@ fill_kinfo_proc_only(struct proc *p, struct kinfo_proc *kp)
 	struct ucred *cred;
 	struct sigacts *ps;
 
+	/* For proc_realparent. */
+	sx_assert(&proctree_lock, SX_LOCKED);
 	PROC_LOCK_ASSERT(p, MA_OWNED);
 	bzero(kp, sizeof(*kp));
 
@@ -919,8 +921,11 @@ fill_kinfo_proc_only(struct proc *p, struct kinfo_proc *kp)
 	kp->ki_xstat = p->p_xstat;
 	kp->ki_acflag = p->p_acflag;
 	kp->ki_lock = p->p_lock;
-	if (p->p_pptr)
-		kp->ki_ppid = p->p_pptr->p_pid;
+	if (p->p_pptr) {
+		kp->ki_ppid = proc_realparent(p)->p_pid;
+		if (p->p_flag & P_TRACED)
+			kp->ki_tracer = p->p_pptr->p_pid;
+	}
 }
 
 /*
@@ -1166,6 +1171,7 @@ freebsd32_kinfo_proc_out(const struct kinfo_proc *ki, struct kinfo_proc32 *ki32)
 	bcopy(ki->ki_comm, ki32->ki_comm, COMMLEN + 1);
 	bcopy(ki->ki_emul, ki32->ki_emul, KI_EMULNAMELEN + 1);
 	bcopy(ki->ki_loginclass, ki32->ki_loginclass, LOGINCLASSLEN + 1);
+	CP(*ki, *ki32, ki_tracer);
 	CP(*ki, *ki32, ki_flag2);
 	CP(*ki, *ki32, ki_fibnum);
 	CP(*ki, *ki32, ki_cr_flags);
@@ -1202,21 +1208,25 @@ kern_proc_out(struct proc *p, struct sbuf *sb, int flags)
 #ifdef COMPAT_FREEBSD32
 		if ((flags & KERN_PROC_MASK32) != 0) {
 			freebsd32_kinfo_proc_out(&ki, &ki32);
-			error = sbuf_bcat(sb, &ki32, sizeof(ki32));
+			if (sbuf_bcat(sb, &ki32, sizeof(ki32)) != 0)
+				error = ENOMEM;
 		} else
 #endif
-			error = sbuf_bcat(sb, &ki, sizeof(ki));
+			if (sbuf_bcat(sb, &ki, sizeof(ki)) != 0)
+				error = ENOMEM;
 	} else {
 		FOREACH_THREAD_IN_PROC(p, td) {
 			fill_kinfo_thread(td, &ki, 1);
 #ifdef COMPAT_FREEBSD32
 			if ((flags & KERN_PROC_MASK32) != 0) {
 				freebsd32_kinfo_proc_out(&ki, &ki32);
-				error = sbuf_bcat(sb, &ki32, sizeof(ki32));
+				if (sbuf_bcat(sb, &ki32, sizeof(ki32)) != 0)
+					error = ENOMEM;
 			} else
 #endif
-				error = sbuf_bcat(sb, &ki, sizeof(ki));
-			if (error)
+				if (sbuf_bcat(sb, &ki, sizeof(ki)) != 0)
+					error = ENOMEM;
+			if (error != 0)
 				break;
 		}
 	}
@@ -1287,10 +1297,11 @@ sysctl_kern_proc(SYSCTL_HANDLER_ARGS)
 		error = sysctl_wire_old_buffer(req, 0);
 		if (error)
 			return (error);
+		sx_slock(&proctree_lock);
 		error = pget((pid_t)name[0], PGET_CANSEE, &p);
-		if (error != 0)
-			return (error);
-		error = sysctl_out_proc(p, req, flags, 0);
+		if (error == 0)
+			error = sysctl_out_proc(p, req, flags, 0);
+		sx_sunlock(&proctree_lock);
 		return (error);
 	}
 
@@ -1318,6 +1329,7 @@ sysctl_kern_proc(SYSCTL_HANDLER_ARGS)
 	error = sysctl_wire_old_buffer(req, 0);
 	if (error != 0)
 		return (error);
+	sx_slock(&proctree_lock);
 	sx_slock(&allproc_lock);
 	for (doingzomb=0 ; doingzomb < 2 ; doingzomb++) {
 		if (!doingzomb)
@@ -1422,11 +1434,13 @@ sysctl_kern_proc(SYSCTL_HANDLER_ARGS)
 			error = sysctl_out_proc(p, req, flags, doingzomb);
 			if (error) {
 				sx_sunlock(&allproc_lock);
+				sx_sunlock(&proctree_lock);
 				return (error);
 			}
 		}
 	}
 	sx_sunlock(&allproc_lock);
+	sx_sunlock(&proctree_lock);
 	return (0);
 }
 
@@ -1767,7 +1781,8 @@ proc_getauxv(struct thread *td, struct proc *p, struct sbuf *sb)
 		else
 #endif
 			size = vsize * sizeof(Elf_Auxinfo);
-		error = sbuf_bcat(sb, auxv, size);
+		if (sbuf_bcat(sb, auxv, size) != 0)
+			error = ENOMEM;
 		free(auxv, M_TEMP);
 	}
 	return (error);
@@ -2353,9 +2368,10 @@ kern_proc_vmmap_out(struct proc *p, struct sbuf *sb)
 		    strlen(kve->kve_path) + 1;
 		kve->kve_structsize = roundup(kve->kve_structsize,
 		    sizeof(uint64_t));
-		error = sbuf_bcat(sb, kve, kve->kve_structsize);
+		if (sbuf_bcat(sb, kve, kve->kve_structsize) != 0)
+			error = ENOMEM;
 		vm_map_lock_read(map);
-		if (error)
+		if (error != 0)
 			break;
 		if (last_timestamp != map->timestamp) {
 			vm_map_lookup_entry(map, addr - 1, &tmp_entry);
@@ -2498,6 +2514,7 @@ sysctl_kern_proc_groups(SYSCTL_HANDLER_ARGS)
 		return (EINVAL);
 	if (*pidp == -1) {	/* -1 means this process */
 		p = req->td->td_proc;
+		PROC_LOCK(p);
 	} else {
 		error = pget(*pidp, PGET_CANSEE, &p);
 		if (error != 0)
@@ -2505,8 +2522,7 @@ sysctl_kern_proc_groups(SYSCTL_HANDLER_ARGS)
 	}
 
 	cred = crhold(p->p_ucred);
-	if (*pidp != -1)
-		PROC_UNLOCK(p);
+	PROC_UNLOCK(p);
 
 	error = SYSCTL_OUT(req, cred->cr_groups,
 	    cred->cr_ngroups * sizeof(gid_t));

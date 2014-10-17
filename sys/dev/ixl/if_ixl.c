@@ -276,10 +276,6 @@ int ixl_atr_rate = 20;
 TUNABLE_INT("hw.ixl.atr_rate", &ixl_atr_rate);
 #endif
 
-#ifdef DEV_NETMAP
-#include <dev/netmap/if_ixl_netmap.h>
-#endif /* DEV_NETMAP */
-
 static char *ixl_fc_string[6] = {
 	"None",
 	"Rx",
@@ -652,10 +648,6 @@ ixl_attach(device_t dev)
 	vsi->vlan_detach = EVENTHANDLER_REGISTER(vlan_unconfig,
 	    ixl_unregister_vlan, vsi, EVENTHANDLER_PRI_FIRST);
 
-#ifdef DEV_NETMAP
-	ixl_netmap_attach(pf);
-#endif /* DEV_NETMAP */
-
 	INIT_DEBUGOUT("ixl_attach: end");
 	return (0);
 
@@ -732,10 +724,6 @@ ixl_detach(device_t dev)
 
 	ether_ifdetach(vsi->ifp);
 	callout_drain(&pf->timer);
-
-#ifdef DEV_NETMAP
-	netmap_detach(vsi->ifp);
-#endif /* DEV_NETMAP */
 
 	ixl_free_pci_resources(pf);
 	bus_generic_detach(dev);
@@ -933,8 +921,10 @@ ixl_ioctl(struct ifnet * ifp, u_long command, caddr_t data)
 			ifp->if_flags |= IFF_UP;
 			if (!(ifp->if_drv_flags & IFF_DRV_RUNNING))
 				ixl_init(pf);
+#ifdef INET
 			if (!(ifp->if_flags & IFF_NOARP))
 				arp_ifinit(ifp, ifa);
+#endif
 		} else
 			error = ether_ioctl(ifp, command, data);
 		break;
@@ -2187,6 +2177,7 @@ ixl_allocate_pci_resources(struct ixl_pf *pf)
 	pf->osdep.mem_bus_space_handle =
 		rman_get_bushandle(pf->pci_mem);
 	pf->osdep.mem_bus_space_size = rman_get_size(pf->pci_mem);
+	pf->osdep.flush_reg = I40E_GLGEN_STAT;
 	pf->hw.hw_addr = (u8 *) &pf->osdep.mem_bus_space_handle;
 
 	pf->hw.back = &pf->osdep;
@@ -2285,6 +2276,10 @@ ixl_setup_interface(device_t dev, struct ixl_vsi *vsi)
 	ifp->if_flags = IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST;
 	ifp->if_ioctl = ixl_ioctl;
 
+#if __FreeBSD_version >= 1100000
+	if_setgetcounterfn(ifp, ixl_get_counter);
+#endif
+
 	ifp->if_transmit = ixl_mq_start;
 
 	ifp->if_qflush = ixl_qflush;
@@ -2300,7 +2295,7 @@ ixl_setup_interface(device_t dev, struct ixl_vsi *vsi)
 	/*
 	 * Tell the upper layer(s) we support long frames.
 	 */
-	ifp->if_data.ifi_hdrlen = sizeof(struct ether_vlan_header);
+	ifp->if_hdrlen = sizeof(struct ether_vlan_header);
 
 	ifp->if_capabilities |= IFCAP_HWCSUM;
 	ifp->if_capabilities |= IFCAP_HWCSUM_IPV6;
@@ -2552,12 +2547,6 @@ ixl_initialize_vsi(struct ixl_vsi *vsi)
 		rctx.tphdata_ena = 0;
 		rctx.tphhead_ena = 0;
 		rctx.lrxqthresh = 2;
-#ifdef DEV_NETMAP
-		/* "CRC strip in netmap is conditional" */
-		if (vsi->ifp->if_capenable & IFCAP_NETMAP && !ixl_crcstrip)
-			rctx.crcstrip = 0;
-		else
-#endif /* DEV_NETMAP */
 		rctx.crcstrip = 1;
 		rctx.l2tsel = 1;
 		rctx.showiv = 1;
@@ -2581,21 +2570,6 @@ ixl_initialize_vsi(struct ixl_vsi *vsi)
 			break;
 		}
 		wr32(vsi->hw, I40E_QRX_TAIL(que->me), 0);
-#ifdef DEV_NETMAP
-		/* TODO appropriately comment
-		 * Code based on netmap code in ixgbe_init_locked()
-		 * Messes with what the software sets as queue
-		 * descriptor tail in hardware.
-		 */
-		if (vsi->ifp->if_capenable & IFCAP_NETMAP)
-		{
-			struct netmap_adapter *na = NA(vsi->ifp);
-			struct netmap_kring *kring = &na->rx_rings[que->me];
-			int t = na->num_rx_desc - 1 - kring->nr_hwavail;
-
-			wr32(vsi->hw, I40E_QRX_TAIL(que->me), t);
-		} else
-#endif /* DEV_NETMAP */
 		wr32(vsi->hw, I40E_QRX_TAIL(que->me), que->num_desc - 1);
 	}
 	return (err);
@@ -2624,7 +2598,7 @@ ixl_free_vsi(struct ixl_vsi *vsi)
 		IXL_TX_LOCK(txr);
 		ixl_free_que_tx(que);
 		if (txr->base)
-			i40e_free_dma(&pf->hw, &txr->dma);
+			i40e_free_dma_mem(&pf->hw, &txr->dma);
 		IXL_TX_UNLOCK(txr);
 		IXL_TX_LOCK_DESTROY(txr);
 
@@ -2633,7 +2607,7 @@ ixl_free_vsi(struct ixl_vsi *vsi)
 		IXL_RX_LOCK(rxr);
 		ixl_free_que_rx(que);
 		if (rxr->base)
-			i40e_free_dma(&pf->hw, &rxr->dma);
+			i40e_free_dma_mem(&pf->hw, &rxr->dma);
 		IXL_RX_UNLOCK(rxr);
 		IXL_RX_LOCK_DESTROY(rxr);
 		
@@ -2701,8 +2675,8 @@ ixl_setup_stations(struct ixl_pf *pf)
 		tsize = roundup2((que->num_desc *
 		    sizeof(struct i40e_tx_desc)) +
 		    sizeof(u32), DBA_ALIGN);
-		if (i40e_allocate_dma(&pf->hw,
-		    &txr->dma, tsize, DBA_ALIGN)) {
+		if (i40e_allocate_dma_mem(&pf->hw,
+		    &txr->dma, i40e_mem_reserved, tsize, DBA_ALIGN)) {
 			device_printf(dev,
 			    "Unable to allocate TX Descriptor memory\n");
 			error = ENOMEM;
@@ -2741,8 +2715,8 @@ ixl_setup_stations(struct ixl_pf *pf)
 		    device_get_nameunit(dev), que->me);
 		mtx_init(&rxr->mtx, rxr->mtx_name, NULL, MTX_DEF);
 
-		if (i40e_allocate_dma(&pf->hw,
-		    &rxr->dma, rsize, 4096)) {
+		if (i40e_allocate_dma_mem(&pf->hw,
+		    &rxr->dma, i40e_mem_reserved, rsize, 4096)) {
 			device_printf(dev,
 			    "Unable to allocate RX Descriptor memory\n");
 			error = ENOMEM;
@@ -2768,9 +2742,9 @@ fail:
 		rxr = &que->rxr;
 		txr = &que->txr;
 		if (rxr->base)
-			i40e_free_dma(&pf->hw, &rxr->dma);
+			i40e_free_dma_mem(&pf->hw, &rxr->dma);
 		if (txr->base)
-			i40e_free_dma(&pf->hw, &txr->dma);
+			i40e_free_dma_mem(&pf->hw, &txr->dma);
 	}
 
 early:
@@ -3731,7 +3705,6 @@ ixl_update_stats_counters(struct ixl_pf *pf)
 {
 	struct i40e_hw	*hw = &pf->hw;
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct ifnet	*ifp = vsi->ifp;
 
 	struct i40e_hw_port_stats *nsd = &pf->stats;
 	struct i40e_hw_port_stats *osd = &pf->stats_offsets;
@@ -3924,7 +3897,7 @@ ixl_update_stats_counters(struct ixl_pf *pf)
 
 	/* OS statistics */
 	// ERJ - these are per-port, update all vsis?
-	ifp->if_ierrors = nsd->crc_errors + nsd->illegal_bytes;
+	IXL_SET_IERRORS(vsi, nsd->crc_errors + nsd->illegal_bytes);
 }
 
 /*
@@ -4016,11 +3989,11 @@ ixl_print_debug_info(struct ixl_pf *pf)
 	u32			reg;	
 
 
-	printf("Queue irqs = %lx\n", que->irqs);
-	printf("AdminQ irqs = %lx\n", pf->admin_irq);
+	printf("Queue irqs = %jx\n", (uintmax_t)que->irqs);
+	printf("AdminQ irqs = %jx\n", (uintmax_t)pf->admin_irq);
 	printf("RX next check = %x\n", rxr->next_check);
-	printf("RX not ready = %lx\n", rxr->not_done);
-	printf("RX packets = %lx\n", rxr->rx_packets);
+	printf("RX not ready = %jx\n", (uintmax_t)rxr->not_done);
+	printf("RX packets = %jx\n", (uintmax_t)rxr->rx_packets);
 	printf("TX desc avail = %x\n", txr->avail);
 
 	reg = rd32(hw, I40E_GLV_GORCL(0xc));
@@ -4058,13 +4031,16 @@ void ixl_update_eth_stats(struct ixl_vsi *vsi)
 {
 	struct ixl_pf *pf = (struct ixl_pf *)vsi->back;
 	struct i40e_hw *hw = &pf->hw;
-	struct ifnet *ifp = vsi->ifp;
 	struct i40e_eth_stats *es;
 	struct i40e_eth_stats *oes;
+	int i;
+	uint64_t tx_discards;
+	struct i40e_hw_port_stats *nsd;
 	u16 stat_idx = vsi->info.stat_counter_idx;
 
 	es = &vsi->eth_stats;
 	oes = &vsi->eth_stats_offsets;
+	nsd = &pf->stats;
 
 	/* Gather up the stats that the hw collects */
 	ixl_stat_update32(hw, I40E_GLV_TEPC(stat_idx),
@@ -4109,22 +4085,27 @@ void ixl_update_eth_stats(struct ixl_vsi *vsi)
 			   &oes->tx_broadcast, &es->tx_broadcast);
 	vsi->stat_offsets_loaded = true;
 
-	/* Update ifnet stats */
-	ifp->if_ipackets = es->rx_unicast +
-	                   es->rx_multicast +
-			   es->rx_broadcast;
-	ifp->if_opackets = es->tx_unicast +
-	                   es->tx_multicast +
-			   es->tx_broadcast;
-	ifp->if_ibytes = es->rx_bytes;
-	ifp->if_obytes = es->tx_bytes;
-	ifp->if_imcasts = es->rx_multicast;
-	ifp->if_omcasts = es->tx_multicast;
+	tx_discards = es->tx_discards + nsd->tx_dropped_link_down;
+	for (i = 0; i < vsi->num_queues; i++)
+		tx_discards += vsi->queues[i].txr.br->br_drops;
 
-	ifp->if_oerrors = es->tx_errors;
-	ifp->if_iqdrops = es->rx_discards;
-	ifp->if_noproto = es->rx_unknown_protocol;
-	ifp->if_collisions = 0;
+	/* Update ifnet stats */
+	IXL_SET_IPACKETS(vsi, es->rx_unicast +
+	                   es->rx_multicast +
+			   es->rx_broadcast);
+	IXL_SET_OPACKETS(vsi, es->tx_unicast +
+	                   es->tx_multicast +
+			   es->tx_broadcast);
+	IXL_SET_IBYTES(vsi, es->rx_bytes);
+	IXL_SET_OBYTES(vsi, es->tx_bytes);
+	IXL_SET_IMCASTS(vsi, es->rx_multicast);
+	IXL_SET_OMCASTS(vsi, es->tx_multicast);
+
+	IXL_SET_OERRORS(vsi, es->tx_errors);
+	IXL_SET_IQDROPS(vsi, es->rx_discards + nsd->eth.rx_discards);
+	IXL_SET_OQDROPS(vsi, tx_discards);
+	IXL_SET_NOPROTO(vsi, es->rx_unknown_protocol);
+	IXL_SET_COLLISIONS(vsi, 0);
 }
 
 /**
@@ -4161,7 +4142,7 @@ ixl_stat_update48(struct i40e_hw *hw, u32 hireg, u32 loreg,
 {
 	u64 new_data;
 
-#if __FreeBSD__ >= 10 && __amd64__
+#if defined(__FreeBSD__) && (__FreeBSD_version >= 1000000) && defined(__amd64__)
 	new_data = rd64(hw, loreg);
 #else
 	/*

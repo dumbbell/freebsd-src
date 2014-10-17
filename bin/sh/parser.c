@@ -66,7 +66,6 @@ __FBSDID("$FreeBSD$");
  * Shell command parser.
  */
 
-#define	EOFMARKLEN	79
 #define	PROMPTLEN	128
 
 /* values of checkkwd variable */
@@ -718,7 +717,6 @@ parsefname(void)
 	if (n->type == NHERE) {
 		struct heredoc *here = heredoc;
 		struct heredoc *p;
-		int i;
 
 		if (quoteflag == 0)
 			n->type = NXHERE;
@@ -727,7 +725,7 @@ parsefname(void)
 			while (*wordtext == '\t')
 				wordtext++;
 		}
-		if (! noexpand(wordtext) || (i = strlen(wordtext)) == 0 || i > EOFMARKLEN)
+		if (! noexpand(wordtext))
 			synerror("Illegal eof marker for << redirection");
 		rmescapes(wordtext);
 		here->eofmark = wordtext;
@@ -891,7 +889,9 @@ xxreadtoken(void)
 				continue;
 			}
 			pungetc();
-			goto breakloop;
+			/* FALLTHROUGH */
+		default:
+			return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 		case '\n':
 			plinno++;
 			needprompt = doprompt;
@@ -920,12 +920,8 @@ xxreadtoken(void)
 			RETURN(TLP);
 		case ')':
 			RETURN(TRP);
-		default:
-			goto breakloop;
 		}
 	}
-breakloop:
-	return readtoken1(c, BASESYNTAX, (char *)NULL, 0);
 #undef RETURN
 }
 
@@ -944,6 +940,98 @@ struct tokenstate
 	} category;
 };
 
+
+/*
+ * Check to see whether we are at the end of the here document.  When this
+ * is called, c is set to the first character of the next input line.  If
+ * we are at the end of the here document, this routine sets the c to PEOF.
+ * The new value of c is returned.
+ */
+
+static int
+checkend(int c, const char *eofmark, int striptabs)
+{
+	if (striptabs) {
+		while (c == '\t')
+			c = pgetc();
+	}
+	if (c == *eofmark) {
+		int c2;
+		const char *q;
+
+		for (q = eofmark + 1; c2 = pgetc(), *q != '\0' && c2 == *q; q++)
+			;
+		if ((c2 == PEOF || c2 == '\n') && *q == '\0') {
+			c = PEOF;
+			if (c2 == '\n') {
+				plinno++;
+				needprompt = doprompt;
+			}
+		} else {
+			pungetc();
+			pushstring(eofmark + 1, q - (eofmark + 1), NULL);
+		}
+	}
+	return (c);
+}
+
+
+/*
+ * Parse a redirection operator.  The variable "out" points to a string
+ * specifying the fd to be redirected.  The variable "c" contains the
+ * first character of the redirection operator.
+ */
+
+static void
+parseredir(char *out, int c)
+{
+	char fd = *out;
+	union node *np;
+
+	np = (union node *)stalloc(sizeof (struct nfile));
+	if (c == '>') {
+		np->nfile.fd = 1;
+		c = pgetc();
+		if (c == '>')
+			np->type = NAPPEND;
+		else if (c == '&')
+			np->type = NTOFD;
+		else if (c == '|')
+			np->type = NCLOBBER;
+		else {
+			np->type = NTO;
+			pungetc();
+		}
+	} else {	/* c == '<' */
+		np->nfile.fd = 0;
+		c = pgetc();
+		if (c == '<') {
+			if (sizeof (struct nfile) != sizeof (struct nhere)) {
+				np = (union node *)stalloc(sizeof (struct nhere));
+				np->nfile.fd = 0;
+			}
+			np->type = NHERE;
+			heredoc = (struct heredoc *)stalloc(sizeof (struct heredoc));
+			heredoc->here = np;
+			if ((c = pgetc()) == '-') {
+				heredoc->striptabs = 1;
+			} else {
+				heredoc->striptabs = 0;
+				pungetc();
+			}
+		} else if (c == '&')
+			np->type = NFROMFD;
+		else if (c == '>')
+			np->type = NFROMTO;
+		else {
+			np->type = NFROM;
+			pungetc();
+		}
+	}
+	if (fd != '\0')
+		np->nfile.fd = digit_val(fd);
+	redirnode = np;
+}
 
 /*
  * Called to parse command substitutions.
@@ -1006,10 +1094,10 @@ parsebackq(char *out, struct nodelist **pbqlist,
 				needprompt = 0;
 			}
 			CHECKSTRSPACE(2, oout);
-			switch (c = pgetc()) {
-			case '`':
-				goto done;
-
+			c = pgetc();
+			if (c == '`')
+				break;
+			switch (c) {
 			case '\\':
                                 if ((c = pgetc()) == '\n') {
 					plinno++;
@@ -1045,7 +1133,6 @@ parsebackq(char *out, struct nodelist **pbqlist,
 			}
 			USTPUTC(c, oout);
                 }
-done:
                 USTPUTC('\0', oout);
                 olen = oout - stackblock();
 		INTOFF;
@@ -1246,6 +1333,13 @@ readcstyleesc(char *out)
 				c = pgetc();
 			if (c == PEOF)
 				synerror("Unterminated quoted string");
+			if (c == '\n') {
+				plinno++;
+				if (doprompt)
+					setprompt(2);
+				else
+					setprompt(0);
+			}
 		}
 		pungetc();
 		return out;
@@ -1269,8 +1363,6 @@ readcstyleesc(char *out)
  * will run code that appears at the end of readtoken1.
  */
 
-#define CHECKEND()	{goto checkend; checkend_return:;}
-#define PARSEREDIR()	{goto parseredir; parseredir_return:;}
 #define PARSESUB()	{goto parsesub; parsesub_return:;}
 #define	PARSEARITH()	{goto parsearith; parsearith_return:;}
 
@@ -1281,7 +1373,6 @@ readtoken1(int firstc, char const *initialsyntax, const char *eofmark,
 	int c = firstc;
 	char *out;
 	int len;
-	char line[EOFMARKLEN + 1];
 	struct nodelist *bqlist;
 	int quotef;
 	int newvarnest;
@@ -1303,7 +1394,9 @@ readtoken1(int firstc, char const *initialsyntax, const char *eofmark,
 
 	STARTSTACKSTR(out);
 	loop: {	/* for each line, until end of word */
-		CHECKEND();	/* set c to PEOF if at end of here document */
+		if (eofmark)
+			/* set c to PEOF if at end of here document */
+			c = checkend(c, eofmark, striptabs);
 		for (;;) {	/* until end of line or end of word */
 			CHECKSTRSPACE(4, out);	/* permit 4 calls to USTPUTC */
 
@@ -1469,7 +1562,7 @@ endword:
 		 && quotef == 0
 		 && len <= 2
 		 && (*out == '\0' || is_digit(*out))) {
-			PARSEREDIR();
+			parseredir(out, c);
 			return lasttoken = TREDIR;
 		} else {
 			pungetc();
@@ -1481,97 +1574,6 @@ endword:
 	wordtext = out;
 	return lasttoken = TWORD;
 /* end of readtoken routine */
-
-
-/*
- * Check to see whether we are at the end of the here document.  When this
- * is called, c is set to the first character of the next input line.  If
- * we are at the end of the here document, this routine sets the c to PEOF.
- */
-
-checkend: {
-	if (eofmark) {
-		if (striptabs) {
-			while (c == '\t')
-				c = pgetc();
-		}
-		if (c == *eofmark) {
-			if (pfgets(line, sizeof line) != NULL) {
-				const char *p, *q;
-
-				p = line;
-				for (q = eofmark + 1 ; *q && *p == *q ; p++, q++);
-				if ((*p == '\0' || *p == '\n') && *q == '\0') {
-					c = PEOF;
-					if (*p == '\n') {
-						plinno++;
-						needprompt = doprompt;
-					}
-				} else {
-					pushstring(line, strlen(line), NULL);
-				}
-			}
-		}
-	}
-	goto checkend_return;
-}
-
-
-/*
- * Parse a redirection operator.  The variable "out" points to a string
- * specifying the fd to be redirected.  The variable "c" contains the
- * first character of the redirection operator.
- */
-
-parseredir: {
-	char fd = *out;
-	union node *np;
-
-	np = (union node *)stalloc(sizeof (struct nfile));
-	if (c == '>') {
-		np->nfile.fd = 1;
-		c = pgetc();
-		if (c == '>')
-			np->type = NAPPEND;
-		else if (c == '&')
-			np->type = NTOFD;
-		else if (c == '|')
-			np->type = NCLOBBER;
-		else {
-			np->type = NTO;
-			pungetc();
-		}
-	} else {	/* c == '<' */
-		np->nfile.fd = 0;
-		c = pgetc();
-		if (c == '<') {
-			if (sizeof (struct nfile) != sizeof (struct nhere)) {
-				np = (union node *)stalloc(sizeof (struct nhere));
-				np->nfile.fd = 0;
-			}
-			np->type = NHERE;
-			heredoc = (struct heredoc *)stalloc(sizeof (struct heredoc));
-			heredoc->here = np;
-			if ((c = pgetc()) == '-') {
-				heredoc->striptabs = 1;
-			} else {
-				heredoc->striptabs = 0;
-				pungetc();
-			}
-		} else if (c == '&')
-			np->type = NFROMFD;
-		else if (c == '>')
-			np->type = NFROMTO;
-		else {
-			np->type = NFROM;
-			pungetc();
-		}
-	}
-	if (fd != '\0')
-		np->nfile.fd = digit_val(fd);
-	redirnode = np;
-	goto parseredir_return;
-}
 
 
 /*
@@ -1915,7 +1917,7 @@ char *
 getprompt(void *unused __unused)
 {
 	static char ps[PROMPTLEN];
-	char *fmt;
+	const char *fmt;
 	const char *pwd;
 	int i, trim;
 	static char internal_error[] = "??";
@@ -2029,7 +2031,7 @@ expandstr(const char *ps)
 		parser_temp = NULL;
 		setinputstring(ps, 1);
 		doprompt = 0;
-		readtoken1(pgetc(), DQSYNTAX, "\n\n", 0);
+		readtoken1(pgetc(), DQSYNTAX, "", 0);
 		if (backquotelist != NULL)
 			error("Command substitution not allowed here");
 
