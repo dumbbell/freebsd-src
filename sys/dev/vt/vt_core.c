@@ -2207,12 +2207,20 @@ skip_thunk:
 	case PIO_VFONT: {
 		struct vt_font *vf;
 
+		if (vd->vd_flags & VDF_TEXTMODE)
+			return (ENOTSUP);
+
 		error = vtfont_load((void *)data, &vf);
 		if (error != 0)
 			return (error);
 
 		error = vt_change_font(vw, vf);
 		vtfont_unref(vf);
+		return (error);
+	}
+	case PIO_VFONT_DEFAULT: {
+		/* Reset to default font. */
+		error = vt_change_font(vw, &vt_font_default);
 		return (error);
 	}
 	case GIO_SCRNMAP: {

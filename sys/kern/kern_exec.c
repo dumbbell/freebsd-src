@@ -348,7 +348,7 @@ do_execve(td, args, mac_p)
 	struct vnode *tracevp = NULL;
 	struct ucred *tracecred = NULL;
 #endif
-	struct vnode *textvp = NULL, *binvp = NULL;
+	struct vnode *textvp = NULL, *binvp;
 	cap_rights_t rights;
 	int credential_changing;
 	int textset;
@@ -422,7 +422,7 @@ interpret:
 		if (error)
 			goto exec_fail;
 
-		binvp  = nd.ni_vp;
+		binvp = nd.ni_vp;
 		imgp->vp = binvp;
 	} else {
 		AUDIT_ARG_FD(args->fd);
@@ -695,7 +695,7 @@ interpret:
 		 */
 		PROC_UNLOCK(p);
 		VOP_UNLOCK(imgp->vp, 0);
-		setugidsafety(td);
+		fdsetugidsafety(td);
 		error = fdcheckstd(td);
 		if (error != 0)
 			goto done1;
@@ -839,7 +839,7 @@ done1:
 	 */
 	if (textvp != NULL)
 		vrele(textvp);
-	if (binvp && error != 0)
+	if (error != 0)
 		vrele(binvp);
 #ifdef KTRACE
 	if (tracevp != NULL)
@@ -1091,7 +1091,7 @@ int
 exec_copyin_args(struct image_args *args, char *fname,
     enum uio_seg segflg, char **argv, char **envv)
 {
-	char *argp, *envp;
+	u_long argp, envp;
 	int error;
 	size_t length;
 
@@ -1127,13 +1127,17 @@ exec_copyin_args(struct image_args *args, char *fname,
 	/*
 	 * extract arguments first
 	 */
-	while ((argp = (caddr_t) (intptr_t) fuword(argv++))) {
-		if (argp == (caddr_t) -1) {
+	for (;;) {
+		error = fueword(argv++, &argp);
+		if (error == -1) {
 			error = EFAULT;
 			goto err_exit;
 		}
-		if ((error = copyinstr(argp, args->endp,
-		    args->stringspace, &length))) {
+		if (argp == 0)
+			break;
+		error = copyinstr((void *)(uintptr_t)argp, args->endp,
+		    args->stringspace, &length);
+		if (error != 0) {
 			if (error == ENAMETOOLONG) 
 				error = E2BIG;
 			goto err_exit;
@@ -1149,13 +1153,17 @@ exec_copyin_args(struct image_args *args, char *fname,
 	 * extract environment strings
 	 */
 	if (envv) {
-		while ((envp = (caddr_t)(intptr_t)fuword(envv++))) {
-			if (envp == (caddr_t)-1) {
+		for (;;) {
+			error = fueword(envv++, &envp);
+			if (error == -1) {
 				error = EFAULT;
 				goto err_exit;
 			}
-			if ((error = copyinstr(envp, args->endp,
-			    args->stringspace, &length))) {
+			if (envp == 0)
+				break;
+			error = copyinstr((void *)(uintptr_t)envp,
+			    args->endp, args->stringspace, &length);
+			if (error != 0) {
 				if (error == ENAMETOOLONG)
 					error = E2BIG;
 				goto err_exit;

@@ -3,7 +3,6 @@
 
 MAN=	crash.8 \
 	diskless.8 \
-	hv_kvp_daemon.8 \
 	intro.8 \
 	nanobsd.8 \
 	picobsd.8 \
@@ -28,6 +27,6 @@ MLINKS+=yp.8 NIS.8 \
 
 .if ${MACHINE_CPUARCH} == "amd64"
 _uefi.8= uefi.8
-.endif                                                                          
+.endif
 
 .include <bsd.prog.mk>

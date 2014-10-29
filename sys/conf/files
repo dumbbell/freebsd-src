@@ -2647,6 +2647,8 @@ dev/xen/pvcpu/pvcpu.c		optional xen | xenhvm
 dev/xen/xenstore/xenstore.c	optional xen | xenhvm
 dev/xen/xenstore/xenstore_dev.c	optional xen | xenhvm
 dev/xen/xenstore/xenstored_dev.c	optional xen | xenhvm
+dev/xen/evtchn/evtchn_dev.c	optional xen | xenhvm
+dev/xen/privcmd/privcmd.c	optional xen | xenhvm
 dev/xl/if_xl.c			optional xl pci
 dev/xl/xlphy.c			optional xl pci
 fs/autofs/autofs.c		optional autofs
@@ -3246,6 +3248,7 @@ net/if_stf.c			optional stf inet inet6
 net/if_tun.c			optional tun
 net/if_tap.c			optional tap
 net/if_vlan.c			optional vlan
+net/if_vxlan.c			optional vxlan inet | vxlan inet6
 net/mppcc.c			optional netgraph_mppc_compression
 net/mppcd.c			optional netgraph_mppc_compression
 net/netisr.c			standard
