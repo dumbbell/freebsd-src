@@ -218,7 +218,7 @@ int drm_agp_alloc(struct drm_device *dev, struct drm_agp_buffer *request)
 
 	pages = (request->size + PAGE_SIZE - 1) / PAGE_SIZE;
 	type = (u32) request->type;
-	if (!(memory = agp_alloc_memory(dev->agp->bridge, type, pages << AGP_PAGE_SHIFT))) {
+	if (!(memory = agp_alloc_memory(dev->agp->bridge, type, pages << PAGE_SHIFT))) {
 		free(entry, DRM_MEM_AGPLISTS);
 		return -ENOMEM;
 	}

@@ -38,6 +38,8 @@
 #   xargs -n1 | sort | uniq -d;
 # done
 
+# 20141031: initrandom obsoleted by new /dev/random code
+OLD_FILES+=etc/rc.d/initrandom
 # 20141028: debug files accidentally installed as directory name
 OLD_FILES+=usr/lib/debug/usr/lib/i18n
 OLD_FILES+=usr/lib/debug/usr/lib/private
@@ -51,7 +53,6 @@ OLD_FILES+=usr/share/man/man9/sleepq_catch_signals.9.gz
 # 20140917: hv_kvpd rc.d script removed in favor of devd configuration
 OLD_FILES+=etc/rc.d/hv_kvpd
 # 20140917: libnv was accidentally being installed to /usr/lib instead of /lib
-OLD_LIBS+=usr/lib/libnv.a
 OLD_LIBS+=usr/lib/libnv.so.0
 # 20140829: rc.d/kerberos removed
 OLD_FILES+=etc/rc.d/kerberos
