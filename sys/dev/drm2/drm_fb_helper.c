@@ -108,7 +108,7 @@ framebuffer_release(struct fb_info *info)
 }
 
 static int
-fb_get_options(const char *conector_name, char **option)
+fb_get_options(const char *connector_name, char **option)
 {
 	char tunable[64];
 
