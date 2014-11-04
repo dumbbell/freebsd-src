@@ -45,6 +45,8 @@ MODULE_LICENSE("GPL and additional rights");
 static DRM_LIST_HEAD(kernel_fb_helper_list);
 
 #include <sys/kdb.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 
 struct vt_kms_softc {
 	struct drm_fb_helper	*fb_helper;
@@ -108,12 +110,31 @@ framebuffer_release(struct fb_info *info)
 static int
 fb_get_options(const char *conector_name, char **option)
 {
+	char tunable[64];
 
 	/*
-	 * TODO: store mode options pointer in ${option} for connector with
-	 * name ${connector_name}
+	 * A user may use loader tunables to set a specific mode for the
+	 * console. Tunables are read in the following order:
+	 *     1. kern.vt.fb.modes.$connector_name
+	 *     2. kern.vt.fb.default_mode
+	 *
+	 * Example of a mode specific to the LVDS connector:
+	 *     kern.vt.fb.modes.LVDS="1024x768"
+	 *
+	 * Example of a mode applied to all connectors not having a
+	 * connector-specific mode:
+	 *     kern.vt.fb.default_mode="640x480"
 	 */
-	return (-ENOTSUP);
+	snprintf(tunable, sizeof(tunable), "kern.vt.fb.modes.%s",
+	    connector_name);
+	DRM_INFO("Connector %s: get mode from tunables:\n", connector_name);
+	DRM_INFO("  - %s\n", tunable);
+	DRM_INFO("  - kern.vt.fb.default_mode\n");
+	*option = kern_getenv(tunable);
+	if (*option == NULL)
+		*option = kern_getenv("kern.vt.fb.default_mode");
+
+	return (*option != NULL ? 0 : -ENOENT);
 }
 
 /**
@@ -195,7 +216,7 @@ static int drm_fb_helper_parse_command_line(struct drm_fb_helper *fb_helper)
 				connector->force = mode->force;
 			}
 
-			DRM_DEBUG_KMS("cmdline mode for connector %s %dx%d@%dHz%s%s%s\n",
+			DRM_INFO("cmdline mode for connector %s %dx%d@%dHz%s%s%s\n",
 				      drm_get_connector_name(connector),
 				      mode->xres, mode->yres,
 				      mode->refresh_specified ? mode->refresh : 60,
@@ -204,6 +225,7 @@ static int drm_fb_helper_parse_command_line(struct drm_fb_helper *fb_helper)
 				      mode->interlace ?  " interlaced" : "");
 		}
 
+		freeenv(option);
 	}
 	return 0;
 }
