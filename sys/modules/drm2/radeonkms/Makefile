@@ -92,7 +92,7 @@ radeon_acpi=		radeon_acpi.c
 radeon_atpx_handler=	radeon_atpx_handler.c
 .endif
 
-.if ${MACHINE_CPUARCH} == "amd64"
+.if ${MACHINE_CPUARCH} == "amd64" || ${MACHINE_ARCH} == "powerpc64"
 radeon_ioc32=		radeon_ioc32.c
 .endif
 
