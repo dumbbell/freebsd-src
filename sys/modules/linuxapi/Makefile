@@ -5,13 +5,16 @@
 
 KMOD=	linuxapi
 
+# Code common to all Linux versions.
 SRCS=	kmod.c		\
-	compat.c	\
-	device.c	\
-	idr.c		\
-	kobject.c	\
-	radix.c		\
 	rbtree.c
+
+# Linux 3.15 and later.
+SRCS+=	compat_3.15.c	\
+	device_3.15.c	\
+	idr_3.15.c	\
+	kobject_3.15.c	\
+	radix_3.15.c
 
 SRCS+=	bus_if.h	\
 	device_if.h	\

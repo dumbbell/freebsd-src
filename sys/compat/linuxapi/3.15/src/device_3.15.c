@@ -51,7 +51,7 @@ __FBSDID("$FreeBSD$");
 #undef file
 #undef cdev
 
-struct kobject LINUXAPI_PREFIXED_SYM(class_root);
+struct kobject class_root;
 
 static ssize_t
 show_class_attr_string(struct class *class,
@@ -105,7 +105,7 @@ static struct sysfs_ops LINUXAPI_PREFIXED_SYM(class_sysfs) = {
 	.show  = LINUXAPI_PREFIXED_SYM(class_show),
 	.store = LINUXAPI_PREFIXED_SYM(class_store),
 };
-struct kobj_type LINUXAPI_PREFIXED_SYM(class_ktype) = {
+struct kobj_type class_ktype = {
 	.release = LINUXAPI_PREFIXED_SYM(class_release),
 	.sysfs_ops = &LINUXAPI_PREFIXED_SYM(class_sysfs)
 };
@@ -115,9 +115,9 @@ class_register(struct class *class)
 {
 
 	class->bsdclass = devclass_create(class->name);
-	kobject_init(&class->kobj, &LINUXAPI_PREFIXED_SYM(class_ktype));
+	kobject_init(&class->kobj, &class_ktype);
 	kobject_set_name(&class->kobj, class->name);
-	kobject_add(&class->kobj, &LINUXAPI_PREFIXED_SYM(class_root), class->name);
+	kobject_add(&class->kobj, &class_root, class->name);
 
 	return (0);
 }
@@ -608,8 +608,11 @@ LINUXAPI_PREFIXED_SYM(dev_store)(struct kobject *kobj, struct attribute *attr, c
 	return (error);
 }
 
-static struct sysfs_ops LINUXAPI_PREFIXED_SYM(dev_sysfs) = { .show  = LINUXAPI_PREFIXED_SYM(dev_show), .store = LINUXAPI_PREFIXED_SYM(dev_store), };
-struct kobj_type LINUXAPI_PREFIXED_SYM(dev_ktype) = {
+static struct sysfs_ops LINUXAPI_PREFIXED_SYM(dev_sysfs) = {
+	.show  = LINUXAPI_PREFIXED_SYM(dev_show),
+	.store = LINUXAPI_PREFIXED_SYM(dev_store),
+};
+struct kobj_type dev_ktype = {
 	.release = LINUXAPI_PREFIXED_SYM(device_release),
 	.sysfs_ops = &LINUXAPI_PREFIXED_SYM(dev_sysfs)
 };
@@ -640,7 +643,7 @@ device_register(struct device *dev)
 		device_set_softc(bsddev, dev);
 	}
 	dev->bsddev = bsddev;
-	kobject_init(&dev->kobj, &LINUXAPI_PREFIXED_SYM(dev_ktype));
+	kobject_init(&dev->kobj, &dev_ktype);
 	kobject_add(&dev->kobj, &dev->class->kobj, dev_name(dev));
 
 	return (0);
