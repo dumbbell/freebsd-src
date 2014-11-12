@@ -63,8 +63,6 @@ struct device {
 	unsigned int	msix_max;
 };
 
-extern struct device LINUXAPI_PREFIXED_SYM(linux_rootdev);
-
 struct class_attribute {
         struct attribute attr;
         ssize_t (*show)(struct class *, struct class_attribute *, char *);
@@ -95,9 +93,14 @@ struct class_attribute_string {
 	char *str;
 };
 
-extern struct kobject LINUXAPI_PREFIXED_SYM(class_root);
-extern struct kobj_type LINUXAPI_PREFIXED_SYM(class_ktype);
-extern struct kobj_type LINUXAPI_PREFIXED_SYM(dev_ktype);
+#define linux_rootdev LINUXAPI_PREFIXED_SYM(linux_rootdev)
+extern struct device linux_rootdev;
+#define class_root LINUXAPI_PREFIXED_SYM(class_root)
+extern struct kobject class_root;
+#define class_ktype LINUXAPI_PREFIXED_SYM(class_ktype)
+extern struct kobj_type class_ktype;
+#define dev_ktype LINUXAPI_PREFIXED_SYM(dev_ktype)
+extern struct kobj_type dev_ktype;
 
 #define class_register LINUXAPI_PREFIXED_SYM(class_register)
 int		class_register(struct class *class);

@@ -42,12 +42,16 @@ struct name {								\
 	struct type *lh_first;	/* first element */			\
 }
 
-struct device LINUXAPI_PREFIXED_SYM(linux_rootdev);
+struct device linux_rootdev;
 
-static struct class LINUXAPI_PREFIXED_SYM(miscclass);
-static struct list_head LINUXAPI_PREFIXED_SYM(pci_drivers);
-static struct list_head LINUXAPI_PREFIXED_SYM(pci_devices);
-static spinlock_t LINUXAPI_PREFIXED_SYM(pci_lock);
+#define miscclass LINUXAPI_PREFIXED_SYM(miscclass)
+static struct class miscclass;
+#define pci_drivers LINUXAPI_PREFIXED_SYM(pci_drivers)
+static struct list_head pci_drivers;
+#define pci_devices LINUXAPI_PREFIXED_SYM(pci_devices)
+static struct list_head pci_devices;
+#define pci_lock LINUXAPI_PREFIXED_SYM(pci_lock)
+static spinlock_t pci_lock;
 
 /*
  * Hash of vmmap addresses.  This is infrequently accessed and does not
@@ -64,8 +68,10 @@ LIST_HEAD(vmmaphd, vmmap);
 #define	VMMAP_HASH_SIZE	64
 #define	VMMAP_HASH_MASK	(VMMAP_HASH_SIZE - 1)
 #define	VM_HASH(addr)	((uintptr_t)(addr) >> PAGE_SHIFT) & VMMAP_HASH_MASK
-static struct vmmaphd LINUXAPI_PREFIXED_SYM(vmmaphead)[VMMAP_HASH_SIZE];
-static struct mtx LINUXAPI_PREFIXED_SYM(vmmaplock);
+#define vmmaphead LINUXAPI_PREFIXED_SYM(vmmaphead)
+static struct vmmaphd vmmaphead[VMMAP_HASH_SIZE];
+#define vmmaplock LINUXAPI_PREFIXED_SYM(vmmaplock)
+static struct mtx vmmaplock;
 
 static void
 vmmap_add(void *addr, unsigned long size)
@@ -73,12 +79,11 @@ vmmap_add(void *addr, unsigned long size)
 	struct vmmap *vmmap;
 
 	vmmap = kmalloc(sizeof(*vmmap), GFP_KERNEL);
-	mtx_lock(&LINUXAPI_PREFIXED_SYM(vmmaplock));
+	mtx_lock(&vmmaplock);
 	vmmap->vm_size = size;
 	vmmap->vm_addr = addr;
-	LIST_INSERT_HEAD(&LINUXAPI_PREFIXED_SYM(vmmaphead)[VM_HASH(addr)],
-	    vmmap, vm_next);
-	mtx_unlock(&LINUXAPI_PREFIXED_SYM(vmmaplock));
+	LIST_INSERT_HEAD(&vmmaphead[VM_HASH(addr)], vmmap, vm_next);
+	mtx_unlock(&vmmaplock);
 }
 
 static struct vmmap *
@@ -86,13 +91,13 @@ vmmap_remove(void *addr)
 {
 	struct vmmap *vmmap;
 
-	mtx_lock(&LINUXAPI_PREFIXED_SYM(vmmaplock));
-	LIST_FOREACH(vmmap, &LINUXAPI_PREFIXED_SYM(vmmaphead)[VM_HASH(addr)], vm_next)
+	mtx_lock(&vmmaplock);
+	LIST_FOREACH(vmmap, &vmmaphead[VM_HASH(addr)], vm_next)
 		if (vmmap->vm_addr == addr)
 			break;
 	if (vmmap)
 		LIST_REMOVE(vmmap, vm_next);
-	mtx_unlock(&LINUXAPI_PREFIXED_SYM(vmmaplock));
+	mtx_unlock(&vmmaplock);
 
 	return (vmmap);
 }
@@ -160,27 +165,24 @@ LINUXAPI_PREFIXED_SYM(compat_init)(void)
 
 	rootoid = SYSCTL_ADD_ROOT_NODE(NULL,
 	    OID_AUTO, "sys", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "sys");
-	kobject_init(&LINUXAPI_PREFIXED_SYM(class_root),
-	    &LINUXAPI_PREFIXED_SYM(class_ktype));
-	kobject_set_name(&LINUXAPI_PREFIXED_SYM(class_root), "class");
-	LINUXAPI_PREFIXED_SYM(class_root).oidp = SYSCTL_ADD_NODE(NULL,
-	    SYSCTL_CHILDREN(rootoid),
+	kobject_init(&class_root, &class_ktype);
+	kobject_set_name(&class_root, "class");
+	class_root.oidp = SYSCTL_ADD_NODE(NULL, SYSCTL_CHILDREN(rootoid),
 	    OID_AUTO, "class", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "class");
-	kobject_init(&LINUXAPI_PREFIXED_SYM(linux_rootdev).kobj,
-	    &LINUXAPI_PREFIXED_SYM(dev_ktype));
-	kobject_set_name(&LINUXAPI_PREFIXED_SYM(linux_rootdev).kobj, "device");
-	LINUXAPI_PREFIXED_SYM(linux_rootdev).kobj.oidp = SYSCTL_ADD_NODE(NULL,
+	kobject_init(&linux_rootdev.kobj, &dev_ktype);
+	kobject_set_name(&linux_rootdev.kobj, "device");
+	linux_rootdev.kobj.oidp = SYSCTL_ADD_NODE(NULL,
 	    SYSCTL_CHILDREN(rootoid), OID_AUTO, "device", CTLFLAG_RD, NULL,
 	    "device");
-	LINUXAPI_PREFIXED_SYM(linux_rootdev).bsddev = root_bus;
-	LINUXAPI_PREFIXED_SYM(miscclass).name = "misc";
-	class_register(&LINUXAPI_PREFIXED_SYM(miscclass));
-	INIT_LIST_HEAD(&LINUXAPI_PREFIXED_SYM(pci_drivers));
-	INIT_LIST_HEAD(&LINUXAPI_PREFIXED_SYM(pci_devices));
-	spin_lock_init(&LINUXAPI_PREFIXED_SYM(pci_lock));
-	mtx_init(&LINUXAPI_PREFIXED_SYM(vmmaplock), "IO Map lock", NULL, MTX_DEF);
+	linux_rootdev.bsddev = root_bus;
+	miscclass.name = "misc";
+	class_register(&miscclass);
+	INIT_LIST_HEAD(&pci_drivers);
+	INIT_LIST_HEAD(&pci_devices);
+	spin_lock_init(&pci_lock);
+	mtx_init(&vmmaplock, "IO Map lock", NULL, MTX_DEF);
 	for (i = 0; i < VMMAP_HASH_SIZE; i++)
-		LIST_INIT(&LINUXAPI_PREFIXED_SYM(vmmaphead)[i]);
+		LIST_INIT(&vmmaphead[i]);
 }
 
 SYSINIT(linuxapi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
@@ -189,9 +191,9 @@ SYSINIT(linuxapi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
 static void
 LINUXAPI_PREFIXED_SYM(compat_uninit)(void)
 {
-	kobject_kfree_name(&LINUXAPI_PREFIXED_SYM(class_root));
-	kobject_kfree_name(&LINUXAPI_PREFIXED_SYM(linux_rootdev).kobj);
-	kobject_kfree_name(&LINUXAPI_PREFIXED_SYM(miscclass.kobj));
+	kobject_kfree_name(&class_root);
+	kobject_kfree_name(&linux_rootdev.kobj);
+	kobject_kfree_name(&miscclass.kobj);
 }
 
 SYSUNINIT(linuxapi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
