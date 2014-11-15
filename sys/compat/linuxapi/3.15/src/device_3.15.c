@@ -53,7 +53,7 @@ __FBSDID("$FreeBSD$");
 
 struct kobject class_root;
 
-static ssize_t
+ssize_t
 show_class_attr_string(struct class *class,
     struct class_attribute *attr, char *buf)
 {

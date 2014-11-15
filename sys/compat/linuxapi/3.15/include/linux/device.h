@@ -119,6 +119,9 @@ int		class_create_file(struct class *class,
 #define class_remove_file LINUXAPI_PREFIXED_SYM(class_remove_file)
 void		class_remove_file(struct class *class,
 		    const struct class_attribute *attr);
+#define show_class_attr_string LINUXAPI_PREFIXED_SYM(show_class_attr_string)
+ssize_t		show_class_attr_string(struct class *class,
+		    struct class_attribute *attr, char *buf);
 
 /* Currently read-only only */
 #define _CLASS_ATTR_STRING(_name, _mode, _str) \
