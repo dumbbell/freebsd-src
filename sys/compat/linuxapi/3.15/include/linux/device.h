@@ -32,6 +32,9 @@
 #include <linux/_linuxapi_shim.h>
 
 #include <linux/kobject.h>
+#include <linux/compiler.h> // Useless
+#include <asm/atomic.h> // Useless
+#include <linux/module.h> // Useless
 
 #include <sys/bus.h>
 
