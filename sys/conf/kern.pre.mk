@@ -165,7 +165,7 @@ NORMAL_LINT=	${LINT} ${LINTFLAGS} ${CFLAGS:M-[DIU]*} ${.IMPSRC}
 
 # Infiniband C flags.  Correct include paths and omit errors that linux
 # does not honor.
-OFEDINCLUDES=	-I$S/ofed/include/
+OFEDINCLUDES=	-I$S/ofed/include/ -I$S/compat/linuxapi/3.15/include -I$S/compat/linuxapi/common/include
 OFEDNOERR=	-Wno-cast-qual -Wno-pointer-arith ${GCC_MS_EXTENSIONS}
 OFEDCFLAGS=	${CFLAGS:N-I*} ${OFEDINCLUDES} ${CFLAGS:M-I*} ${OFEDNOERR}
 OFED_C_NOIMP=	${CC} -c -o ${.TARGET} ${OFEDCFLAGS} ${WERROR} ${PROF}
@@ -207,3 +207,7 @@ MKMODULESENV+=	DEBUG_FLAGS="${DEBUG}"
 DDB_ENABLED!=	grep DDB opt_ddb.h || true ; echo
 DTR_ENABLED!=	grep KDTRACE_FRAME opt_kdtrace.h || true ; echo
 HWPMC_ENABLED!=	grep HWPMC opt_hwpmc_hooks.h || true ; echo
+
+LINUXAPI_INCLUDES=	-I${.IMPSRC:H:H}/include -I$S/compat/linuxapi/common/include
+LINUXAPI_NOERR=		-Wno-pointer-arith -Wno-pointer-sign
+LINUXAPI_C=		${NORMAL_C} ${LINUXAPI_INCLUDES} ${LINUXAPI_NOERR}

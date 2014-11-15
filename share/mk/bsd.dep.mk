@@ -165,18 +165,38 @@ MKDEP_CXXFLAGS=	${CXXFLAGS:M-nostdinc*} ${CXXFLAGS:M-[BIDU]*} \
 		${CXXFLAGS:M-std=*} ${CXXFLAGS:M-ansi} ${CXXFLAGS:M-stdlib=*}
 
 DPSRCS+= ${SRCS}
-${DEPENDFILE}: ${DPSRCS}
+
+.SUFFIXES: .Po
+
+.c.Po:
+	${MKDEPCMD} -f ${.TARGET} -a ${MKDEP} ${MKDEP_CFLAGS} ${.IMPSRC}
+
+.S.Po:
+	${MKDEPCMD} -f ${.TARGET} -a ${MKDEP} ${MKDEP_CFLAGS} ${.IMPSRC}
+
+.cc.Po:
+	${MKDEPCMD} -f ${.TARGET} -a ${MKDEP} ${MKDEP_CXXFLAGS} ${.IMPSRC}
+
+.C.Po:
+	${MKDEPCMD} -f ${.TARGET} -a ${MKDEP} ${MKDEP_CXXFLAGS} ${.IMPSRC}
+
+.cpp.Po:
+	${MKDEPCMD} -f ${.TARGET} -a ${MKDEP} ${MKDEP_CXXFLAGS} ${.IMPSRC}
+
+.cxx.Po:
+	${MKDEPCMD} -f ${.TARGET} -a ${MKDEP} ${MKDEP_CXXFLAGS} ${.IMPSRC}
+
+.for _DPSRC in ${DPSRCS:M*.[cS]} ${DPSRCS:M*.cc} ${DPSRCS:M*.C} ${DPSRCS:M*.cpp} ${DPSRCS:M*.cxx}
+.for _DP in ${_DPSRC:R}.Po
+DPFILES+= ${_DP}
+CLEANFILES+= ${_DP}
+${_DP}: ${_DPSRC} ${DPSRCS}
+.endfor
+.endfor
+
+${DEPENDFILE}: ${DPSRCS} ${DPFILES}
 	rm -f ${DEPENDFILE}
-.if !empty(DPSRCS:M*.[cS])
-	${MKDEPCMD} -f ${DEPENDFILE} -a ${MKDEP} \
-	    ${MKDEP_CFLAGS} ${.ALLSRC:M*.[cS]}
-.endif
-.if !empty(DPSRCS:M*.cc) || !empty(DPSRCS:M*.C) || !empty(DPSRCS:M*.cpp) || \
-    !empty(DPSRCS:M*.cxx)
-	${MKDEPCMD} -f ${DEPENDFILE} -a ${MKDEP} \
-	    ${MKDEP_CXXFLAGS} \
-	    ${.ALLSRC:M*.cc} ${.ALLSRC:M*.C} ${.ALLSRC:M*.cpp} ${.ALLSRC:M*.cxx}
-.endif
+	cat ${DPFILES} > ${DEPENDFILE}
 .if target(_EXTRADEPEND)
 _EXTRADEPEND: .USE
 ${DEPENDFILE}: _EXTRADEPEND

@@ -200,6 +200,7 @@ SUBDIR=	\
 	${_linprocfs} \
 	${_linsysfs} \
 	${_linux} \
+	linuxapi \
 	lmc \
 	lpt \
 	mac_biba \

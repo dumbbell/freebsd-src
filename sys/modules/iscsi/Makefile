@@ -19,7 +19,7 @@ SRCS+=	vnode_if.h
 SRCS+=	opt_inet.h
 SRCS+=	opt_inet6.h
 
-CFLAGS+= -I${.CURDIR}/../../ofed/include
+CFLAGS+= -I${.CURDIR}/../../compat/linuxapi/3.15/include -I${.CURDIR}/../../compat/linuxapi/common/include
 #CFLAGS+=-DICL_KERNEL_PROXY
 
 .include <bsd.kmod.mk>
