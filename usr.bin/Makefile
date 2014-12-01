@@ -35,7 +35,9 @@ SUBDIR=	alias \
 	csplit \
 	ctlstat \
 	cut \
+	demandoc \
 	dirname \
+	dpv \
 	du \
 	ee \
 	elf2aout \
@@ -128,6 +130,7 @@ SUBDIR=	alias \
 	pathchk \
 	perror \
 	pr \
+	preconv \
 	printenv \
 	printf \
 	procstat \
@@ -148,6 +151,7 @@ SUBDIR=	alias \
 	shar \
 	showmount \
 	sockstat \
+	soeliminate \
 	sort \
 	split \
 	stat \

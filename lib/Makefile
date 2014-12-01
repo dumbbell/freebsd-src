@@ -42,14 +42,17 @@ SUBDIR=	${SUBDIR_ORDERED} \
 	libcrypt \
 	libdevinfo \
 	libdevstat \
+	libdpv \
 	libdwarf \
 	libedit \
 	${_libevent} \
 	libexecinfo \
 	libexpat \
 	libfetch \
+	libfigpar \
 	libgeom \
 	${_libgpib} \
+	libgpio \
 	${_libgssapi} \
 	${_librpcsec_gss} \
 	${_libiconv_modules} \
@@ -88,6 +91,7 @@ SUBDIR=	${SUBDIR_ORDERED} \
 	${_libsmb} \
 	${_libsmdb} \
 	${_libsmutil} \
+	libsqlite3 \
 	libstand \
 	libstdbuf \
 	libstdthreads \
@@ -129,7 +133,7 @@ SUBDIR_DEPEND_libcam= libsbuf
 SUBDIR_DEPEND_libcapsicum= libnv
 SUBDIR_DEPEND_libcasper= libcapsicum libnv libpjdlog
 SUBDIR_DEPEND_libdevstat= libkvm
-SUBDIR_DEPEND_libdiaglog= ncurses
+SUBDIR_DEPEND_libdpv= libfigpar ncurses libutil
 SUBDIR_DEPEND_libedit= ncurses
 SUBDIR_DEPEND_libg++= msun
 SUBDIR_DEPEND_libgeom= libexpat libsbuf
