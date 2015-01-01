@@ -171,7 +171,8 @@ static int drm_name_info DRM_SYSCTL_HANDLER_ARGS
 
 	/* FIXME: This still uses primary minor. */
 	minor = dev->primary;
-	DRM_SYSCTL_PRINT("%s 0x%x", dev->driver->name, dev2udev(minor->device));
+	DRM_SYSCTL_PRINT("%s 0x%jx", dev->driver->name,
+	    (uintmax_t)dev2udev(minor->device));
 
 	DRM_LOCK(dev);
 	master = minor->master;
