@@ -87,7 +87,6 @@
 #define	swab64	bswap64
 
 #define be16_add_cpu LINUXAPI_PREFIXED_SYM(be16_add_cpu)
-#define be16_add_cpu LINUXAPI_PREFIXED_SYM(be16_add_cpu)
 static inline void
 be16_add_cpu(u16 *var, u16 val)
 { 

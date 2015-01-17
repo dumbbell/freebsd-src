@@ -44,14 +44,12 @@ typedef struct {
 #define	atomic_long_inc_return(v)	atomic_long_add_return(1, (v))
 
 #define atomic_long_add_return LINUXAPI_PREFIXED_SYM(atomic_long_add_return)
-#define atomic_long_add_return LINUXAPI_PREFIXED_SYM(atomic_long_add_return)
 static inline long
 atomic_long_add_return(long i, atomic_long_t *v)
 {
 	return i + atomic_fetchadd_long(&v->counter, i);
 }
 
-#define atomic_long_set LINUXAPI_PREFIXED_SYM(atomic_long_set)
 #define atomic_long_set LINUXAPI_PREFIXED_SYM(atomic_long_set)
 static inline void
 atomic_long_set(atomic_long_t *v, long i)
@@ -60,14 +58,12 @@ atomic_long_set(atomic_long_t *v, long i)
 }
 
 #define atomic_long_read LINUXAPI_PREFIXED_SYM(atomic_long_read)
-#define atomic_long_read LINUXAPI_PREFIXED_SYM(atomic_long_read)
 static inline long
 atomic_long_read(atomic_long_t *v)
 {
 	return atomic_load_acq_long(&v->counter);
 }
 
-#define atomic_long_inc LINUXAPI_PREFIXED_SYM(atomic_long_inc)
 #define atomic_long_inc LINUXAPI_PREFIXED_SYM(atomic_long_inc)
 static inline long
 atomic_long_inc(atomic_long_t *v)
@@ -76,14 +72,12 @@ atomic_long_inc(atomic_long_t *v)
 }
 
 #define atomic_long_dec LINUXAPI_PREFIXED_SYM(atomic_long_dec)
-#define atomic_long_dec LINUXAPI_PREFIXED_SYM(atomic_long_dec)
 static inline long
 atomic_long_dec(atomic_long_t *v)
 {
 	return atomic_fetchadd_long(&v->counter, -1) - 1;
 }
 
-#define atomic_long_dec_and_test LINUXAPI_PREFIXED_SYM(atomic_long_dec_and_test)
 #define atomic_long_dec_and_test LINUXAPI_PREFIXED_SYM(atomic_long_dec_and_test)
 static inline long
 atomic_long_dec_and_test(atomic_long_t *v)

@@ -50,14 +50,12 @@ typedef struct {
 #define atomic_dec_return(v)             atomic_sub_return(1, (v))
 
 #define atomic_add_return LINUXAPI_PREFIXED_SYM(atomic_add_return)
-#define atomic_add_return LINUXAPI_PREFIXED_SYM(atomic_add_return)
 static inline int
 atomic_add_return(int i, atomic_t *v)
 {
 	return i + atomic_fetchadd_int(&v->counter, i);
 }
 
-#define atomic_sub_return LINUXAPI_PREFIXED_SYM(atomic_sub_return)
 #define atomic_sub_return LINUXAPI_PREFIXED_SYM(atomic_sub_return)
 static inline int
 atomic_sub_return(int i, atomic_t *v)
@@ -66,14 +64,12 @@ atomic_sub_return(int i, atomic_t *v)
 }
 
 #define atomic_set LINUXAPI_PREFIXED_SYM(atomic_set)
-#define atomic_set LINUXAPI_PREFIXED_SYM(atomic_set)
 static inline void
 atomic_set(atomic_t *v, int i)
 {
 	atomic_store_rel_int(&v->counter, i);
 }
 
-#define atomic_read LINUXAPI_PREFIXED_SYM(atomic_read)
 #define atomic_read LINUXAPI_PREFIXED_SYM(atomic_read)
 static inline int
 atomic_read(atomic_t *v)
@@ -82,7 +78,6 @@ atomic_read(atomic_t *v)
 }
 
 #define atomic_inc LINUXAPI_PREFIXED_SYM(atomic_inc)
-#define atomic_inc LINUXAPI_PREFIXED_SYM(atomic_inc)
 static inline int
 atomic_inc(atomic_t *v)
 {
@@ -90,14 +85,12 @@ atomic_inc(atomic_t *v)
 }
 
 #define atomic_dec LINUXAPI_PREFIXED_SYM(atomic_dec)
-#define atomic_dec LINUXAPI_PREFIXED_SYM(atomic_dec)
 static inline int
 atomic_dec(atomic_t *v)
 {
 	return atomic_fetchadd_int(&v->counter, -1) - 1;
 }
 
-#define atomic_add_unless LINUXAPI_PREFIXED_SYM(atomic_add_unless)
 #define atomic_add_unless LINUXAPI_PREFIXED_SYM(atomic_add_unless)
 static inline int atomic_add_unless(atomic_t *v, int a, int u)
 {

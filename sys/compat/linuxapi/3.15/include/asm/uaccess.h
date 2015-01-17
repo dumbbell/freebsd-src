@@ -35,7 +35,6 @@
 #include <linux/uaccess.h>
 
 #define copy_to_user LINUXAPI_PREFIXED_SYM(copy_to_user)
-#define copy_to_user LINUXAPI_PREFIXED_SYM(copy_to_user)
 static inline long
 copy_to_user(void *to, const void *from, unsigned long n)
 {
@@ -44,7 +43,6 @@ copy_to_user(void *to, const void *from, unsigned long n)
 	return 0;
 }
 
-#define copy_from_user LINUXAPI_PREFIXED_SYM(copy_from_user)
 #define copy_from_user LINUXAPI_PREFIXED_SYM(copy_from_user)
 static inline long
 copy_from_user(void *to, const void *from, unsigned long n)
