@@ -75,6 +75,7 @@ __FBSDID("$FreeBSD$");
 #include "vioapic.h"
 #include "vlapic.h"
 #include "vpmtmr.h"
+#include "vrtc.h"
 #include "vmm_ipi.h"
 #include "vmm_stat.h"
 #include "vmm_lapic.h"
@@ -100,8 +101,10 @@ struct vcpu {
 	uint64_t	exitintinfo;	/* (i) events pending at VM exit */
 	int		nmi_pending;	/* (i) NMI pending */
 	int		extint_pending;	/* (i) INTR pending */
-	struct vm_exception exception;	/* (x) exception collateral */
 	int	exception_pending;	/* (i) exception pending */
+	int	exc_vector;		/* (x) exception collateral */
+	int	exc_errcode_valid;
+	uint32_t exc_errcode;
 	struct savefpu	*guestfpu;	/* (a,i) guest fpu state */
 	uint64_t	guest_xcr0;	/* (i) guest %xcr0 register */
 	void		*stats;		/* (a,i) statistics */
@@ -136,6 +139,7 @@ struct vm {
 	struct vatpic	*vatpic;		/* (i) virtual atpic */
 	struct vatpit	*vatpit;		/* (i) virtual atpit */
 	struct vpmtmr	*vpmtmr;		/* (i) virtual ACPI PM timer */
+	struct vrtc	*vrtc;			/* (o) virtual RTC */
 	volatile cpuset_t active_cpus;		/* (i) active vcpus */
 	int		suspend;		/* (i) stop VM execution */
 	volatile cpuset_t suspended_cpus; 	/* (i) suspended vcpus */
@@ -207,6 +211,11 @@ static int vmm_ipinum;
 SYSCTL_INT(_hw_vmm, OID_AUTO, ipinum, CTLFLAG_RD, &vmm_ipinum, 0,
     "IPI vector used for vcpu notifications");
 
+static int trace_guest_exceptions;
+SYSCTL_INT(_hw_vmm, OID_AUTO, trace_guest_exceptions, CTLFLAG_RDTUN,
+    &trace_guest_exceptions, 0,
+    "Trap into hypervisor on all guest exceptions and reflect them back");
+
 static void
 vcpu_cleanup(struct vm *vm, int i, bool destroy)
 {
@@ -248,6 +257,13 @@ vcpu_init(struct vm *vm, int vcpu_id, bool create)
 	vcpu->guest_xcr0 = XFEATURE_ENABLED_X87;
 	fpu_save_area_reset(vcpu->guestfpu);
 	vmm_stat_init(vcpu->stats);
+}
+
+int
+vcpu_trace_exceptions(struct vm *vm, int vcpuid)
+{
+
+	return (trace_guest_exceptions);
 }
 
 struct vm_exit *
@@ -363,6 +379,8 @@ vm_init(struct vm *vm, bool create)
 	vm->vatpic = vatpic_init(vm);
 	vm->vatpit = vatpit_init(vm);
 	vm->vpmtmr = vpmtmr_init(vm);
+	if (create)
+		vm->vrtc = vrtc_init(vm);
 
 	CPU_ZERO(&vm->active_cpus);
 
@@ -389,7 +407,7 @@ vm_create(const char *name, struct vm **retvm)
 	if (name == NULL || strlen(name) >= VM_MAX_NAMELEN)
 		return (EINVAL);
 
-	vmspace = VMSPACE_ALLOC(VM_MIN_ADDRESS, VM_MAXUSER_ADDRESS);
+	vmspace = VMSPACE_ALLOC(0, VM_MAXUSER_ADDRESS);
 	if (vmspace == NULL)
 		return (ENOMEM);
 
@@ -425,6 +443,10 @@ vm_cleanup(struct vm *vm, bool destroy)
 	if (vm->iommu != NULL)
 		iommu_destroy_domain(vm->iommu);
 
+	if (destroy)
+		vrtc_cleanup(vm->vrtc);
+	else
+		vrtc_reset(vm->vrtc);
 	vpmtmr_cleanup(vm->vpmtmr);
 	vatpit_cleanup(vm->vatpit);
 	vhpet_cleanup(vm->vhpet);
@@ -1089,29 +1111,13 @@ vm_handle_hlt(struct vm *vm, int vcpuid, bool intr_disabled, bool *retu)
 {
 	struct vcpu *vcpu;
 	const char *wmesg;
-	int error, t, vcpu_halted, vm_halted;
+	int t, vcpu_halted, vm_halted;
 
 	KASSERT(!CPU_ISSET(vcpuid, &vm->halted_cpus), ("vcpu already halted"));
 
 	vcpu = &vm->vcpu[vcpuid];
 	vcpu_halted = 0;
 	vm_halted = 0;
-
-	/*
-	 * The typical way to halt a cpu is to execute: "sti; hlt"
-	 *
-	 * STI sets RFLAGS.IF to enable interrupts. However, the processor
-	 * remains in an "interrupt shadow" for an additional instruction
-	 * following the STI. This guarantees that "sti; hlt" sequence is
-	 * atomic and a pending interrupt will be recognized after the HLT.
-	 *
-	 * After the HLT emulation is done the vcpu is no longer in an
-	 * interrupt shadow and a pending interrupt can be injected on
-	 * the next entry into the guest.
-	 */
-	error = vm_set_register(vm, vcpuid, VM_REG_GUEST_INTR_SHADOW, 0);
-	KASSERT(error == 0, ("%s: error %d clearing interrupt shadow",
-	    __func__, error));
 
 	vcpu_lock(vcpu);
 	while (1) {
@@ -1219,7 +1225,7 @@ vm_handle_paging(struct vm *vm, int vcpuid, bool *retu)
 		return (EFAULT);
 done:
 	/* restart execution at the faulting instruction */
-	vme->inst_length = 0;
+	vm_restart_instruction(vm, vcpuid);
 
 	return (0);
 }
@@ -1522,6 +1528,20 @@ restart:
 }
 
 int
+vm_restart_instruction(void *arg, int vcpuid)
+{
+	struct vcpu *vcpu;
+	struct vm *vm = arg;
+
+	if (vcpuid < 0 || vcpuid >= VM_MAXCPU)
+		return (EINVAL);
+
+	vcpu = &vm->vcpu[vcpuid];
+	vcpu->exitinfo.inst_length = 0;
+	return (0);
+}
+
+int
 vm_exit_intinfo(struct vm *vm, int vcpuid, uint64_t info)
 {
 	struct vcpu *vcpu;
@@ -1651,11 +1671,11 @@ vcpu_exception_intinfo(struct vcpu *vcpu)
 	uint64_t info = 0;
 
 	if (vcpu->exception_pending) {
-		info = vcpu->exception.vector & 0xff;
+		info = vcpu->exc_vector & 0xff;
 		info |= VM_INTINFO_VALID | VM_INTINFO_HWEXCEPTION;
-		if (vcpu->exception.error_code_valid) {
+		if (vcpu->exc_errcode_valid) {
 			info |= VM_INTINFO_DEL_ERRCODE;
-			info |= (uint64_t)vcpu->exception.error_code << 32;
+			info |= (uint64_t)vcpu->exc_errcode << 32;
 		}
 	}
 	return (info);
@@ -1680,7 +1700,7 @@ vm_entry_intinfo(struct vm *vm, int vcpuid, uint64_t *retinfo)
 		info2 = vcpu_exception_intinfo(vcpu);
 		vcpu->exception_pending = 0;
 		VCPU_CTR2(vm, vcpuid, "Exception %d delivered: %#lx",
-		    vcpu->exception.vector, info2);
+		    vcpu->exc_vector, info2);
 	}
 
 	if ((info1 & VM_INTINFO_VALID) && (info2 & VM_INTINFO_VALID)) {
@@ -1718,14 +1738,16 @@ vm_get_intinfo(struct vm *vm, int vcpuid, uint64_t *info1, uint64_t *info2)
 }
 
 int
-vm_inject_exception(struct vm *vm, int vcpuid, struct vm_exception *exception)
+vm_inject_exception(struct vm *vm, int vcpuid, int vector, int errcode_valid,
+    uint32_t errcode, int restart_instruction)
 {
 	struct vcpu *vcpu;
+	int error;
 
 	if (vcpuid < 0 || vcpuid >= VM_MAXCPU)
 		return (EINVAL);
 
-	if (exception->vector < 0 || exception->vector >= 32)
+	if (vector < 0 || vector >= 32)
 		return (EINVAL);
 
 	/*
@@ -1733,21 +1755,35 @@ vm_inject_exception(struct vm *vm, int vcpuid, struct vm_exception *exception)
 	 * the guest. It is a derived exception that results from specific
 	 * combinations of nested faults.
 	 */
-	if (exception->vector == IDT_DF)
+	if (vector == IDT_DF)
 		return (EINVAL);
 
 	vcpu = &vm->vcpu[vcpuid];
 
 	if (vcpu->exception_pending) {
 		VCPU_CTR2(vm, vcpuid, "Unable to inject exception %d due to "
-		    "pending exception %d", exception->vector,
-		    vcpu->exception.vector);
+		    "pending exception %d", vector, vcpu->exc_vector);
 		return (EBUSY);
 	}
 
+	/*
+	 * From section 26.6.1 "Interruptibility State" in Intel SDM:
+	 *
+	 * Event blocking by "STI" or "MOV SS" is cleared after guest executes
+	 * one instruction or incurs an exception.
+	 */
+	error = vm_set_register(vm, vcpuid, VM_REG_GUEST_INTR_SHADOW, 0);
+	KASSERT(error == 0, ("%s: error %d clearing interrupt shadow",
+	    __func__, error));
+
+	if (restart_instruction)
+		vm_restart_instruction(vm, vcpuid);
+
 	vcpu->exception_pending = 1;
-	vcpu->exception = *exception;
-	VCPU_CTR1(vm, vcpuid, "Exception %d pending", exception->vector);
+	vcpu->exc_vector = vector;
+	vcpu->exc_errcode = errcode;
+	vcpu->exc_errcode_valid = errcode_valid;
+	VCPU_CTR1(vm, vcpuid, "Exception %d pending", vector);
 	return (0);
 }
 
@@ -1755,28 +1791,15 @@ void
 vm_inject_fault(void *vmarg, int vcpuid, int vector, int errcode_valid,
     int errcode)
 {
-	struct vm_exception exception;
-	struct vm_exit *vmexit;
 	struct vm *vm;
-	int error;
+	int error, restart_instruction;
 
 	vm = vmarg;
+	restart_instruction = 1;
 
-	exception.vector = vector;
-	exception.error_code = errcode;
-	exception.error_code_valid = errcode_valid;
-	error = vm_inject_exception(vm, vcpuid, &exception);
+	error = vm_inject_exception(vm, vcpuid, vector, errcode_valid,
+	    errcode, restart_instruction);
 	KASSERT(error == 0, ("vm_inject_exception error %d", error));
-
-	/*
-	 * A fault-like exception allows the instruction to be restarted
-	 * after the exception handler returns.
-	 *
-	 * By setting the inst_length to 0 we ensure that the instruction
-	 * pointer remains at the faulting instruction.
-	 */
-	vmexit = vm_exitinfo(vm, vcpuid);
-	vmexit->inst_length = 0;
 }
 
 void
@@ -2208,6 +2231,13 @@ vm_pmtmr(struct vm *vm)
 {
 
 	return (vm->vpmtmr);
+}
+
+struct vrtc *
+vm_rtc(struct vm *vm)
+{
+
+	return (vm->vrtc);
 }
 
 enum vm_reg_name

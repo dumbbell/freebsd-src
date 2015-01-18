@@ -498,6 +498,41 @@ do { \
 	    (tlen <= tp->t_maxopd) &&					\
 	    (V_tcp_delack_enabled || (tp->t_flags & TF_NEEDSYN)))
 
+static void inline
+cc_ecnpkt_handler(struct tcpcb *tp, struct tcphdr *th, uint8_t iptos)
+{
+	INP_WLOCK_ASSERT(tp->t_inpcb);
+
+	if (CC_ALGO(tp)->ecnpkt_handler != NULL) {
+		switch (iptos & IPTOS_ECN_MASK) {
+		case IPTOS_ECN_CE:
+		    tp->ccv->flags |= CCF_IPHDR_CE;
+		    break;
+		case IPTOS_ECN_ECT0:
+		    tp->ccv->flags &= ~CCF_IPHDR_CE;
+		    break;
+		case IPTOS_ECN_ECT1:
+		    tp->ccv->flags &= ~CCF_IPHDR_CE;
+		    break;
+		}
+
+		if (th->th_flags & TH_CWR)
+			tp->ccv->flags |= CCF_TCPHDR_CWR;
+		else
+			tp->ccv->flags &= ~CCF_TCPHDR_CWR;
+
+		if (tp->t_flags & TF_DELACK)
+			tp->ccv->flags |= CCF_DELACK;
+		else
+			tp->ccv->flags &= ~CCF_DELACK;
+
+		CC_ALGO(tp)->ecnpkt_handler(tp->ccv);
+
+		if (tp->ccv->flags & CCF_ACKNOW)
+			tcp_timer_activate(tp, TT_DELACK, tcp_delacktime);
+	}
+}
+
 /*
  * TCP input handling is split into multiple parts:
  *   tcp6_input is a thin wrapper around tcp_input for the extended
@@ -884,24 +919,20 @@ findpcb:
 		goto dropwithreset;
 	}
 	INP_WLOCK_ASSERT(inp);
-	if (!(inp->inp_flags & INP_HW_FLOWID)
-	    && (m->m_flags & M_FLOWID)
-	    && ((inp->inp_socket == NULL)
-		|| !(inp->inp_socket->so_options & SO_ACCEPTCONN))) {
-		inp->inp_flags |= INP_HW_FLOWID;
-		inp->inp_flags &= ~INP_SW_FLOWID;
+	if ((inp->inp_flowtype == M_HASHTYPE_NONE) &&
+	    (M_HASHTYPE_GET(m) != M_HASHTYPE_NONE) &&
+	    ((inp->inp_socket == NULL) ||
+	    (inp->inp_socket->so_options & SO_ACCEPTCONN) == 0)) {
 		inp->inp_flowid = m->m_pkthdr.flowid;
 		inp->inp_flowtype = M_HASHTYPE_GET(m);
 	}
 #ifdef IPSEC
 #ifdef INET6
 	if (isipv6 && ipsec6_in_reject(m, inp)) {
-		IPSEC6STAT_INC(ips_in_polvio);
 		goto dropunlock;
 	} else
 #endif /* INET6 */
 	if (ipsec4_in_reject(m, inp) != 0) {
-		IPSECSTAT_INC(ips_in_polvio);
 		goto dropunlock;
 	}
 #endif /* IPSEC */
@@ -1534,6 +1565,10 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 			TCPSTAT_INC(tcps_ecn_ect1);
 			break;
 		}
+
+		/* Process a packet differently from RFC3168. */
+		cc_ecnpkt_handler(tp, th, iptos);
+
 		/* Congestion experienced. */
 		if (thflags & TH_ECE) {
 			cc_cong_signal(tp, th, CC_ECN);
@@ -1745,7 +1780,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 					tcp_timer_activate(tp, TT_REXMT,
 						      tp->t_rxtcur);
 				sowwakeup(so);
-				if (so->so_snd.sb_cc)
+				if (sbavail(&so->so_snd))
 					(void) tcp_output(tp);
 				goto check_delack;
 			}
@@ -1855,7 +1890,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 					    newsize, so, NULL))
 						so->so_rcv.sb_flags &= ~SB_AUTOSIZE;
 				m_adj(m, drop_hdrlen);	/* delayed header drop */
-				sbappendstream_locked(&so->so_rcv, m);
+				sbappendstream_locked(&so->so_rcv, m, 0);
 			}
 			/* NB: sorwakeup_locked() does an implicit unlock. */
 			sorwakeup_locked(so);
@@ -2526,7 +2561,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 					 * Otherwise we would send pure ACKs.
 					 */
 					SOCKBUF_LOCK(&so->so_snd);
-					avail = so->so_snd.sb_cc -
+					avail = sbavail(&so->so_snd) -
 					    (tp->snd_nxt - tp->snd_una);
 					SOCKBUF_UNLOCK(&so->so_snd);
 					if (avail > 0)
@@ -2661,10 +2696,10 @@ process_ACK:
 		cc_ack_received(tp, th, CC_ACK);
 
 		SOCKBUF_LOCK(&so->so_snd);
-		if (acked > so->so_snd.sb_cc) {
-			tp->snd_wnd -= so->so_snd.sb_cc;
+		if (acked > sbavail(&so->so_snd)) {
+			tp->snd_wnd -= sbavail(&so->so_snd);
 			mfree = sbcut_locked(&so->so_snd,
-			    (int)so->so_snd.sb_cc);
+			    (int)sbavail(&so->so_snd));
 			ourfinisacked = 1;
 		} else {
 			mfree = sbcut_locked(&so->so_snd, acked);
@@ -2790,7 +2825,7 @@ step6:
 		 * actually wanting to send this much urgent data.
 		 */
 		SOCKBUF_LOCK(&so->so_rcv);
-		if (th->th_urp + so->so_rcv.sb_cc > sb_max) {
+		if (th->th_urp + sbavail(&so->so_rcv) > sb_max) {
 			th->th_urp = 0;			/* XXX */
 			thflags &= ~TH_URG;		/* XXX */
 			SOCKBUF_UNLOCK(&so->so_rcv);	/* XXX */
@@ -2812,7 +2847,7 @@ step6:
 		 */
 		if (SEQ_GT(th->th_seq+th->th_urp, tp->rcv_up)) {
 			tp->rcv_up = th->th_seq + th->th_urp;
-			so->so_oobmark = so->so_rcv.sb_cc +
+			so->so_oobmark = sbavail(&so->so_rcv) +
 			    (tp->rcv_up - tp->rcv_nxt) - 1;
 			if (so->so_oobmark == 0)
 				so->so_rcv.sb_state |= SBS_RCVATMARK;
@@ -2882,7 +2917,7 @@ dodata:							/* XXX */
 			if (so->so_rcv.sb_state & SBS_CANTRCVMORE)
 				m_freem(m);
 			else
-				sbappendstream_locked(&so->so_rcv, m);
+				sbappendstream_locked(&so->so_rcv, m, 0);
 			/* NB: sorwakeup_locked() does an implicit unlock. */
 			sorwakeup_locked(so);
 		} else {

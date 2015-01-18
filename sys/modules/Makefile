@@ -44,7 +44,6 @@ SUBDIR=	\
 	${_arcmsr} \
 	${_arcnet} \
 	${_asmc} \
-	${_asr} \
 	ata \
 	ath \
 	ath_pci \
@@ -90,7 +89,6 @@ SUBDIR=	\
 	cuse \
 	${_cxgb} \
 	${_cxgbe} \
-	${_cyclic} \
 	dc \
 	dcons \
 	dcons_crom \
@@ -200,7 +198,7 @@ SUBDIR=	\
 	${_linprocfs} \
 	${_linsysfs} \
 	${_linux} \
-	linuxapi \
+	${_linuxapi} \
 	lmc \
 	lpt \
 	mac_biba \
@@ -250,14 +248,11 @@ SUBDIR=	\
 	netfpga10g \
 	${_netgraph} \
 	${_nfe} \
-	nfs_common \
 	nfscl \
-	nfsclient \
 	nfscommon \
 	nfsd \
 	nfslock \
 	nfslockd \
-	nfsserver \
 	nfssvc \
 	nge \
 	nmdm \
@@ -323,7 +318,7 @@ SUBDIR=	\
 	sis \
 	sk \
 	${_smbfs} \
-	${_sn} \
+	sn \
 	${_snc} \
 	snp \
 	${_sound} \
@@ -438,18 +433,20 @@ _pfsync=	pfsync
 
 .if ${MK_SOURCELESS_UCODE} != "no"
 _bce=		bce
-_cxgbe=		cxgbe
 _fatm=		fatm
 _fxp=		fxp
 _ispfw=		ispfw
 _mwlfw=		mwlfw
 _ralfw=		ralfw
 _sf=		sf
-_sn=		sn
 _ti=		ti
 _txp=		txp
 .endif
 
+.if ${MK_SOURCELESS_UCODE} != "no" && ${MACHINE_CPUARCH} != "arm" && \
+	${MACHINE_ARCH} != "powerpc"
+_cxgbe=		cxgbe
+.endif
 
 .if ${MACHINE_CPUARCH} != "arm" && ${MACHINE_CPUARCH} != "mips" && \
 	${MACHINE_CPUARCH} != "powerpc"
@@ -477,9 +474,7 @@ _cardbus=	cardbus
 _cbb=		cbb
 _cpuctl=	cpuctl
 _cpufreq=	cpufreq
-.if ${MK_CDDL} != "no" || defined(ALL_MODULES)
-_cyclic=	cyclic
-.endif
+_cs=		cs
 _dpms=		dpms
 _drm=		drm
 _drm2=		drm2
@@ -488,9 +483,11 @@ _dtrace=	dtrace
 .endif
 _ed=		ed
 _em=		em
+_ep=		ep
 _et=		et
 _exca=		exca
 _ext2fs=	ext2fs
+_fe=		fe
 _filemon=	filemon
 _i2c=		i2c
 .if ${MK_OFED} != "no" || defined(ALL_MODULES)
@@ -505,6 +502,7 @@ _ipoib=         ipoib
 _linprocfs=	linprocfs
 _linsysfs=	linsysfs
 _linux=		linux
+_linuxapi=	linuxapi
 _ndis=		ndis
 .if ${MK_CDDL} != "no" || defined(ALL_MODULES)
 _opensolaris=	opensolaris
@@ -525,6 +523,7 @@ _vmware=	vmware
 _vxge=  	vxge
 _wbwd=		wbwd
 _wi=		wi
+_xe=		xe
 .if ${MK_ZFS} != "no" || defined(ALL_MODULES)
 _zfs=		zfs
 .endif
@@ -631,10 +630,7 @@ _coff=		coff
 .if ${MK_SOURCELESS_UCODE} != "no"
 _cp=		cp
 .endif
-_cs=		cs
 _elink=		elink
-_ep=		ep
-_fe=		fe
 _glxiic=	glxiic
 _glxsb=		glxsb
 _ibcs2=		ibcs2
@@ -650,12 +646,10 @@ _streams=	streams
 _stg=		stg
 _svr4=		svr4
 _wds=		wds
-_xe=		xe
 .if ${MACHINE} == "i386"
 .if ${MK_EISA} != "no"
 _ahb=		ahb
 .endif
-_asr=		asr
 _bios=		bios
 _cm=		cm
 .if ${MK_SOURCELESS_UCODE} != "no"
@@ -687,9 +681,6 @@ _cardbus=	cardbus
 _cbb=		cbb
 _cfi=		cfi
 _cpufreq=	cpufreq
-.if ${MK_CDDL} != "no" || defined(ALL_MODULES)
-_cyclic=	cyclic
-.endif
 _drm=		drm
 .if ${MK_CDDL} != "no" || defined(ALL_MODULES)
 _dtrace=	dtrace

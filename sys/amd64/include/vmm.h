@@ -286,9 +286,10 @@ int vm_unassign_pptdev(struct vm *vm, int bus, int slot, int func);
 struct vatpic *vm_atpic(struct vm *vm);
 struct vatpit *vm_atpit(struct vm *vm);
 struct vpmtmr *vm_pmtmr(struct vm *vm);
+struct vrtc *vm_rtc(struct vm *vm);
 
 /*
- * Inject exception 'vme' into the guest vcpu. This function returns 0 on
+ * Inject exception 'vector' into the guest vcpu. This function returns 0 on
  * success and non-zero on failure.
  *
  * Wrapper functions like 'vm_inject_gp()' should be preferred to calling
@@ -298,7 +299,8 @@ struct vpmtmr *vm_pmtmr(struct vm *vm);
  * This function should only be called in the context of the thread that is
  * executing this vcpu.
  */
-int vm_inject_exception(struct vm *vm, int vcpuid, struct vm_exception *vme);
+int vm_inject_exception(struct vm *vm, int vcpuid, int vector, int err_valid,
+    uint32_t errcode, int restart_instruction);
 
 /*
  * This function is called after a VM-exit that occurred during exception or
@@ -358,6 +360,8 @@ void vm_copyin(struct vm *vm, int vcpuid, struct vm_copyinfo *copyinfo,
     void *kaddr, size_t len);
 void vm_copyout(struct vm *vm, int vcpuid, const void *kaddr,
     struct vm_copyinfo *copyinfo, size_t len);
+
+int vcpu_trace_exceptions(struct vm *vm, int vcpuid);
 #endif	/* KERNEL */
 
 #define	VM_MAXCPU	16			/* maximum virtual cpus */
@@ -624,5 +628,7 @@ vm_inject_ss(void *vm, int vcpuid, int errcode)
 }
 
 void vm_inject_pf(void *vm, int vcpuid, int error_code, uint64_t cr2);
+
+int vm_restart_instruction(void *vm, int vcpuid);
 
 #endif	/* _VMM_H_ */

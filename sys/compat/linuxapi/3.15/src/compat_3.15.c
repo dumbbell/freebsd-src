@@ -184,7 +184,6 @@ LINUXAPI_PREFIXED_SYM(compat_init)(void)
 	for (i = 0; i < VMMAP_HASH_SIZE; i++)
 		LIST_INIT(&vmmaphead[i]);
 }
-
 SYSINIT(linuxapi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
     LINUXAPI_PREFIXED_SYM(compat_init), NULL);
 

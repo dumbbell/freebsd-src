@@ -14,10 +14,12 @@ SRCS+=	compat_3.15.c	\
 	device_3.15.c	\
 	idr_3.15.c	\
 	kobject_3.15.c	\
+	pci_3.15.c	\
 	radix_3.15.c
 
 SRCS+=	bus_if.h	\
 	device_if.h	\
+	pci_if.h	\
 	vnode_if.h
 
 CFLAGS  += -I${.IMPSRC:H:H}/include
