@@ -56,19 +56,28 @@
 #include <linux/vmalloc.h>
 #include <linux/pci.h>
 
-static device_probe_t LINUXAPI_PREFIXED_SYM(linux_pci_probe);
-static device_attach_t LINUXAPI_PREFIXED_SYM(linux_pci_attach);
-static device_detach_t LINUXAPI_PREFIXED_SYM(linux_pci_detach);
+struct list_head pci_drivers;
+struct list_head pci_devices;
+spinlock_t pci_lock;
 
-static device_method_t LINUXAPI_PREFIXED_SYM(pci_methods)[] = {
-	DEVMETHOD(device_probe, LINUXAPI_PREFIXED_SYM(linux_pci_probe)),
-	DEVMETHOD(device_attach, LINUXAPI_PREFIXED_SYM(linux_pci_attach)),
-	DEVMETHOD(device_detach, LINUXAPI_PREFIXED_SYM(linux_pci_detach)),
+#define linux_pci_probe LINUXAPI_PREFIXED_SYM(linux_pci_probe)
+static device_probe_t linux_pci_probe;
+#define linux_pci_attach LINUXAPI_PREFIXED_SYM(linux_pci_attach)
+static device_attach_t linux_pci_attach;
+#define linux_pci_detach LINUXAPI_PREFIXED_SYM(linux_pci_detach)
+static device_detach_t linux_pci_detach;
+
+#define pci_methods LINUXAPI_PREFIXED_SYM(linux_pci_methods)
+static device_method_t pci_methods[] = {
+	DEVMETHOD(device_probe, linux_pci_probe),
+	DEVMETHOD(device_attach, linux_pci_attach),
+	DEVMETHOD(device_detach, linux_pci_detach),
 	DEVMETHOD_END
 };
 
+#define linux_pci_find LINUXAPI_PREFIXED_SYM(linux_pci_find)
 static struct pci_driver *
-LINUXAPI_PREFIXED_SYM(linux_pci_find)(device_t dev, const struct pci_device_id **idp)
+linux_pci_find(device_t dev, const struct pci_device_id **idp)
 {
 	const struct pci_device_id *id;
 	struct pci_driver *pdrv;
@@ -93,12 +102,12 @@ LINUXAPI_PREFIXED_SYM(linux_pci_find)(device_t dev, const struct pci_device_id *
 }
 
 static int
-LINUXAPI_PREFIXED_SYM(linux_pci_probe)(device_t dev)
+linux_pci_probe(device_t dev)
 {
 	const struct pci_device_id *id;
 	struct pci_driver *pdrv;
 
-	if ((pdrv = LINUXAPI_PREFIXED_SYM(linux_pci_find)(dev, &id)) == NULL)
+	if ((pdrv = linux_pci_find(dev, &id)) == NULL)
 		return (ENXIO);
 	if (device_get_driver(dev) != &pdrv->driver)
 		return (ENXIO);
@@ -107,7 +116,7 @@ LINUXAPI_PREFIXED_SYM(linux_pci_probe)(device_t dev)
 }
 
 static int
-LINUXAPI_PREFIXED_SYM(linux_pci_attach)(device_t dev)
+linux_pci_attach(device_t dev)
 {
 	struct resource_list_entry *rle;
 	struct pci_dev *pdev;
@@ -115,7 +124,7 @@ LINUXAPI_PREFIXED_SYM(linux_pci_attach)(device_t dev)
 	const struct pci_device_id *id;
 	int error;
 
-	pdrv = LINUXAPI_PREFIXED_SYM(linux_pci_find)(dev, &id);
+	pdrv = linux_pci_find(dev, &id);
 	pdev = device_get_softc(dev);
 	pdev->dev.parent = &linux_rootdev;
 	pdev->dev.bsddev = dev;
@@ -151,7 +160,7 @@ LINUXAPI_PREFIXED_SYM(linux_pci_attach)(device_t dev)
 }
 
 static int
-LINUXAPI_PREFIXED_SYM(linux_pci_detach)(device_t dev)
+linux_pci_detach(device_t dev)
 {
 	struct pci_dev *pdev;
 
@@ -179,7 +188,7 @@ pci_register_driver(struct pci_driver *pdrv)
 	list_add(&pdrv->links, &pci_drivers);
 	spin_unlock(&pci_lock);
 	pdrv->driver.name = pdrv->name;
-	pdrv->driver.methods = LINUXAPI_PREFIXED_SYM(pci_methods);
+	pdrv->driver.methods = pci_methods;
 	pdrv->driver.size = sizeof(struct pci_dev);
 	mtx_lock(&Giant);
 	if (bus != NULL) {

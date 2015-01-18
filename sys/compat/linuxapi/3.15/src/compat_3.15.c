@@ -33,6 +33,7 @@ __FBSDID("$FreeBSD$");
 #include <linux/device.h>
 #include <linux/kobject.h>
 #include <linux/io.h>
+#include <linux/pci.h>
 #include <linux/vmalloc.h>
 
 /* From sys/queue.h */
@@ -46,12 +47,6 @@ struct device linux_rootdev;
 
 #define miscclass LINUXAPI_PREFIXED_SYM(miscclass)
 static struct class miscclass;
-#define pci_drivers LINUXAPI_PREFIXED_SYM(pci_drivers)
-static struct list_head pci_drivers;
-#define pci_devices LINUXAPI_PREFIXED_SYM(pci_devices)
-static struct list_head pci_devices;
-#define pci_lock LINUXAPI_PREFIXED_SYM(pci_lock)
-static spinlock_t pci_lock;
 
 /*
  * Hash of vmmap addresses.  This is infrequently accessed and does not

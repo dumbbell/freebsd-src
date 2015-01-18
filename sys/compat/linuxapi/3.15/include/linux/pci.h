@@ -137,8 +137,11 @@ struct pci_driver {
         const struct pci_error_handlers       *err_handler;
 };
 
+#define pci_drivers LINUXAPI_PREFIXED_SYM(pci_drivers)
 extern struct list_head pci_drivers;
+#define pci_devices LINUXAPI_PREFIXED_SYM(pci_devices)
 extern struct list_head pci_devices;
+#define pci_lock LINUXAPI_PREFIXED_SYM(pci_lock)
 extern spinlock_t pci_lock;
 
 #define	__devexit_p(x)	x

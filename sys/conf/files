@@ -253,6 +253,7 @@ compat/linuxapi/3.15/src/compat_3.15.c	optional compat_linuxapi no-depend compil
 compat/linuxapi/3.15/src/device_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
 compat/linuxapi/3.15/src/idr_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
 compat/linuxapi/3.15/src/kobject_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
+compat/linuxapi/3.15/src/pci_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
 compat/linuxapi/3.15/src/radix_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
 contrib/altq/altq/altq_cbq.c		optional altq
 contrib/altq/altq/altq_cdnr.c		optional altq
@@ -3578,12 +3579,6 @@ nlm/nlm_prot_svc.c		optional nfslockd | nfsd
 nlm/nlm_prot_xdr.c		optional nfslockd | nfsd
 nlm/sm_inter_xdr.c		optional nfslockd | nfsd
 
-# Linux Kernel Compatibility API
-ofed/include/linux/linux_kmod.c			optional ofed | compat_linuxapi
-ofed/include/linux/linux_compat.c		optional ofed | compat_linuxapi
-ofed/include/linux/linux_pci.c			optional ofed | compat_linuxapi
-ofed/include/linux/linux_idr.c			optional ofed | compat_linuxapi
-ofed/include/linux/linux_radix.c		optional ofed | compat_linuxapi
 # OpenFabrics Enterprise Distribution (Infiniband)
 ofed/drivers/infiniband/core/addr.c		optional ofed		\
 	no-depend							\
