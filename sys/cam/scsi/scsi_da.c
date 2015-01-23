@@ -3018,6 +3018,16 @@ dadone(struct cam_periph *periph, union ccb *done_ccb)
 			TAILQ_INIT(&queue);
 			TAILQ_CONCAT(&queue, &softc->delete_run_queue.queue, bio_queue);
 			softc->delete_run_queue.insert_point = NULL;
+			/*
+			 * Normally, the xpt_release_ccb() above would make sure
+			 * that when we have more work to do, that work would
+			 * get kicked off. However, we specifically keep
+			 * delete_running set to 0 before the call above to
+			 * allow other I/O to progress when many BIO_DELETE
+			 * requests are pushed down. We set delete_running to 0
+			 * and call daschedule again so that we don't stall if
+			 * there are no other I/Os pending apart from BIO_DELETEs.
+			 */
 			softc->delete_running = 0;
 			daschedule(periph);
 			cam_periph_unlock(periph);
@@ -3091,11 +3101,10 @@ dadone(struct cam_periph *periph, union ccb *done_ccb)
 			 * give them an 'illegal' value we'll avoid that
 			 * here.
 			 */
-			if (block_size == 0 && maxsector == 0) {
+			if (block_size == 0) {
 				block_size = 512;
-				maxsector = -1;
-			} else if (block_size == 0) {
-				block_size = 512;
+				if (maxsector == 0)
+					maxsector = -1;
 			}
 			if (block_size >= MAXPHYS) {
 				xpt_print(periph->path,

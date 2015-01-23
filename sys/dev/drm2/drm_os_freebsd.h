@@ -262,12 +262,39 @@ struct timeval	ns_to_timeval(const int64_t nsec);
 #define DRM_IOC_READWRITE	IOC_INOUT
 #define DRM_IOC(dir, group, nr, size) _IOC(dir, group, nr, size)
 
-#define	copy_from_user(kaddr, uaddr, len)	copyin((uaddr), (kaddr), (len))
-#define	get_user(val, uaddr)			copyin((uaddr), &(val), sizeof(val))
-#define	copy_to_user(uaddr, kaddr, len)		copyout((kaddr), (uaddr), (len))
-#define	put_user(val, uaddr)			copyout(&(val), (uaddr), sizeof(val))
-#define	__get_user(val, uaddr)			get_user(val, uaddr)
-#define	__put_user(val, uaddr)			put_user(val, uaddr)
+static inline long
+__copy_to_user(void __user *to, const void *from, unsigned long n)
+{
+	return (copyout(from, to, n) != 0 ? n : 0);
+}
+#define	copy_to_user(to, from, n) __copy_to_user((to), (from), (n))
+
+static inline int
+__put_user(size_t size, void *ptr, void *x)
+{
+
+	size = copy_to_user(ptr, x, size);
+
+	return (size ? -EFAULT : size);
+}
+#define	put_user(x, ptr) __put_user(sizeof(*ptr), (ptr), &(x))
+
+static inline unsigned long
+__copy_from_user(void *to, const void __user *from, unsigned long n)
+{
+	return ((copyin(__DECONST(void *, from), to, n) != 0 ? n : 0));
+}
+#define	copy_from_user(to, from, n) __copy_from_user((to), (from), (n))
+
+static inline int
+__get_user(size_t size, const void *ptr, void *x)
+{
+
+	size = copy_from_user(x, ptr, size);
+
+	return (size ? -EFAULT : size);
+}
+#define	get_user(x, ptr) __get_user(sizeof(*ptr), (ptr), &(x))
 
 #define	sigemptyset(set)	SIGEMPTYSET(set)
 #define	sigaddset(set, sig)	SIGADDSET(set, sig)
