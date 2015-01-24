@@ -112,10 +112,8 @@ static int i915_init_phys_hws(struct drm_device *dev)
 	 * of allocation is used on <= 965 hardware, that has several
 	 * erratas regarding the use of physical memory > 4 GB.
 	 */
-	DRM_UNLOCK(dev);
 	dev_priv->status_page_dmah =
 		drm_pci_alloc(dev, PAGE_SIZE, PAGE_SIZE, BUS_SPACE_MAXADDR);
-	DRM_LOCK(dev);
 	if (!dev_priv->status_page_dmah) {
 		DRM_ERROR("Can not allocate hardware status page\n");
 		return -ENOMEM;
@@ -1461,9 +1459,7 @@ i915_driver_load(struct drm_device *dev, unsigned long flags)
 	intel_detect_pch(dev);
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
-		DRM_UNLOCK(dev);
 		ret = i915_load_modeset_init(dev);
-		DRM_LOCK(dev);
 		if (ret < 0) {
 			DRM_ERROR("failed to init modeset\n");
 			goto out_gem_unload;
