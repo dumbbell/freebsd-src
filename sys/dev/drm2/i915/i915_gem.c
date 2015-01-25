@@ -299,6 +299,7 @@ i915_gem_init_ioctl(struct drm_device *dev, void *data,
 {
 	struct drm_i915_gem_init *args;
 	drm_i915_private_t *dev_priv;
+	int error;
 
 	if (drm_core_check_feature(dev, DRIVER_MODESET))
 		return -ENODEV;
@@ -321,8 +322,11 @@ i915_gem_init_ioctl(struct drm_device *dev, void *data,
 	 * XXXKIB. The second-time initialization should be guarded
 	 * against.
 	 */
-	return (i915_gem_init_global_gtt(dev, args->gtt_start, args->gtt_end,
-	    args->gtt_end));
+	DRM_LOCK(dev);
+	error = i915_gem_init_global_gtt(dev, args->gtt_start,
+					 args->gtt_end, args->gtt_end);
+	DRM_UNLOCK(dev);
+	return (error);
 }
 
 int
@@ -331,20 +335,28 @@ i915_gem_idle(struct drm_device *dev)
 	drm_i915_private_t *dev_priv;
 	int ret;
 
+	DRM_LOCK(dev);
+
 	dev_priv = dev->dev_private;
-	if (dev_priv->mm.suspended)
+	if (dev_priv->mm.suspended) {
+		DRM_UNLOCK(dev);
 		return (0);
+	}
 
 	ret = i915_gpu_idle(dev);
-	if (ret != 0)
+	if (ret != 0) {
+		DRM_UNLOCK(dev);
 		return (ret);
+	}
 	i915_gem_retire_requests(dev);
 
 	/* Under UMS, be paranoid and evict. */
 	if (!drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = i915_gem_evict_everything(dev, false);
-		if (ret != 0)
+		if (ret != 0) {
+			DRM_UNLOCK(dev);
 			return ret;
+		}
 	}
 
 	i915_gem_reset_fences(dev);
@@ -358,6 +370,8 @@ i915_gem_idle(struct drm_device *dev)
 
 	i915_kernel_lost_context(dev);
 	i915_gem_cleanup_ringbuffer(dev);
+
+	DRM_UNLOCK(dev);
 
 	/* Cancel the retire work handler, which should be idle now. */
 	taskqueue_cancel_timeout(dev_priv->tq, &dev_priv->mm.retire_task, NULL);
@@ -873,10 +887,12 @@ i915_gem_entervt_ioctl(struct drm_device *dev, void *data,
 		atomic_store_rel_int(&dev_priv->mm.wedged, 0);
 	}
 
+	DRM_LOCK(dev);
 	dev_priv->mm.suspended = 0;
 
 	ret = i915_gem_init_hw(dev);
 	if (ret != 0) {
+		DRM_UNLOCK(dev);
 		return (ret);
 	}
 
@@ -884,16 +900,18 @@ i915_gem_entervt_ioctl(struct drm_device *dev, void *data,
 	KASSERT(list_empty(&dev_priv->mm.flushing_list), ("flushing list"));
 	KASSERT(list_empty(&dev_priv->mm.inactive_list), ("inactive list"));
 	DRM_UNLOCK(dev);
+
 	ret = drm_irq_install(dev);
-	DRM_LOCK(dev);
 	if (ret)
 		goto cleanup_ringbuffer;
 
 	return (0);
 
 cleanup_ringbuffer:
+	DRM_LOCK(dev);
 	i915_gem_cleanup_ringbuffer(dev);
 	dev_priv->mm.suspended = 1;
+	DRM_UNLOCK(dev);
 
 	return (ret);
 }

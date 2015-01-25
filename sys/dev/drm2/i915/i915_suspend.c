@@ -807,6 +807,8 @@ int i915_save_state(struct drm_device *dev)
 	/* Hardware status page */
 	dev_priv->saveHWS = I915_READ(HWS_PGA);
 
+	DRM_LOCK(dev);
+
 	i915_save_display(dev);
 
 	/* Interrupt state */
@@ -843,6 +845,8 @@ int i915_save_state(struct drm_device *dev)
 	}
 	for (i = 0; i < 3; i++)
 		dev_priv->saveSWF2[i] = I915_READ(SWF30 + (i << 2));
+
+	DRM_UNLOCK(dev);
 
 	return 0;
 }
