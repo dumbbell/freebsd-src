@@ -294,12 +294,10 @@ static int i915_drm_freeze(struct drm_device *dev)
 	pci_save_state(dev->pdev);
 #endif
 
-	DRM_LOCK(dev);
 	/* If KMS is active, we do the leavevt stuff here */
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		error = -i915_gem_idle(dev);
 		if (error) {
-			DRM_UNLOCK(dev);
 			device_printf(dev->dev,
 			    "GEM idle failed, resume might fail\n");
 			return (error);
@@ -312,6 +310,7 @@ static int i915_drm_freeze(struct drm_device *dev)
 	intel_opregion_fini(dev);
 
 	/* Modeset on resume, not lid events */
+	DRM_LOCK(dev);
 	dev_priv->modeset_on_lid = 0;
 	DRM_UNLOCK(dev);
 
@@ -931,9 +930,7 @@ int i915_reset(struct drm_device *dev)
 		if (drm_core_check_feature(dev, DRIVER_MODESET))
 			intel_modeset_init_hw(dev);
 
-		DRM_LOCK(dev);
 		drm_irq_uninstall(dev);
-		DRM_UNLOCK(dev);
 		drm_irq_install(dev);
 	} else
 		DRM_UNLOCK(dev);
