@@ -310,9 +310,7 @@ static int i915_drm_freeze(struct drm_device *dev)
 	intel_opregion_fini(dev);
 
 	/* Modeset on resume, not lid events */
-	DRM_LOCK(dev);
 	dev_priv->modeset_on_lid = 0;
-	DRM_UNLOCK(dev);
 
 	return 0;
 }
