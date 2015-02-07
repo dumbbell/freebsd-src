@@ -72,7 +72,7 @@ typedef struct _drm_i915_init {
 	unsigned int sarea_handle;
 } drm_i915_init_t;
 
-typedef struct drm_i915_sarea {
+typedef struct _drm_i915_sarea {
 	struct drm_tex_region texList[I915_NR_TEX_REGIONS + 1];
 	int last_upload;	/* last time texture was uploaded */
 	int last_enqueue;	/* last time a buffer was enqueued */
@@ -114,14 +114,14 @@ typedef struct drm_i915_sarea {
 	unsigned int rotated_tiled;
 	unsigned int rotated2_tiled;
 
-	int planeA_x;
-	int planeA_y;
-	int planeA_w;
-	int planeA_h;
-	int planeB_x;
-	int planeB_y;
-	int planeB_w;
-	int planeB_h;
+	int pipeA_x;
+	int pipeA_y;
+	int pipeA_w;
+	int pipeA_h;
+	int pipeB_x;
+	int pipeB_y;
+	int pipeB_w;
+	int pipeB_h;
 
 	/* Triple buffering */
 	drm_handle_t third_handle;
@@ -138,6 +138,16 @@ typedef struct drm_i915_sarea {
 	unsigned int third_bo_handle;
 	unsigned int depth_bo_handle;
 } drm_i915_sarea_t;
+
+/* due to userspace building against these headers we need some compat here */
+#define planeA_x pipeA_x
+#define planeA_y pipeA_y
+#define planeA_w pipeA_w
+#define planeA_h pipeA_h
+#define planeB_x pipeB_x
+#define planeB_y pipeB_y
+#define planeB_w pipeB_w
+#define planeB_h pipeB_h
 
 /* Driver specific fence types and classes.
  */
