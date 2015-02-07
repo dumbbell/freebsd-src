@@ -1456,8 +1456,8 @@ void intel_setup_overlay(struct drm_device *dev)
 	intel_overlay_unmap_regs(overlay, regs);
 
 	dev_priv->overlay = overlay;
-	DRM_INFO("initialized overlay support\n");
 	DRM_UNLOCK(dev);
+	DRM_INFO("initialized overlay support\n");
 	return;
 
 out_unpin_bo:

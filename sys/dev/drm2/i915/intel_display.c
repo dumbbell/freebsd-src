@@ -7116,10 +7116,11 @@ void intel_modeset_cleanup(struct drm_device *dev)
 	if (IS_VALLEYVIEW(dev))
 		vlv_init_dpio(dev);
 
+	DRM_UNLOCK(dev);
+
 	/* Disable the irq before mode object teardown, for the irq might
 	 * enqueue unpin/hotplug work. */
 	drm_irq_uninstall(dev);
-	DRM_UNLOCK(dev);
 
 	if (taskqueue_cancel(dev_priv->tq, &dev_priv->hotplug_task, NULL))
 		taskqueue_drain(dev_priv->tq, &dev_priv->hotplug_task);

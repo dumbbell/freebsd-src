@@ -858,6 +858,7 @@ int i915_restore_state(struct drm_device *dev)
 
 	pci_write_config(dev->dev, LBB, dev_priv->saveLBB, 1);
 
+	DRM_LOCK(dev);
 
 	/* Hardware status page */
 	I915_WRITE(HWS_PGA, dev_priv->saveHWS);
@@ -890,6 +891,8 @@ int i915_restore_state(struct drm_device *dev)
 	}
 	for (i = 0; i < 3; i++)
 		I915_WRITE(SWF30 + (i << 2), dev_priv->saveSWF2[i]);
+
+	DRM_UNLOCK(dev);
 
 	intel_iic_reset(dev);
 

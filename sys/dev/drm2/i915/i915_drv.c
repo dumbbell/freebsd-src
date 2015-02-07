@@ -346,9 +346,10 @@ static int i915_drm_thaw(struct drm_device *dev)
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	int error = 0;
 
-	DRM_LOCK(dev);
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
+		DRM_LOCK(dev);
 		i915_gem_restore_gtt_mappings(dev);
+		DRM_UNLOCK(dev);
 	}
 
 	i915_restore_state(dev);
@@ -359,6 +360,7 @@ static int i915_drm_thaw(struct drm_device *dev)
 		if (HAS_PCH_SPLIT(dev))
 			ironlake_init_pch_refclk(dev);
 
+		DRM_LOCK(dev);
 		dev_priv->mm.suspended = 0;
 
 		error = i915_gem_init_hw(dev);
@@ -374,14 +376,11 @@ static int i915_drm_thaw(struct drm_device *dev)
 		/* Resume the modeset for every activated CRTC */
 		drm_helper_resume_force_mode(dev);
 		sx_xunlock(&dev->mode_config.mutex);
-		DRM_LOCK(dev);
 	}
 
 	intel_opregion_init(dev);
 
 	dev_priv->modeset_on_lid = 0;
-
-	DRM_UNLOCK(dev);
 
 	return error;
 }
