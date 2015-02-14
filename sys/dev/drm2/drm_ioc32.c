@@ -712,6 +712,16 @@ static int compat_drm_sg_free(struct drm_device *dev, void *data,
 
 	return drm_sg_free(dev, (void *)&request, file_priv);
 }
+#if defined(CONFIG_X86) || defined(CONFIG_IA64)
+typedef struct drm_update_draw32 {
+	drm_drawable_t handle;
+	unsigned int type;
+	unsigned int num;
+	/* 64-bit version has a 32-bit pad here */
+	u64 data;	/**< Pointer */
+} __attribute__((packed)) drm_update_draw32_t;
+#endif
+
 
 struct drm_wait_vblank_request32 {
 	enum drm_vblank_seq_type type;
