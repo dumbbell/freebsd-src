@@ -216,7 +216,7 @@ static int drm_fb_helper_parse_command_line(struct drm_fb_helper *fb_helper)
 				connector->force = mode->force;
 			}
 
-			DRM_INFO("cmdline mode for connector %s %dx%d@%dHz%s%s%s\n",
+			DRM_DEBUG_KMS("cmdline mode for connector %s %dx%d@%dHz%s%s%s\n",
 				      drm_get_connector_name(connector),
 				      mode->xres, mode->yres,
 				      mode->refresh_specified ? mode->refresh : 60,
@@ -402,6 +402,29 @@ void drm_fb_helper_restore(void)
 		DRM_ERROR("Failed to restore crtc configuration\n");
 }
 EXPORT_SYMBOL(drm_fb_helper_restore);
+
+#ifdef __linux__
+#ifdef CONFIG_MAGIC_SYSRQ
+static void drm_fb_helper_restore_work_fn(struct work_struct *ignored)
+{
+	drm_fb_helper_restore();
+}
+static DECLARE_WORK(drm_fb_helper_restore_work, drm_fb_helper_restore_work_fn);
+
+static void drm_fb_helper_sysrq(int dummy1)
+{
+	schedule_work(&drm_fb_helper_restore_work);
+}
+
+static struct sysrq_key_op sysrq_drm_fb_helper_restore_op = {
+	.handler = drm_fb_helper_sysrq,
+	.help_msg = "force-fb(V)",
+	.action_msg = "Restore framebuffer console",
+};
+#else
+static struct sysrq_key_op sysrq_drm_fb_helper_restore_op = { };
+#endif
+#endif
 
 #if 0 && defined(FREEBSD_NOTYET)
 static void drm_fb_helper_dpms(struct fb_info *info, int dpms_mode)

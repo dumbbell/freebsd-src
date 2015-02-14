@@ -272,7 +272,6 @@ int radeon_gem_create_ioctl(struct drm_device *dev, void *data,
 		r = radeon_gem_handle_lockup(rdev, r);
 		return r;
 	}
-	handle = 0;
 	r = drm_gem_handle_create(filp, gobj, &handle);
 	/* drop reference from allocate - handle holds it now */
 	drm_gem_object_unreference_unlocked(gobj);
@@ -567,7 +566,6 @@ int radeon_mode_dumb_create(struct drm_file *file_priv,
 	if (r)
 		return -ENOMEM;
 
-	handle = 0;
 	r = drm_gem_handle_create(file_priv, gobj, &handle);
 	/* drop reference from allocate - handle holds it now */
 	drm_gem_object_unreference_unlocked(gobj);

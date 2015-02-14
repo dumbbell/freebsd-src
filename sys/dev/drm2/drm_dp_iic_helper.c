@@ -41,7 +41,7 @@ iic_dp_aux_transaction(device_t idev, int mode, uint8_t write_byte,
 
 	aux_data = device_get_softc(idev);
 	ret = (*aux_data->aux_ch)(idev, mode, write_byte, read_byte);
-	return (ret);
+	return (-ret);
 }
 
 /*
@@ -183,7 +183,7 @@ iic_dp_aux_reset(device_t idev, u_char speed, u_char addr, u_char *oldaddr)
 {
 
 	iic_dp_aux_reset_bus(idev);
-	return (0);				   
+	return (0);
 }
 
 static int

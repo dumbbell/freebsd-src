@@ -1103,26 +1103,3 @@ void drm_helper_hpd_irq_event(struct drm_device *dev)
 		drm_kms_helper_hotplug_event(dev);
 }
 EXPORT_SYMBOL(drm_helper_hpd_irq_event);
-
-bool
-drm_fetch_cmdline_mode_from_kenv(struct drm_connector *connector,
-    struct drm_cmdline_mode *cmdline_mode)
-{
-	char *tun_var_name, *tun_mode;
-	static const char tun_prefix[] = "drm_mode.";
-	bool res;
-
-	res = false;
-	tun_var_name = malloc(sizeof(tun_prefix) +
-	    strlen(drm_get_connector_name(connector)), M_TEMP, M_WAITOK);
-	strcpy(tun_var_name, tun_prefix);
-	strcat(tun_var_name, drm_get_connector_name(connector));
-	tun_mode = kern_getenv(tun_var_name);
-	if (tun_mode != NULL) {
-		res = drm_mode_parse_command_line_for_connector(tun_mode,
-		    connector, cmdline_mode);
-		freeenv(tun_mode);
-	}
-	free(tun_var_name, M_TEMP);
-	return (res);
-}

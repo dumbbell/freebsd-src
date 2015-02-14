@@ -80,7 +80,8 @@ typedef struct drm_version_32 {
 	u32 desc;		  /**< User-space buffer to hold desc */
 } drm_version32_t;
 
-static int compat_drm_version(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_version(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_version32_t *v32 = data;
 	struct drm_version version;
@@ -112,7 +113,8 @@ typedef struct drm_unique32 {
 	u32 unique;	/**< Unique name for driver instantiation */
 } drm_unique32_t;
 
-static int compat_drm_getunique(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_getunique(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_unique32_t *uq32 = data;
 	struct drm_unique u;
@@ -130,7 +132,8 @@ static int compat_drm_getunique(struct drm_device *dev, void *data, struct drm_f
 	return 0;
 }
 
-static int compat_drm_setunique(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_setunique(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_unique32_t *uq32 = data;
 	struct drm_unique u;
@@ -150,7 +153,8 @@ typedef struct drm_map32 {
 	int mtrr;		/**< MTRR slot used */
 } drm_map32_t;
 
-static int compat_drm_getmap(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_getmap(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_map32_t *m32 = data;
 	struct drm_map map;
@@ -176,7 +180,8 @@ static int compat_drm_getmap(struct drm_device *dev, void *data, struct drm_file
 
 }
 
-static int compat_drm_addmap(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_addmap(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_map32_t *m32 = data;
 	struct drm_map map;
@@ -205,7 +210,8 @@ static int compat_drm_addmap(struct drm_device *dev, void *data, struct drm_file
 	return 0;
 }
 
-static int compat_drm_rmmap(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_rmmap(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_map32_t *m32 = data;
 	struct drm_map map;
@@ -224,7 +230,8 @@ typedef struct drm_client32 {
 	u32 iocs;	/**< Ioctl count */
 } drm_client32_t;
 
-static int compat_drm_getclient(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_getclient(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_client32_t *c32 = data;
 	struct drm_client client;
@@ -254,7 +261,8 @@ typedef struct drm_stats32 {
 	} data[15];
 } drm_stats32_t;
 
-static int compat_drm_getstats(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_getstats(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_stats32_t *s32 = data;
 	struct drm_stats stats;
@@ -282,7 +290,8 @@ typedef struct drm_buf_desc32 {
 	u32 agp_start;		 /**< Start address in the AGP aperture */
 } drm_buf_desc32_t;
 
-static int compat_drm_addbufs(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_addbufs(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_buf_desc32_t *b32 = data;
 	struct drm_buf_desc buf;
@@ -309,7 +318,8 @@ static int compat_drm_addbufs(struct drm_device *dev, void *data, struct drm_fil
 	return 0;
 }
 
-static int compat_drm_markbufs(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_markbufs(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_buf_desc32_t *b32 = data;
 	struct drm_buf_desc buf;
@@ -326,7 +336,8 @@ typedef struct drm_buf_info32 {
 	u32 list;
 } drm_buf_info32_t;
 
-static int compat_drm_infobufs(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_infobufs(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_buf_info32_t *req32 = data;
 	drm_buf_desc32_t *to;
@@ -344,7 +355,7 @@ static int compat_drm_infobufs(struct drm_device *dev, void *data, struct drm_fi
 	nbytes = sizeof(*request) + count * sizeof(struct drm_buf_desc);
 	request = malloc(nbytes, DRM_MEM_BUFLISTS, M_ZERO | M_NOWAIT);
 	if (!request)
-		return -EFAULT;
+		return -ENOMEM;
 	list = (struct drm_buf_desc *) (request + 1);
 
 	request->count = count;
@@ -382,7 +393,8 @@ typedef struct drm_buf_map32 {
 	u32 list;		/**< Buffer information */
 } drm_buf_map32_t;
 
-static int compat_drm_mapbufs(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_mapbufs(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_buf_map32_t *req32 = data;
 	drm_buf_pub32_t *list32;
@@ -400,7 +412,7 @@ static int compat_drm_mapbufs(struct drm_device *dev, void *data, struct drm_fil
 	nbytes = sizeof(*request) + count * sizeof(struct drm_buf_pub);
 	request = malloc(nbytes, DRM_MEM_BUFLISTS, M_ZERO | M_NOWAIT);
 	if (!request)
-		return -EFAULT;
+		return -ENOMEM;
 	list = (struct drm_buf_pub *) (request + 1);
 
 	request->count = count;
@@ -430,7 +442,8 @@ typedef struct drm_buf_free32 {
 	u32 list;
 } drm_buf_free32_t;
 
-static int compat_drm_freebufs(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_freebufs(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_buf_free32_t *req32 = data;
 	struct drm_buf_free request;
@@ -446,7 +459,8 @@ typedef struct drm_ctx_priv_map32 {
 	u32 handle;		/**< Handle of map */
 } drm_ctx_priv_map32_t;
 
-static int compat_drm_setsareactx(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_setsareactx(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_ctx_priv_map32_t *req32 = data;
 	struct drm_ctx_priv_map request;
@@ -457,7 +471,8 @@ static int compat_drm_setsareactx(struct drm_device *dev, void *data, struct drm
 	return drm_setsareactx(dev, (void *)&request, file_priv);
 }
 
-static int compat_drm_getsareactx(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_getsareactx(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_ctx_priv_map32_t *req32 = data;
 	struct drm_ctx_priv_map request;
@@ -479,7 +494,8 @@ typedef struct drm_ctx_res32 {
 	u32 contexts;
 } drm_ctx_res32_t;
 
-static int compat_drm_resctx(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_resctx(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_ctx_res32_t *res32 = data;
 	struct drm_ctx_res res;
@@ -510,7 +526,8 @@ typedef struct drm_dma32 {
 	int granted_count;	  /**< Number of buffers granted */
 } drm_dma32_t;
 
-static int compat_drm_dma(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_dma(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_dma32_t *d32 = data;
 	struct drm_dma d;
@@ -545,7 +562,8 @@ typedef struct drm_agp_mode32 {
 	u32 mode;	/**< AGP mode */
 } drm_agp_mode32_t;
 
-static int compat_drm_agp_enable(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_agp_enable(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_agp_mode32_t *m32 = data;
 	struct drm_agp_mode mode;
@@ -569,7 +587,8 @@ typedef struct drm_agp_info32 {
 	unsigned short id_device;
 } drm_agp_info32_t;
 
-static int compat_drm_agp_info(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_agp_info(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_agp_info32_t *i32 = data;
 	struct drm_agp_info info;
@@ -599,7 +618,8 @@ typedef struct drm_agp_buffer32 {
 	u32 physical;	/**< Physical used by i810 */
 } drm_agp_buffer32_t;
 
-static int compat_drm_agp_alloc(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_agp_alloc(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_agp_buffer32_t *req32 = data;
 	struct drm_agp_buffer request;
@@ -618,7 +638,8 @@ static int compat_drm_agp_alloc(struct drm_device *dev, void *data, struct drm_f
 	return 0;
 }
 
-static int compat_drm_agp_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_agp_free(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_agp_buffer32_t *req32 = data;
 	struct drm_agp_buffer request;
@@ -633,7 +654,8 @@ typedef struct drm_agp_binding32 {
 	u32 offset;	/**< In bytes -- will round to page boundary */
 } drm_agp_binding32_t;
 
-static int compat_drm_agp_bind(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_agp_bind(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_agp_binding32_t *req32 = data;
 	struct drm_agp_binding request;
@@ -644,7 +666,8 @@ static int compat_drm_agp_bind(struct drm_device *dev, void *data, struct drm_fi
 	return drm_agp_bind_ioctl(dev, (void *)&request, file_priv);
 }
 
-static int compat_drm_agp_unbind(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_agp_unbind(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_agp_binding32_t *req32 = data;
 	struct drm_agp_binding request;
@@ -660,7 +683,8 @@ typedef struct drm_scatter_gather32 {
 	u32 handle;	/**< Used for mapping / unmapping */
 } drm_scatter_gather32_t;
 
-static int compat_drm_sg_alloc(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_sg_alloc(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_scatter_gather32_t *req32 = data;
 	struct drm_scatter_gather request;
@@ -678,7 +702,8 @@ static int compat_drm_sg_alloc(struct drm_device *dev, void *data, struct drm_fi
 	return 0;
 }
 
-static int compat_drm_sg_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_sg_free(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_scatter_gather32_t *req32 = data;
 	struct drm_scatter_gather request;
@@ -686,21 +711,6 @@ static int compat_drm_sg_free(struct drm_device *dev, void *data, struct drm_fil
 	request.handle = (unsigned long)req32->handle << PAGE_SHIFT;
 
 	return drm_sg_free(dev, (void *)&request, file_priv);
-}
-
-typedef struct drm_update_draw32 {
-	drm_drawable_t handle;
-	unsigned int type;
-	unsigned int num;
-	/* 64-bit version has a 32-bit pad here */
-	u64 data;	/**< Pointer */
-} __attribute__((packed)) drm_update_draw32_t;
-
-static int compat_drm_update_draw(struct drm_device *dev, void *data, struct drm_file *file_priv)
-{
-
-	/* drm_noop */
-	return 0;
 }
 
 struct drm_wait_vblank_request32 {
@@ -721,7 +731,8 @@ typedef union drm_wait_vblank32 {
 	struct drm_wait_vblank_reply32 reply;
 } drm_wait_vblank32_t;
 
-static int compat_drm_wait_vblank(struct drm_device *dev, void *data, struct drm_file *file_priv)
+static int compat_drm_wait_vblank(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	drm_wait_vblank32_t *req32 = data;
 	union drm_wait_vblank request;
@@ -761,17 +772,19 @@ struct drm_ioctl_desc drm_compat_ioctls[256] = {
 	DRM_IOCTL_DEF(DRM_IOCTL_GET_SAREA_CTX32, compat_drm_getsareactx, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_IOCTL_RES_CTX32, compat_drm_resctx, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_IOCTL_DMA32, compat_drm_dma, DRM_AUTH),
-
+#if __OS_HAS_AGP
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_ENABLE32, compat_drm_agp_enable, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_INFO32, compat_drm_agp_info, DRM_AUTH),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_ALLOC32, compat_drm_agp_alloc, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_FREE32, compat_drm_agp_free, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_BIND32, compat_drm_agp_bind, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_AGP_UNBIND32, compat_drm_agp_unbind, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-
+#endif
 	DRM_IOCTL_DEF(DRM_IOCTL_SG_ALLOC32, compat_drm_sg_alloc, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
 	DRM_IOCTL_DEF(DRM_IOCTL_SG_FREE32, compat_drm_sg_free, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
-	DRM_IOCTL_DEF(DRM_IOCTL_UPDATE_DRAW32, compat_drm_update_draw, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
+#if defined(CONFIG_X86) || defined(CONFIG_IA64)
+	DRM_IOCTL_DEF(DRM_IOCTL_UPDATE_DRAW32, drm_noop, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
+#endif
 	DRM_IOCTL_DEF(DRM_IOCTL_WAIT_VBLANK32, compat_drm_wait_vblank, DRM_UNLOCKED),
 };
 

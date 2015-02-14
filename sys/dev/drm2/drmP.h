@@ -185,6 +185,7 @@ struct drm_device;
 	printf("error: [" DRM_NAME ":pid%d:%s] *ERROR* " fmt,		\
 	    DRM_CURRENTPID, __func__ , ##__VA_ARGS__)
 
+#define DRM_WARNING(fmt, ...)  printf("warning: [" DRM_NAME "] " fmt , ##__VA_ARGS__)
 #define DRM_INFO(fmt, ...)  printf("info: [" DRM_NAME "] " fmt , ##__VA_ARGS__)
 
 /**

@@ -98,7 +98,7 @@ drm_probe_helper(device_t kdev, drm_pci_id_list_t *idlist)
 	if (pci_get_class(kdev) != PCIC_DISPLAY ||
 	    (pci_get_subclass(kdev) != PCIS_DISPLAY_VGA &&
 	     pci_get_subclass(kdev) != PCIS_DISPLAY_OTHER))
-		return (ENXIO);
+		return (-ENXIO);
 
 	id_entry = drm_find_description(vendor, device, idlist);
 	if (id_entry != NULL) {
@@ -110,7 +110,7 @@ drm_probe_helper(device_t kdev, drm_pci_id_list_t *idlist)
 		return (0);
 	}
 
-	return (ENXIO);
+	return (-ENXIO);
 }
 
 /*
@@ -177,12 +177,12 @@ drm_add_busid_modesetting(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 	oid = SYSCTL_ADD_STRING(ctx, SYSCTL_CHILDREN(top), OID_AUTO, "busid",
 	    CTLFLAG_RD, dev->busid_str, 0, NULL);
 	if (oid == NULL)
-		return (ENOMEM);
+		return (-ENOMEM);
 	dev->modesetting = (dev->driver->driver_features & DRIVER_MODESET) != 0;
 	oid = SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(top), OID_AUTO,
 	    "modesetting", CTLFLAG_RD, &dev->modesetting, 0, NULL);
 	if (oid == NULL)
-		return (ENOMEM);
+		return (-ENOMEM);
 
 	return (0);
 }
@@ -290,7 +290,7 @@ drm_mtrr_add(unsigned long offset, unsigned long size, unsigned int flags)
 	mrdesc.mr_flags = flags;
 	act = MEMRANGE_SET_UPDATE;
 	strlcpy(mrdesc.mr_owner, "drm", sizeof(mrdesc.mr_owner));
-	return mem_range_attr_set(&mrdesc, &act);
+	return (-mem_range_attr_set(&mrdesc, &act));
 }
 
 int
@@ -305,7 +305,7 @@ drm_mtrr_del(int handle __unused, unsigned long offset, unsigned long size,
 	mrdesc.mr_flags = flags;
 	act = MEMRANGE_SET_REMOVE;
 	strlcpy(mrdesc.mr_owner, "drm", sizeof(mrdesc.mr_owner));
-	return mem_range_attr_set(&mrdesc, &act);
+	return (-mem_range_attr_set(&mrdesc, &act));
 }
 
 void

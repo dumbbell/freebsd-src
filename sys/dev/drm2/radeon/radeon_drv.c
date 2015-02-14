@@ -298,7 +298,7 @@ static int
 radeon_probe(device_t kdev)
 {
 
-	return (drm_probe_helper(kdev, pciidlist));
+	return (-drm_probe_helper(kdev, pciidlist));
 }
 
 static int
@@ -314,7 +314,7 @@ radeon_attach(device_t kdev)
 #endif
 		radeon_register_atpx_handler();
 	}
-	return (drm_attach_helper(kdev, pciidlist, &kms_driver));
+	return (-drm_attach_helper(kdev, pciidlist, &kms_driver));
 }
 
 static int
@@ -324,9 +324,9 @@ radeon_suspend(device_t kdev)
 	int ret;
 
 	dev = device_get_softc(kdev);
-	ret = -radeon_suspend_kms(dev);
+	ret = radeon_suspend_kms(dev);
 	if (ret)
-		return (ret);
+		return (-ret);
 
 	ret = bus_generic_suspend(kdev);
 
@@ -340,9 +340,9 @@ radeon_resume(device_t kdev)
 	int ret;
 
 	dev = device_get_softc(kdev);
-	ret = -radeon_resume_kms(dev);
+	ret = radeon_resume_kms(dev);
 	if (ret)
-		return (ret);
+		return (-ret);
 
 	ret = bus_generic_resume(kdev);
 

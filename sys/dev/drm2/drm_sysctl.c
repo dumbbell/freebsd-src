@@ -73,7 +73,7 @@ int drm_sysctl_init(struct drm_device *dev)
 	if (!drioid) {
 		free(dev->sysctl, DRM_MEM_DRIVER);
 		dev->sysctl = NULL;
-		return 1;
+		return (-ENOMEM);
 	}
 
 	/* Find the next free slot under hw.dri */
@@ -84,7 +84,7 @@ int drm_sysctl_init(struct drm_device *dev)
 	}
 	if (i > 9) {
 		drm_sysctl_cleanup(dev);
-		return (1);
+		return (-ENOSPC);
 	}
 
 	dev->sysctl_node_idx = i;
@@ -95,7 +95,7 @@ int drm_sysctl_init(struct drm_device *dev)
 	    OID_AUTO, info->name, CTLFLAG_RW, NULL, NULL);
 	if (!top) {
 		drm_sysctl_cleanup(dev);
-		return 1;
+		return (-ENOMEM);
 	}
 
 	for (i = 0; i < DRM_SYSCTL_ENTRIES; i++) {
@@ -111,7 +111,7 @@ int drm_sysctl_init(struct drm_device *dev)
 			NULL);
 		if (!oid) {
 			drm_sysctl_cleanup(dev);
-			return 1;
+			return (-ENOMEM);
 		}
 	}
 	SYSCTL_ADD_INT(&info->ctx, SYSCTL_CHILDREN(drioid), OID_AUTO, "debug",
@@ -149,7 +149,7 @@ int drm_sysctl_cleanup(struct drm_device *dev)
 	if (dev->driver->sysctl_cleanup != NULL)
 		dev->driver->sysctl_cleanup(dev);
 
-	return (error);
+	return (-error);
 }
 
 #define DRM_SYSCTL_PRINT(fmt, arg...)				\

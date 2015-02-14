@@ -185,7 +185,7 @@ extern struct drm_ioctl_desc drm_compat_ioctls[];
  */
 int drm_lastclose(struct drm_device * dev)
 {
-#if defined(__linux__)
+#ifdef __linux__
 	struct drm_vma_entry *vma, *vma_temp;
 #endif
 
@@ -227,7 +227,7 @@ int drm_lastclose(struct drm_device * dev)
 		dev->sg = NULL;
 	}
 
-#if defined(__linux__)
+#ifdef __linux__
 	/* Clear vma list (only built for debugging) */
 	list_for_each_entry_safe(vma, vma_temp, &dev->vmalist, head) {
 		list_del(&vma->head);
@@ -244,6 +244,15 @@ int drm_lastclose(struct drm_device * dev)
 	DRM_DEBUG("lastclose completed\n");
 	return 0;
 }
+
+#ifdef __linux__
+/** File operations structure */
+static const struct file_operations drm_stub_fops = {
+	.owner = THIS_MODULE,
+	.open = drm_stub_open,
+	.llseek = noop_llseek,
+};
+#endif
 
 static int __init drm_core_init(void)
 {

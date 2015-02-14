@@ -328,13 +328,13 @@ i915_suspend(device_t kdev)
 	dev = device_get_softc(kdev);
 	if (dev == NULL || dev->dev_private == NULL) {
 		DRM_ERROR("DRM not initialized, aborting suspend.\n");
-		return -ENODEV;
+		return ENODEV;
 	}
 
 	DRM_DEBUG_KMS("starting suspend\n");
 	error = i915_drm_freeze(dev);
 	if (error)
-		return (error);
+		return (-error);
 
 	error = bus_generic_suspend(kdev);
 	DRM_DEBUG_KMS("finished suspend %d\n", error);
@@ -400,9 +400,9 @@ i915_resume(device_t kdev)
 	pci_set_master(dev->pdev);
 #endif
 
-	ret = -i915_drm_thaw(dev);
+	ret = i915_drm_thaw(dev);
 	if (ret != 0)
-		return (ret);
+		return (-ret);
 
 	drm_kms_helper_poll_enable(dev);
 	ret = bus_generic_resume(kdev);
@@ -418,7 +418,7 @@ i915_probe(device_t kdev)
 
 	error = drm_probe_helper(kdev, i915_pciidlist);
 	if (error != 0)
-		return (error);
+		return (-error);
 	info = i915_get_device_id(pci_get_device(kdev));
 	if (info == NULL)
 		return (ENXIO);
@@ -433,7 +433,7 @@ i915_attach(device_t kdev)
 
 	if (i915_modeset == 1)
 		i915_driver_info.driver_features |= DRIVER_MODESET;
-	return (drm_attach_helper(kdev, i915_pciidlist, &i915_driver_info));
+	return (-drm_attach_helper(kdev, i915_pciidlist, &i915_driver_info));
 }
 
 static struct fb_info *

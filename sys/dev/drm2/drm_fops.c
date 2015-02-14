@@ -67,7 +67,7 @@ static int drm_setup(struct drm_device * dev)
 	}
 
 	/*
-	 * FIXME Linux<->FreeBSD: counter incremeneted in drm_open() and
+	 * FIXME Linux<->FreeBSD: counter incremented in drm_open() and
 	 * reset to 0 here.
 	 */
 #if 0
@@ -593,10 +593,10 @@ drm_mmap_single(struct cdev *kdev, vm_ooffset_t *offset, vm_size_t size,
 
 	dev = drm_get_device_from_kdev(kdev);
 	if (dev->drm_ttm_bdev != NULL) {
-		return (ttm_bo_mmap_single(dev->drm_ttm_bdev, offset, size,
+		return (-ttm_bo_mmap_single(dev->drm_ttm_bdev, offset, size,
 		    obj_res, nprot));
 	} else if ((dev->driver->driver_features & DRIVER_GEM) != 0) {
-		return (drm_gem_mmap_single(dev, offset, size, obj_res, nprot));
+		return (-drm_gem_mmap_single(dev, offset, size, obj_res, nprot));
 	} else {
 		return (ENODEV);
 	}

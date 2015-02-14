@@ -70,8 +70,8 @@ void drm_ht_verbose_list(struct drm_open_hash *ht, unsigned long key)
 		DRM_DEBUG("count %d, key: 0x%08lx\n", count++, entry->key);
 }
 
-static struct drm_hash_item *
-drm_ht_find_key(struct drm_open_hash *ht, unsigned long key)
+static struct drm_hash_item *drm_ht_find_key(struct drm_open_hash *ht,
+					  unsigned long key)
 {
 	struct drm_hash_item *entry;
 	struct drm_hash_item_list *h_list;

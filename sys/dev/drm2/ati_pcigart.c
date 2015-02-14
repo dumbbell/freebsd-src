@@ -198,7 +198,7 @@ int drm_ati_pcigart_init(struct drm_device *dev, struct drm_ati_pcigart_info *ga
 	}
 	ret = 1;
 
-#if defined(__i386) || defined(__amd64)
+#if defined(__i386__) || defined(__x86_64__)
 	wbinvd();
 #else
 	mb();

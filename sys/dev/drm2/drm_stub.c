@@ -89,6 +89,15 @@ static int drm_minor_get_id(struct drm_device *dev, int type)
 
 	new_id = device_get_unit(dev->dev);
 
+	if (new_id >= 64)
+		return -EINVAL;
+
+	if (type == DRM_MINOR_CONTROL) {
+		new_id += 64;
+        } else if (type == DRM_MINOR_RENDER) {
+                new_id += 128;
+        }
+
 	return new_id;
 }
 
@@ -96,7 +105,7 @@ struct drm_master *drm_master_create(struct drm_minor *minor)
 {
 	struct drm_master *master;
 
-	master = malloc(sizeof(*master), DRM_MEM_KMS, M_WAITOK | M_ZERO);
+	master = malloc(sizeof(*master), DRM_MEM_KMS, M_NOWAIT | M_ZERO);
 	if (!master)
 		return NULL;
 
@@ -243,6 +252,9 @@ int drm_fill_in_dev(struct drm_device *dev,
 	dev->types[4] = _DRM_STAT_LOCKS;
 	dev->types[5] = _DRM_STAT_UNLOCKS;
 
+	/*
+	 * FIXME Linux<->FreeBSD: this is done in drm_setup() on Linux.
+	 */
 	for (i = 0; i < ARRAY_SIZE(dev->counts); i++)
 		atomic_set(&dev->counts[i], 0);
 

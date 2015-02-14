@@ -76,7 +76,11 @@ int drm_global_item_ref(struct drm_global_reference *ref)
 	sx_xlock(&item->mutex);
 	if (item->refcount == 0) {
 		item->object = malloc(ref->size, M_DRM_GLOBAL,
-		    M_WAITOK | M_ZERO);
+		    M_NOWAIT | M_ZERO);
+		if (unlikely(item->object == NULL)) {
+			ret = -ENOMEM;
+			goto out_err;
+		}
 
 		ref->object = item->object;
 		ret = ref->init(ref);

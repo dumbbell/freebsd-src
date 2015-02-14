@@ -314,7 +314,7 @@ void drm_framebuffer_unreference(struct drm_framebuffer *fb)
 	struct drm_device *dev = fb->dev;
 	DRM_DEBUG("FB ID: %d\n", fb->base.id);
 	if (!sx_xlocked(&dev->mode_config.mutex))
-		printf("%s: dev->mode_config.mutex not locked\n", __func__);
+		DRM_WARNING("%s: dev->mode_config.mutex not locked\n", __func__);
 	if (refcount_release(&fb->refcount))
 		drm_framebuffer_free(fb);
 }
@@ -603,6 +603,7 @@ void drm_connector_unplug_all(struct drm_device *dev)
 	list_for_each_entry(connector, &dev->mode_config.connector_list, head)
 		drm_sysfs_connector_remove(connector);
 #endif /* FREEBSD_NOTYET */
+
 }
 EXPORT_SYMBOL(drm_connector_unplug_all);
 
@@ -1129,7 +1130,7 @@ static void drm_crtc_convert_to_umode(struct drm_mode_modeinfo *out,
 	     in->hskew > USHRT_MAX || in->vdisplay > USHRT_MAX ||
 	     in->vsync_start > USHRT_MAX || in->vsync_end > USHRT_MAX ||
 	     in->vtotal > USHRT_MAX || in->vscan > USHRT_MAX)
-		printf("timing values too large for mode info\n");
+		DRM_WARNING("timing values too large for mode info\n");
 
 	out->clock = in->clock;
 	out->hdisplay = in->hdisplay;
@@ -2096,7 +2097,7 @@ uint32_t drm_mode_legacy_fb_format(uint32_t bpp, uint32_t depth)
 
 	switch (bpp) {
 	case 8:
-		fmt = DRM_FORMAT_RGB332;
+		fmt = DRM_FORMAT_C8;
 		break;
 	case 16:
 		if (depth == 15)
@@ -2945,7 +2946,7 @@ void drm_object_attach_property(struct drm_mode_object *obj,
 	int count = obj->properties->count;
 
 	if (count == DRM_OBJECT_MAX_PROPERTY) {
-		printf("Failed to attach object property (type: 0x%x). Please "
+		DRM_WARNING("Failed to attach object property (type: 0x%x). Please "
 			"increase DRM_OBJECT_MAX_PROPERTY by 1 for each time "
 			"you see this message on the same object type.\n",
 			obj->type);
@@ -3567,6 +3568,9 @@ int drm_mode_page_flip_ioctl(struct drm_device *dev,
 	struct drm_crtc *crtc;
 	struct drm_framebuffer *fb;
 	struct drm_pending_vblank_event *e = NULL;
+#ifdef __linux__
+	unsigned long flags;
+#endif
 	int hdisplay, vdisplay;
 	int ret = -EINVAL;
 
@@ -3724,6 +3728,7 @@ void drm_fb_get_bpp_depth(uint32_t format, unsigned int *depth,
 			  int *bpp)
 {
 	switch (format) {
+	case DRM_FORMAT_C8:
 	case DRM_FORMAT_RGB332:
 	case DRM_FORMAT_BGR233:
 		*depth = 8;

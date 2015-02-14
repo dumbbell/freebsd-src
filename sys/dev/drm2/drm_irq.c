@@ -217,37 +217,37 @@ int drm_vblank_init(struct drm_device *dev, int num_crtcs)
 	dev->num_crtcs = num_crtcs;
 
 	dev->_vblank_count = malloc(sizeof(atomic_t) * num_crtcs,
-	    DRM_MEM_VBLANK, M_WAITOK);
+	    DRM_MEM_VBLANK, M_NOWAIT);
 	if (!dev->_vblank_count)
 		goto err;
 
 	dev->vblank_refcount = malloc(sizeof(atomic_t) * num_crtcs,
-	    DRM_MEM_VBLANK, M_WAITOK);
+	    DRM_MEM_VBLANK, M_NOWAIT);
 	if (!dev->vblank_refcount)
 		goto err;
 
 	dev->vblank_enabled = malloc(num_crtcs * sizeof(int),
-	    DRM_MEM_VBLANK, M_WAITOK | M_ZERO);
+	    DRM_MEM_VBLANK, M_NOWAIT | M_ZERO);
 	if (!dev->vblank_enabled)
 		goto err;
 
 	dev->last_vblank = malloc(num_crtcs * sizeof(u32),
-	    DRM_MEM_VBLANK, M_WAITOK | M_ZERO);
+	    DRM_MEM_VBLANK, M_NOWAIT | M_ZERO);
 	if (!dev->last_vblank)
 		goto err;
 
 	dev->last_vblank_wait = malloc(num_crtcs * sizeof(u32),
-	    DRM_MEM_VBLANK, M_WAITOK | M_ZERO);
+	    DRM_MEM_VBLANK, M_NOWAIT | M_ZERO);
 	if (!dev->last_vblank_wait)
 		goto err;
 
 	dev->vblank_inmodeset = malloc(num_crtcs * sizeof(int),
-	    DRM_MEM_VBLANK, M_WAITOK | M_ZERO);
+	    DRM_MEM_VBLANK, M_NOWAIT | M_ZERO);
 	if (!dev->vblank_inmodeset)
 		goto err;
 
 	dev->_vblank_time = malloc(num_crtcs * DRM_VBLANKTIME_RBSIZE *
-	    sizeof(struct timeval), DRM_MEM_VBLANK, M_WAITOK | M_ZERO);
+	    sizeof(struct timeval), DRM_MEM_VBLANK, M_NOWAIT | M_ZERO);
 	if (!dev->_vblank_time)
 		goto err;
 

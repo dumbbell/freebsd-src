@@ -36,9 +36,6 @@ __FBSDID("$FreeBSD$");
 
 #include <dev/drm2/drmP.h>
 
-//#include <dev/agp/agpreg.h>
-//#include <dev/pci/pcireg.h>
-
 #if __OS_HAS_AGP
 
 /**
@@ -211,7 +208,7 @@ int drm_agp_alloc(struct drm_device *dev, struct drm_agp_buffer *request)
 
 	if (!dev->agp || !dev->agp->acquired)
 		return -EINVAL;
-	if (!(entry = malloc(sizeof(*entry), DRM_MEM_AGPLISTS, M_NOWAIT | M_ZERO)))
+	if (!(entry = malloc(sizeof(*entry), DRM_MEM_AGPLISTS, M_NOWAIT)))
 		return -ENOMEM;
 
 	memset(entry, 0, sizeof(*entry));
@@ -407,8 +404,7 @@ struct drm_agp_head *drm_agp_init(struct drm_device *dev)
 {
 	struct drm_agp_head *head = NULL;
 
-	if (!(head = malloc(sizeof(*head), DRM_MEM_AGPLISTS,
-	    M_NOWAIT | M_ZERO)))
+	if (!(head = malloc(sizeof(*head), DRM_MEM_AGPLISTS, M_NOWAIT)))
 		return NULL;
 	memset((void *)head, 0, sizeof(*head));
 	head->bridge = agp_find_device();

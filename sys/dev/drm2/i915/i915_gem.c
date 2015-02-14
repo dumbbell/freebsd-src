@@ -944,7 +944,6 @@ i915_gem_create(struct drm_file *file, struct drm_device *dev, uint64_t size,
 	if (obj == NULL)
 		return (-ENOMEM);
 
-	handle = 0;
 	ret = drm_gem_handle_create(file, &obj->base, &handle);
 	if (ret != 0) {
 		drm_gem_object_release(&obj->base);
