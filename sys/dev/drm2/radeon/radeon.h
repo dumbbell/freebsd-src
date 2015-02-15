@@ -113,7 +113,7 @@ extern int radeon_lockup_timeout;
  * symbol;
  */
 #define RADEON_MAX_USEC_TIMEOUT			100000	/* 100 ms */
-#define RADEON_FENCE_JIFFIES_TIMEOUT		(DRM_HZ / 2)
+#define RADEON_FENCE_JIFFIES_TIMEOUT		(HZ / 2)
 /* RADEON_IB_POOL_SIZE must be a power of 2 */
 #define RADEON_IB_POOL_SIZE			16
 #define RADEON_DEBUGFS_MAX_COMPONENTS		32
@@ -1800,7 +1800,7 @@ void radeon_atombios_fini(struct radeon_device *rdev);
 /*
  * RING helpers.
  */
-#if !defined(DRM_DEBUG_CODE) || DRM_DEBUG_CODE == 0
+#if DRM_DEBUG_CODE == 0
 static inline void radeon_ring_write(struct radeon_ring *ring, uint32_t v)
 {
 	ring->ring[ring->wptr++] = v;

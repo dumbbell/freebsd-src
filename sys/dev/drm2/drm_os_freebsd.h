@@ -156,8 +156,6 @@ typedef void			irqreturn_t;
 #define	KTR_DRM		KTR_DEV
 #define	KTR_DRM_REG	KTR_SPARE3
 
-#define	__OS_HAS_AGP	1
-#define	__OS_HAS_MTRR	1
 #define	DRM_AGP_KERN	struct agp_info
 #define	DRM_AGP_MEM	void
 
@@ -359,6 +357,9 @@ typedef struct drm_pci_id_list
 #if defined(__i386__) || defined(__amd64__)
 #define	CONFIG_ACPI
 #endif
+
+#define	CONFIG_AGP	1
+#define	CONFIG_MTRR	1
 
 #define	CONFIG_FB	1
 extern const char *fb_mode_option;

@@ -103,10 +103,14 @@ __FBSDID("$FreeBSD$");
 #include <dev/drm2/drm_linux_list.h>
 #include <dev/drm2/drm_gem_names.h>
 
+#include <dev/drm2/drm_os_freebsd.h>
+
+#define __OS_HAS_AGP (defined(CONFIG_AGP) || (defined(CONFIG_AGP_MODULE) && defined(MODULE)))
+#define __OS_HAS_MTRR (defined(CONFIG_MTRR))
+
 struct drm_file;
 struct drm_device;
 
-#include <dev/drm2/drm_os_freebsd.h>
 #include <dev/drm2/drm_hashtab.h>
 #include <dev/drm2/drm_mm.h>
 
@@ -161,7 +165,7 @@ struct drm_device;
 #define DRM_KERNEL_CONTEXT    0	 /**< Change drm_resctx if changed */
 #define DRM_RESERVED_CONTEXTS 1	 /**< Change drm_resctx if changed */
 #define DRM_LOOPING_LIMIT     5000000
-#define DRM_TIME_SLICE	      (hz/20)  /**< Time slice for GLXContexts */
+#define DRM_TIME_SLICE	      (HZ/20)  /**< Time slice for GLXContexts */
 #define DRM_LOCK_SLICE	      1	/**< Time slice for lock, in jiffies */
 
 #define DRM_FLAG_DEBUG	  0x01
@@ -1108,6 +1112,7 @@ static inline int drm_dev_to_irq(struct drm_device *dev)
 {
 	return dev->driver->bus->get_irq(dev);
 }
+
 
 #if __OS_HAS_AGP
 static inline int drm_core_has_AGP(struct drm_device *dev)
