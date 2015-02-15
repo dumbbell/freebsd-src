@@ -148,7 +148,7 @@ ttm_bo_wait_unreserved_locked(struct ttm_buffer_object *bo, bool interruptible)
 	}
 	while (ttm_bo_is_reserved(bo)) {
 		ret = -msleep(bo, &bo->glob->lru_lock, flags, wmsg, 0);
-		if (ret == -EINTR)
+		if (ret == -EINTR || ret == -ERESTART)
 			ret = -ERESTARTSYS;
 		if (ret != 0)
 			break;

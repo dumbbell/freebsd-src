@@ -92,8 +92,10 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		}
 
 		/* Contention */
-		ret = sx_sleep(&master->lock.lock_queue, &drm_global_mutex,
+		ret = -sx_sleep(&master->lock.lock_queue, &drm_global_mutex,
 		    PCATCH, "drmlk2", 0);
+		if (ret == -ERESTART)
+			ret = -ERESARTSYS;
 		if (ret != 0)
 			break;
 	}

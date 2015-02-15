@@ -161,6 +161,8 @@ i915_gem_wait_for_error(struct drm_device *dev)
 	while (dev_priv->error_completion == 0) {
 		ret = -msleep(&dev_priv->error_completion,
 		    &dev_priv->error_completion_lock, PCATCH, "915wco", 0);
+		if (ret == -ERESTART)
+			ret = -ERESARTSYS;
 		if (ret != 0) {
 			mtx_unlock(&dev_priv->error_completion_lock);
 			return (ret);
@@ -2775,14 +2777,14 @@ i915_gem_object_unbind(struct drm_i915_gem_object *obj)
 	}
 
 	ret = i915_gem_object_finish_gpu(obj);
-	if (ret == -ERESTART || ret == -EINTR)
+	if (ret == -ERESTARTSYS || ret == -EINTR)
 		return (ret);
 
 	i915_gem_object_finish_gtt(obj);
 
 	if (ret == 0)
 		ret = i915_gem_object_set_to_cpu_domain(obj, 1);
-	if (ret == -ERESTART || ret == -EINTR)
+	if (ret == -ERESTARTSYS || ret == -EINTR)
 		return (ret);
 	if (ret != 0) {
 		i915_gem_clflush_object(obj);
@@ -3330,8 +3332,11 @@ static int __wait_seqno(struct intel_ring_buffer *ring, u32 seqno,
 	flags = interruptible ? PCATCH : 0;
 	while (!i915_seqno_passed(ring->get_seqno(ring), seqno)
 	    && !atomic_load_acq_int(&dev_priv->mm.wedged) &&
-	    ret == 0)
+	    ret == 0) {
 		ret = -msleep(ring, &dev_priv->irq_lock, flags, "915gwr", 0);
+		if (ret == -ERESTART)
+			ret = -ERESARTSYS;
+	}
 	ring->irq_put(ring);
 	mtx_unlock(&dev_priv->irq_lock);
 
