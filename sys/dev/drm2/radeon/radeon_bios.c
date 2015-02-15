@@ -88,7 +88,7 @@ static bool igp_read_bios_from_vram(struct radeon_device *rdev)
 		drm_core_ioremapfree(&bios_map, rdev->ddev);
 		return false;
 	}
-	rdev->bios = malloc(size, DRM_MEM_DRIVER, M_WAITOK);
+	rdev->bios = malloc(size, DRM_MEM_DRIVER, M_NOWAIT);
 	if (rdev->bios == NULL) {
 		drm_core_ioremapfree(&bios_map, rdev->ddev);
 		return false;
@@ -125,7 +125,11 @@ static bool radeon_read_bios(struct radeon_device *rdev)
 		vga_pci_unmap_bios(vga_dev, bios);
 		return false;
 	}
-	rdev->bios = malloc(size, DRM_MEM_DRIVER, M_WAITOK);
+	rdev->bios = malloc(size, DRM_MEM_DRIVER, M_NOWAIT);
+	if (rdev->bios == NULL) {
+		vga_pci_unmap_bios(vga_dev, bios);
+		return false;
+	}
 	memcpy(rdev->bios, bios, size);
 	vga_pci_unmap_bios(vga_dev, bios);
 	return true;
@@ -235,7 +239,7 @@ static bool radeon_atrm_get_bios(struct radeon_device *rdev)
 	if (!found)
 		return false;
 
-	rdev->bios = malloc(size, DRM_MEM_DRIVER, M_WAITOK);
+	rdev->bios = malloc(size, DRM_MEM_DRIVER, M_NOWAIT);
 	if (!rdev->bios) {
 		DRM_ERROR("Unable to allocate bios\n");
 		return false;
@@ -679,8 +683,9 @@ static bool radeon_acpi_vfct_bios(struct radeon_device *rdev)
 		goto out_unmap;
 	}
 
-	rdev->bios = malloc(vhdr->ImageLength, DRM_MEM_DRIVER, M_WAITOK);
-	memcpy(rdev->bios, &vbios->VbiosContent, vhdr->ImageLength);
+	rdev->bios = malloc(vhdr->ImageLength, DRM_MEM_DRIVER, M_NOWAIT);
+	if (rdev->bios)
+		memcpy(rdev->bios, &vbios->VbiosContent, vhdr->ImageLength);
 	ret = !!rdev->bios;
 
 out_unmap:

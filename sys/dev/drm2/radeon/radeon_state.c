@@ -3066,7 +3066,7 @@ static int radeon_cp_getparam(struct drm_device *dev, void *data, struct drm_fil
 	case RADEON_PARAM_STATUS_HANDLE:
 		value = dev_priv->ring_rptr_offset;
 		break;
-#ifndef __LP64__
+#if BITS_PER_LONG == 32
 		/*
 		 * This ioctl() doesn't work on 64-bit platforms because hw_lock is a
 		 * pointer which can't fit into an int-sized variable.  According to
@@ -3206,7 +3206,7 @@ int radeon_driver_open(struct drm_device *dev, struct drm_file *file_priv)
 	struct drm_radeon_driver_file_fields *radeon_priv;
 
 	DRM_DEBUG("\n");
-	radeon_priv = malloc(sizeof(*radeon_priv), DRM_MEM_DRIVER, M_WAITOK);
+	radeon_priv = malloc(sizeof(*radeon_priv), DRM_MEM_DRIVER, M_NOWAIT);
 
 	if (!radeon_priv)
 		return -ENOMEM;

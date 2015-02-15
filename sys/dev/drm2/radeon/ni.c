@@ -34,7 +34,16 @@ __FBSDID("$FreeBSD$");
 #include "ni_reg.h"
 #include "cayman_blit_shaders.h"
 
+extern void evergreen_mc_stop(struct radeon_device *rdev, struct evergreen_mc_save *save);
+extern void evergreen_mc_resume(struct radeon_device *rdev, struct evergreen_mc_save *save);
+extern int evergreen_mc_wait_for_idle(struct radeon_device *rdev);
+extern void evergreen_mc_program(struct radeon_device *rdev);
+extern void evergreen_irq_suspend(struct radeon_device *rdev);
+extern int evergreen_mc_init(struct radeon_device *rdev);
+extern void evergreen_fix_pci_max_read_req_size(struct radeon_device *rdev);
 extern void evergreen_pcie_gen2_enable(struct radeon_device *rdev);
+extern void si_rlc_fini(struct radeon_device *rdev);
+extern int si_rlc_init(struct radeon_device *rdev);
 
 #define EVERGREEN_PFP_UCODE_SIZE 1120
 #define EVERGREEN_PM4_UCODE_SIZE 1376
@@ -47,6 +56,27 @@ extern void evergreen_pcie_gen2_enable(struct radeon_device *rdev);
 #define CAYMAN_MC_UCODE_SIZE 6037
 
 #define ARUBA_RLC_UCODE_SIZE 1536
+
+#ifdef __linux__
+/* Firmware Names */
+MODULE_FIRMWARE("radeon/BARTS_pfp.bin");
+MODULE_FIRMWARE("radeon/BARTS_me.bin");
+MODULE_FIRMWARE("radeon/BARTS_mc.bin");
+MODULE_FIRMWARE("radeon/BTC_rlc.bin");
+MODULE_FIRMWARE("radeon/TURKS_pfp.bin");
+MODULE_FIRMWARE("radeon/TURKS_me.bin");
+MODULE_FIRMWARE("radeon/TURKS_mc.bin");
+MODULE_FIRMWARE("radeon/CAICOS_pfp.bin");
+MODULE_FIRMWARE("radeon/CAICOS_me.bin");
+MODULE_FIRMWARE("radeon/CAICOS_mc.bin");
+MODULE_FIRMWARE("radeon/CAYMAN_pfp.bin");
+MODULE_FIRMWARE("radeon/CAYMAN_me.bin");
+MODULE_FIRMWARE("radeon/CAYMAN_mc.bin");
+MODULE_FIRMWARE("radeon/CAYMAN_rlc.bin");
+MODULE_FIRMWARE("radeon/ARUBA_pfp.bin");
+MODULE_FIRMWARE("radeon/ARUBA_me.bin");
+MODULE_FIRMWARE("radeon/ARUBA_rlc.bin");
+#endif
 
 #define BTC_IO_MC_REGS_SIZE 29
 
@@ -478,21 +508,32 @@ static void cayman_gpu_init(struct radeon_device *rdev)
 		    (rdev->ddev->pci_device == 0x9907) ||
 		    (rdev->ddev->pci_device == 0x9908) ||
 		    (rdev->ddev->pci_device == 0x9909) ||
+		    (rdev->ddev->pci_device == 0x990B) ||
+		    (rdev->ddev->pci_device == 0x990C) ||
+		    (rdev->ddev->pci_device == 0x990F) ||
 		    (rdev->ddev->pci_device == 0x9910) ||
-		    (rdev->ddev->pci_device == 0x9917)) {
+		    (rdev->ddev->pci_device == 0x9917) ||
+		    (rdev->ddev->pci_device == 0x9999) ||
+		    (rdev->ddev->pci_device == 0x999C)) {
 			rdev->config.cayman.max_simds_per_se = 6;
 			rdev->config.cayman.max_backends_per_se = 2;
 		} else if ((rdev->ddev->pci_device == 0x9903) ||
 			   (rdev->ddev->pci_device == 0x9904) ||
 			   (rdev->ddev->pci_device == 0x990A) ||
+			   (rdev->ddev->pci_device == 0x990D) ||
+			   (rdev->ddev->pci_device == 0x990E) ||
 			   (rdev->ddev->pci_device == 0x9913) ||
-			   (rdev->ddev->pci_device == 0x9918)) {
+			   (rdev->ddev->pci_device == 0x9918) ||
+			   (rdev->ddev->pci_device == 0x999D)) {
 			rdev->config.cayman.max_simds_per_se = 4;
 			rdev->config.cayman.max_backends_per_se = 2;
 		} else if ((rdev->ddev->pci_device == 0x9919) ||
 			   (rdev->ddev->pci_device == 0x9990) ||
 			   (rdev->ddev->pci_device == 0x9991) ||
 			   (rdev->ddev->pci_device == 0x9994) ||
+			   (rdev->ddev->pci_device == 0x9995) ||
+			   (rdev->ddev->pci_device == 0x9996) ||
+			   (rdev->ddev->pci_device == 0x999A) ||
 			   (rdev->ddev->pci_device == 0x99A0)) {
 			rdev->config.cayman.max_simds_per_se = 3;
 			rdev->config.cayman.max_backends_per_se = 1;
@@ -622,15 +663,28 @@ static void cayman_gpu_init(struct radeon_device *rdev)
 
 	WREG32(GB_ADDR_CONFIG, gb_addr_config);
 	WREG32(DMIF_ADDR_CONFIG, gb_addr_config);
+	if (ASIC_IS_DCE6(rdev))
+		WREG32(DMIF_ADDR_CALC, gb_addr_config);
 	WREG32(HDP_ADDR_CONFIG, gb_addr_config);
 	WREG32(DMA_TILING_CONFIG + DMA0_REGISTER_OFFSET, gb_addr_config);
 	WREG32(DMA_TILING_CONFIG + DMA1_REGISTER_OFFSET, gb_addr_config);
 
-	tmp = gb_addr_config & NUM_PIPES_MASK;
-	tmp = r6xx_remap_render_backend(rdev, tmp,
-					rdev->config.cayman.max_backends_per_se *
-					rdev->config.cayman.max_shader_engines,
-					CAYMAN_MAX_BACKENDS, disabled_rb_mask);
+	if ((rdev->config.cayman.max_backends_per_se == 1) &&
+	    (rdev->flags & RADEON_IS_IGP)) {
+		if ((disabled_rb_mask & 3) == 1) {
+			/* RB0 disabled, RB1 enabled */
+			tmp = 0x11111111;
+		} else {
+			/* RB1 disabled, RB0 enabled */
+			tmp = 0x00000000;
+		}
+	} else {
+		tmp = gb_addr_config & NUM_PIPES_MASK;
+		tmp = r6xx_remap_render_backend(rdev, tmp,
+						rdev->config.cayman.max_backends_per_se *
+						rdev->config.cayman.max_shader_engines,
+						CAYMAN_MAX_BACKENDS, disabled_rb_mask);
+	}
 	WREG32(GB_BACKEND_MAP, tmp);
 
 	cgts_tcc_disable = 0xffff0000;
@@ -1674,6 +1728,7 @@ int cayman_resume(struct radeon_device *rdev)
 int cayman_suspend(struct radeon_device *rdev)
 {
 	r600_audio_fini(rdev);
+	radeon_vm_manager_fini(rdev);
 	cayman_cp_enable(rdev, false);
 	cayman_dma_stop(rdev);
 	evergreen_irq_suspend(rdev);

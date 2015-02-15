@@ -40,6 +40,8 @@ __FBSDID("$FreeBSD$");
 #define MAX(a,b)                   (((a)>(b))?(a):(b))
 #define MIN(a,b)                   (((a)<(b))?(a):(b))
 
+int r600_dma_cs_next_reloc(struct radeon_cs_parser *p,
+			   struct radeon_cs_reloc **cs_reloc);
 static int evergreen_cs_packet_next_reloc(struct radeon_cs_parser *p,
 					  struct radeon_cs_reloc **cs_reloc);
 
@@ -2759,7 +2761,7 @@ int evergreen_cs_parse(struct radeon_cs_parser *p)
 
 	if (p->track == NULL) {
 		/* initialize tracker, we are in kms */
-		track = malloc(sizeof(*track), DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+		track = malloc(sizeof(*track), DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 		if (track == NULL)
 			return -ENOMEM;
 		evergreen_cs_track_init(track);

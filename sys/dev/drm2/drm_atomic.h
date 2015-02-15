@@ -42,6 +42,9 @@ typedef uint64_t	atomic64_t;
 #define	atomic_read(p)			(*(volatile u_int *)(p))
 #define	atomic_set(p, v)		do { *(u_int *)(p) = (v); } while (0)
 
+#define	atomic64_read(p)		atomic_load_acq_64(p)
+#define	atomic64_set(p, v)		atomic_store_rel_64(p, v)
+
 #define	atomic_add(v, p)		atomic_add_int(p, v)
 #define	atomic_sub(v, p)		atomic_subtract_int(p, v)
 #define	atomic_inc(p)			atomic_add(1, p)

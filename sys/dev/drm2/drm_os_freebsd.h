@@ -90,6 +90,7 @@ typedef void			irqreturn_t;
 #define	mdelay(msecs)		do { int loops = (msecs);		\
 				  while (loops--) DELAY(1000);		\
 				} while (0)
+#define	DRM_UDELAY(udelay)	DELAY(udelay)
 #define	drm_msleep(x, msg)	pause((msg), ((int64_t)(x)) * hz / 1000)
 #define	DRM_MSLEEP(msecs)	drm_msleep((msecs), "drm_msleep")
 

@@ -383,7 +383,7 @@ void radeon_legacy_backlight_init(struct radeon_encoder *radeon_encoder,
 #endif
 
 	pdata = malloc(sizeof(struct radeon_backlight_privdata),
-	    DRM_MEM_DRIVER, M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT);
 	if (!pdata) {
 		DRM_ERROR("Memory allocation failed\n");
 		goto error;
@@ -1498,7 +1498,6 @@ static bool radeon_legacy_ext_dac_detect(struct drm_encoder *encoder,
 		if (found)
 			break;
 
-		mdelay(1);
 		if (!drm_can_sleep())
 			mdelay(1);
 		else
@@ -1699,7 +1698,7 @@ static struct radeon_encoder_int_tmds *radeon_legacy_get_tmds_info(struct radeon
 	bool ret;
 
 	tmds = malloc(sizeof(struct radeon_encoder_int_tmds),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 
 	if (!tmds)
 		return NULL;
@@ -1726,7 +1725,7 @@ static struct radeon_encoder_ext_tmds *radeon_legacy_get_ext_tmds_info(struct ra
 		return NULL;
 
 	tmds = malloc(sizeof(struct radeon_encoder_ext_tmds),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 
 	if (!tmds)
 		return NULL;
@@ -1758,7 +1757,7 @@ radeon_add_legacy_encoder(struct drm_device *dev, uint32_t encoder_enum, uint32_
 
 	/* add a new one */
 	radeon_encoder = malloc(sizeof(struct radeon_encoder),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (!radeon_encoder)
 		return;
 

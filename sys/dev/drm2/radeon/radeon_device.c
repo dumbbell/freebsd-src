@@ -248,7 +248,6 @@ void radeon_wb_fini(struct radeon_device *rdev)
 int radeon_wb_init(struct radeon_device *rdev)
 {
 	int r;
-	void *wb_ptr;
 
 	if (rdev->wb.wb_obj == NULL) {
 		r = radeon_bo_create(rdev, RADEON_GPU_PAGE_SIZE, PAGE_SIZE, true,
@@ -271,8 +270,7 @@ int radeon_wb_init(struct radeon_device *rdev)
 		radeon_wb_fini(rdev);
 		return r;
 	}
-	wb_ptr = &rdev->wb.wb;
-	r = radeon_bo_kmap(rdev->wb.wb_obj, wb_ptr);
+	r = radeon_bo_kmap(rdev->wb.wb_obj, (void **)&rdev->wb.wb);
 	radeon_bo_unreserve(rdev->wb.wb_obj);
 	if (r) {
 		dev_warn(rdev->dev, "(%d) map WB bo failed\n", r);
@@ -281,7 +279,7 @@ int radeon_wb_init(struct radeon_device *rdev)
 	}
 
 	/* clear wb memory */
-	memset(*(void **)wb_ptr, 0, RADEON_GPU_PAGE_SIZE);
+	memset((char *)rdev->wb.wb, 0, RADEON_GPU_PAGE_SIZE);
 	/* disable event_write fences */
 	rdev->wb.use_event = false;
 	/* disabled via module param */
@@ -731,7 +729,7 @@ int radeon_atombios_init(struct radeon_device *rdev)
 {
 	struct card_info *atom_card_info =
 	    malloc(sizeof(struct card_info),
-		DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+		DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 
 	if (!atom_card_info)
 		return -ENOMEM;
@@ -1123,7 +1121,7 @@ int radeon_device_init(struct radeon_device *rdev,
 	if (rdev->rio_mem == NULL)
 		DRM_ERROR("Unable to find PCI I/O BAR\n");
 
-	rdev->tq = taskqueue_create("radeonkms", M_WAITOK,
+	rdev->tq = taskqueue_create("radeonkms", M_NOWAIT,
 	    taskqueue_thread_enqueue, &rdev->tq);
 	taskqueue_start_threads(&rdev->tq, 1, PWAIT, "radeon taskq");
 

@@ -52,9 +52,13 @@ int radeon_driver_unload_kms(struct drm_device *dev)
 
 	if (rdev == NULL)
 		return 0;
+	if (rdev->rmmio == NULL)
+		goto done_free;
 	radeon_acpi_fini(rdev);
 	radeon_modeset_fini(rdev);
 	radeon_device_fini(rdev);
+
+done_free:
 	free(rdev, DRM_MEM_DRIVER);
 	dev->dev_private = NULL;
 	return 0;
@@ -78,7 +82,7 @@ int radeon_driver_load_kms(struct drm_device *dev, unsigned long flags)
 	struct radeon_device *rdev;
 	int r, acpi_status;
 
-	rdev = malloc(sizeof(struct radeon_device), DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	rdev = malloc(sizeof(struct radeon_device), DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (rdev == NULL) {
 		return -ENOMEM;
 	}
@@ -445,7 +449,7 @@ int radeon_driver_open_kms(struct drm_device *dev, struct drm_file *file_priv)
 		struct radeon_bo_va *bo_va;
 		int r;
 
-		fpriv = malloc(sizeof(*fpriv), DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+		fpriv = malloc(sizeof(*fpriv), DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 		if (unlikely(!fpriv)) {
 			return -ENOMEM;
 		}

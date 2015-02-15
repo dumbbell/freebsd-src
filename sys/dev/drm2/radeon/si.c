@@ -39,6 +39,31 @@ __FBSDID("$FreeBSD$");
 #define SI_RLC_UCODE_SIZE 2048
 #define SI_MC_UCODE_SIZE 7769
 
+#ifdef __linux__
+MODULE_FIRMWARE("radeon/TAHITI_pfp.bin");
+MODULE_FIRMWARE("radeon/TAHITI_me.bin");
+MODULE_FIRMWARE("radeon/TAHITI_ce.bin");
+MODULE_FIRMWARE("radeon/TAHITI_mc.bin");
+MODULE_FIRMWARE("radeon/TAHITI_rlc.bin");
+MODULE_FIRMWARE("radeon/PITCAIRN_pfp.bin");
+MODULE_FIRMWARE("radeon/PITCAIRN_me.bin");
+MODULE_FIRMWARE("radeon/PITCAIRN_ce.bin");
+MODULE_FIRMWARE("radeon/PITCAIRN_mc.bin");
+MODULE_FIRMWARE("radeon/PITCAIRN_rlc.bin");
+MODULE_FIRMWARE("radeon/VERDE_pfp.bin");
+MODULE_FIRMWARE("radeon/VERDE_me.bin");
+MODULE_FIRMWARE("radeon/VERDE_ce.bin");
+MODULE_FIRMWARE("radeon/VERDE_mc.bin");
+MODULE_FIRMWARE("radeon/VERDE_rlc.bin");
+#endif
+
+extern int r600_ih_ring_alloc(struct radeon_device *rdev);
+extern void r600_ih_ring_fini(struct radeon_device *rdev);
+extern void evergreen_fix_pci_max_read_req_size(struct radeon_device *rdev);
+extern void evergreen_mc_stop(struct radeon_device *rdev, struct evergreen_mc_save *save);
+extern void evergreen_mc_resume(struct radeon_device *rdev, struct evergreen_mc_save *save);
+extern u32 evergreen_get_number_of_dram_channels(struct radeon_device *rdev);
+
 /* get temperature in millidegrees */
 int si_get_temp(struct radeon_device *rdev)
 {
@@ -1399,7 +1424,7 @@ static void si_select_se_sh(struct radeon_device *rdev,
 	u32 data = INSTANCE_BROADCAST_WRITES;
 
 	if ((se_num == 0xffffffff) && (sh_num == 0xffffffff))
-		data = SH_BROADCAST_WRITES | SE_BROADCAST_WRITES;
+		data |= SH_BROADCAST_WRITES | SE_BROADCAST_WRITES;
 	else if (se_num == 0xffffffff)
 		data |= SE_BROADCAST_WRITES | SH_INDEX(sh_num);
 	else if (sh_num == 0xffffffff)
@@ -1684,6 +1709,7 @@ static void si_gpu_init(struct radeon_device *rdev)
 
 	WREG32(GB_ADDR_CONFIG, gb_addr_config);
 	WREG32(DMIF_ADDR_CONFIG, gb_addr_config);
+	WREG32(DMIF_ADDR_CALC, gb_addr_config);
 	WREG32(HDP_ADDR_CONFIG, gb_addr_config);
 	WREG32(DMA_TILING_CONFIG + DMA0_REGISTER_OFFSET, gb_addr_config);
 	WREG32(DMA_TILING_CONFIG + DMA1_REGISTER_OFFSET, gb_addr_config);
@@ -4257,6 +4283,7 @@ int si_resume(struct radeon_device *rdev)
 
 int si_suspend(struct radeon_device *rdev)
 {
+	radeon_vm_manager_fini(rdev);
 	si_cp_enable(rdev, false);
 	cayman_dma_stop(rdev);
 	si_irq_suspend(rdev);

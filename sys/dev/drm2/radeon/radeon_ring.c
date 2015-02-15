@@ -165,7 +165,8 @@ int radeon_ib_schedule(struct radeon_device *rdev, struct radeon_ib *ib,
 		radeon_semaphore_free(rdev, &ib->semaphore, NULL);
 	}
 	/* if we can't remember our last VM flush then flush now! */
-	if (ib->vm && !ib->vm->last_flush) {
+	/* XXX figure out why we have to flush for every IB */
+	if (ib->vm /*&& !ib->vm->last_flush*/) {
 		radeon_ring_vm_flush(rdev, ib->ring, ib->vm);
 	}
 	if (const_ib) {
@@ -301,7 +302,6 @@ int radeon_ib_ring_tests(struct radeon_device *rdev)
 static int radeon_debugfs_ring_init(struct radeon_device *rdev, struct radeon_ring *ring);
 #endif /* FREEBSD_WIP */
 
-#if defined(DRM_DEBUG_CODE) && DRM_DEBUG_CODE != 0
 /**
  * radeon_ring_write - write a value to the ring
  *
@@ -322,7 +322,6 @@ void radeon_ring_write(struct radeon_ring *ring, uint32_t v)
 	ring->count_dw--;
 	ring->ring_free_dw--;
 }
-#endif
 
 /**
  * radeon_ring_supports_scratch_reg - check if the ring supports
@@ -623,7 +622,7 @@ unsigned radeon_ring_backup(struct radeon_device *rdev, struct radeon_ring *ring
 	}
 
 	/* and then save the content of the ring */
-	*data = malloc(size * sizeof(uint32_t), DRM_MEM_DRIVER, M_WAITOK);
+	*data = malloc(size * sizeof(uint32_t), DRM_MEM_DRIVER, M_NOWAIT);
 	if (!*data) {
 		sx_xunlock(&rdev->ring_lock);
 		return 0;
@@ -690,7 +689,6 @@ int radeon_ring_init(struct radeon_device *rdev, struct radeon_ring *ring, unsig
 		     u32 ptr_reg_shift, u32 ptr_reg_mask, u32 nop)
 {
 	int r;
-	void *ring_ptr;
 
 	ring->ring_size = ring_size;
 	ring->rptr_offs = rptr_offs;
@@ -721,9 +719,8 @@ int radeon_ring_init(struct radeon_device *rdev, struct radeon_ring *ring, unsig
 			dev_err(rdev->dev, "(%d) ring pin failed\n", r);
 			return r;
 		}
-		ring_ptr = &ring->ring;
 		r = radeon_bo_kmap(ring->ring_obj,
-				       ring_ptr);
+				       (void **)&ring->ring);
 		radeon_bo_unreserve(ring->ring_obj);
 		if (r) {
 			dev_err(rdev->dev, "(%d) ring map failed\n", r);

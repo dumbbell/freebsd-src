@@ -50,7 +50,7 @@ __FBSDID("$FreeBSD$");
 #define CAYMAN_RLC_UCODE_SIZE 1024
 #define ARUBA_RLC_UCODE_SIZE 1536
 
-#ifdef FREEBSD_WIP
+#ifdef __linux__
 /* Firmware Names */
 MODULE_FIRMWARE("radeon/R600_pfp.bin");
 MODULE_FIRMWARE("radeon/R600_me.bin");
@@ -93,12 +93,14 @@ MODULE_FIRMWARE("radeon/SUMO_pfp.bin");
 MODULE_FIRMWARE("radeon/SUMO_me.bin");
 MODULE_FIRMWARE("radeon/SUMO2_pfp.bin");
 MODULE_FIRMWARE("radeon/SUMO2_me.bin");
-#endif /* FREEBSD_WIP */
+#endif
 
 int r600_debugfs_mc_info_init(struct radeon_device *rdev);
 
 /* r600,rv610,rv630,rv620,rv635,rv670 */
+int r600_mc_wait_for_idle(struct radeon_device *rdev);
 static void r600_gpu_init(struct radeon_device *rdev);
+void r600_fini(struct radeon_device *rdev);
 void r600_irq_disable(struct radeon_device *rdev);
 static void r600_pcie_gen2_enable(struct radeon_device *rdev);
 
@@ -1209,7 +1211,6 @@ static int r600_mc_init(struct radeon_device *rdev)
 int r600_vram_scratch_init(struct radeon_device *rdev)
 {
 	int r;
-	void *vram_scratch_ptr_ptr;
 
 	if (rdev->vram_scratch.robj == NULL) {
 		r = radeon_bo_create(rdev, RADEON_GPU_PAGE_SIZE,
@@ -1232,9 +1233,8 @@ int r600_vram_scratch_init(struct radeon_device *rdev)
 		radeon_bo_unref(&rdev->vram_scratch.robj);
 		return r;
 	}
-	vram_scratch_ptr_ptr = &rdev->vram_scratch.ptr;
 	r = radeon_bo_kmap(rdev->vram_scratch.robj,
-				vram_scratch_ptr_ptr);
+				(void **)&rdev->vram_scratch.ptr);
 	if (r)
 		radeon_bo_unpin(rdev->vram_scratch.robj);
 	radeon_bo_unreserve(rdev->vram_scratch.robj);
@@ -2480,7 +2480,7 @@ int r600_ring_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		tmp = RREG32(scratch);
 		if (tmp == 0xDEADBEEF)
 			break;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ring test on %d succeeded in %d usecs\n", ring->idx, i);
@@ -2534,7 +2534,7 @@ int r600_dma_ring_test(struct radeon_device *rdev,
 		tmp = *ptr;
 		if (tmp == 0xDEADBEEF)
 			break;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 
 	if (i < rdev->usec_timeout) {
@@ -3114,7 +3114,7 @@ int r600_ib_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		tmp = RREG32(scratch);
 		if (tmp == 0xDEADBEEF)
 			break;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ib test on ring %d succeeded in %u usecs\n", ib.fence->ring, i);
@@ -3183,7 +3183,7 @@ int r600_dma_ib_test(struct radeon_device *rdev, struct radeon_ring *ring)
 		tmp = *ptr;
 		if (tmp == 0xDEADBEEF)
 			break;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	if (i < rdev->usec_timeout) {
 		DRM_INFO("ib test on ring %d succeeded in %u usecs\n", ib.fence->ring, i);
@@ -3255,7 +3255,6 @@ void r600_ih_ring_init(struct radeon_device *rdev, unsigned ring_size)
 int r600_ih_ring_alloc(struct radeon_device *rdev)
 {
 	int r;
-	void *ring_ptr;
 
 	/* Allocate ring buffer */
 	if (rdev->ih.ring_obj == NULL) {
@@ -3281,9 +3280,8 @@ int r600_ih_ring_alloc(struct radeon_device *rdev)
 			DRM_ERROR("radeon: failed to pin ih ring buffer (%d).\n", r);
 			return r;
 		}
-		ring_ptr = &rdev->ih.ring;
 		r = radeon_bo_kmap(rdev->ih.ring_obj,
-				   ring_ptr);
+				   (void **)&rdev->ih.ring);
 		if (r)
 			radeon_bo_unpin(rdev->ih.ring_obj);
 		radeon_bo_unreserve(rdev->ih.ring_obj);

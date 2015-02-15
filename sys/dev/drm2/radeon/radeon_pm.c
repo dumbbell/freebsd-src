@@ -176,7 +176,7 @@ static void radeon_set_power_state(struct radeon_device *rdev)
 
 		/* starting with BTC, there is one state that is used for both
 		 * MH and SH.  Difference is that we always use the high clock index for
-		 * mclk.
+		 * mclk and vddci.
 		 */
 		if ((rdev->pm.pm_method == PM_METHOD_PROFILE) &&
 		    (rdev->family >= CHIP_BARTS) &&
@@ -248,7 +248,7 @@ static void radeon_pm_set_clocks(struct radeon_device *rdev)
 	    (rdev->pm.requested_power_state_index == rdev->pm.current_power_state_index))
 		return;
 
-	//DRM_LOCK(rdev->ddev); XXX Recursion, already locked in drm_attach/drm_load -- dumbbell@
+	DRM_LOCK(rdev->ddev);
 	sx_xlock(&rdev->pm.mclk_lock);
 	sx_xlock(&rdev->ring_lock);
 
@@ -263,7 +263,7 @@ static void radeon_pm_set_clocks(struct radeon_device *rdev)
 			/* needs a GPU reset dont reset here */
 			sx_xunlock(&rdev->ring_lock);
 			sx_xunlock(&rdev->pm.mclk_lock);
-			//DRM_UNLOCK(rdev->ddev); XXX Recursion, already locked in drm_attach/drm_load -- dumbbell@
+			DRM_UNLOCK(rdev->ddev);
 			return;
 		}
 	}
@@ -299,7 +299,7 @@ static void radeon_pm_set_clocks(struct radeon_device *rdev)
 
 	sx_xunlock(&rdev->ring_lock);
 	sx_xunlock(&rdev->pm.mclk_lock);
-	//DRM_UNLOCK(rdev->ddev); XXX Recursion, already locked in drm_attach/drm_load -- dumbbell@
+	DRM_UNLOCK(rdev->ddev);
 }
 
 static void radeon_pm_print_states(struct radeon_device *rdev)
@@ -889,7 +889,11 @@ static int radeon_debugfs_pm_info(struct seq_file *m, void *data)
 	struct radeon_device *rdev = dev->dev_private;
 
 	seq_printf(m, "default engine clock: %u0 kHz\n", rdev->pm.default_sclk);
-	seq_printf(m, "current engine clock: %u0 kHz\n", radeon_get_engine_clock(rdev));
+	/* radeon_get_engine_clock is not reliable on APUs so just print the current clock */
+	if ((rdev->family >= CHIP_PALM) && (rdev->flags & RADEON_IS_IGP))
+		seq_printf(m, "current engine clock: %u0 kHz\n", rdev->pm.current_sclk);
+	else
+		seq_printf(m, "current engine clock: %u0 kHz\n", radeon_get_engine_clock(rdev));
 	seq_printf(m, "default memory clock: %u0 kHz\n", rdev->pm.default_mclk);
 	if (rdev->asic->pm.get_memory_clock)
 		seq_printf(m, "current memory clock: %u0 kHz\n", radeon_get_memory_clock(rdev));

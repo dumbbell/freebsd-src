@@ -78,7 +78,7 @@ int radeon_gart_table_ram_alloc(struct radeon_device *rdev)
 	}
 	rdev->gart.dmah = dmah;
 	rdev->gart.ptr = dmah->vaddr;
-#if defined(__i386) || defined(__amd64)
+#ifdef CONFIG_X86
 	if (rdev->family == CHIP_RS400 || rdev->family == CHIP_RS480 ||
 	    rdev->family == CHIP_RS690 || rdev->family == CHIP_RS740) {
 		pmap_change_attr((vm_offset_t)rdev->gart.ptr,
@@ -104,7 +104,7 @@ void radeon_gart_table_ram_free(struct radeon_device *rdev)
 	if (rdev->gart.ptr == NULL) {
 		return;
 	}
-#if defined(__i386) || defined(__amd64)
+#ifdef CONFIG_X86
 	if (rdev->family == CHIP_RS400 || rdev->family == CHIP_RS480 ||
 	    rdev->family == CHIP_RS690 || rdev->family == CHIP_RS740) {
 		pmap_change_attr((vm_offset_t)rdev->gart.ptr,
@@ -361,14 +361,14 @@ int radeon_gart_init(struct radeon_device *rdev)
 		 rdev->gart.num_cpu_pages, rdev->gart.num_gpu_pages);
 	/* Allocate pages table */
 	rdev->gart.pages = malloc(sizeof(void *) * rdev->gart.num_cpu_pages,
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (rdev->gart.pages == NULL) {
 		radeon_gart_fini(rdev);
 		return -ENOMEM;
 	}
 	rdev->gart.pages_addr = malloc(sizeof(dma_addr_t) *
 					rdev->gart.num_cpu_pages,
-					DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+					DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (rdev->gart.pages_addr == NULL) {
 		radeon_gart_fini(rdev);
 		return -ENOMEM;
@@ -648,7 +648,7 @@ retry:
 	memset(pd_addr, 0, pd_size);
 
 	pts_size = radeon_vm_num_pdes(rdev) * sizeof(struct radeon_sa_bo *);
-	vm->page_tables = malloc(pts_size, DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	vm->page_tables = malloc(pts_size, DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 
 	if (vm->page_tables == NULL) {
 		DRM_ERROR("Cannot allocate memory for page table array\n");
@@ -797,7 +797,7 @@ struct radeon_bo_va *radeon_vm_bo_add(struct radeon_device *rdev,
 	struct radeon_bo_va *bo_va;
 
 	bo_va = malloc(sizeof(struct radeon_bo_va),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (bo_va == NULL) {
 		return NULL;
 	}

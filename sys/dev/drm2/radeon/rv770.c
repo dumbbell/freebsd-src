@@ -41,6 +41,7 @@ __FBSDID("$FreeBSD$");
 #define R700_PM4_UCODE_SIZE 1360
 
 static void rv770_gpu_init(struct radeon_device *rdev);
+void rv770_fini(struct radeon_device *rdev);
 static void rv770_pcie_gen2_enable(struct radeon_device *rdev);
 
 u32 rv770_page_flip(struct radeon_device *rdev, int crtc_id, u64 crtc_base)

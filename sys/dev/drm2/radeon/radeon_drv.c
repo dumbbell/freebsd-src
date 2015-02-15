@@ -214,6 +214,10 @@ static struct drm_driver kms_driver = {
 	.disable_vblank = radeon_disable_vblank_kms,
 	.get_vblank_timestamp = radeon_get_vblank_timestamp_kms,
 	.get_scanout_position = radeon_get_crtc_scanoutpos,
+#if defined(CONFIG_DEBUG_FS)
+	.debugfs_init = radeon_debugfs_init,
+	.debugfs_cleanup = radeon_debugfs_cleanup,
+#endif
 	.irq_preinstall = radeon_driver_irq_preinstall_kms,
 	.irq_postinstall = radeon_driver_irq_postinstall_kms,
 	.irq_uninstall = radeon_driver_irq_uninstall_kms,

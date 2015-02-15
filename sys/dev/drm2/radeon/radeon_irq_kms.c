@@ -404,6 +404,9 @@ void radeon_irq_kms_enable_afmt(struct radeon_device *rdev, int block)
 {
 	unsigned long irqflags;
 
+	if (!rdev->ddev->irq_enabled)
+		return;
+
 	DRM_SPINLOCK_IRQSAVE(&rdev->irq.lock, irqflags);
 	rdev->irq.afmt[block] = true;
 	radeon_irq_set(rdev);
@@ -422,6 +425,9 @@ void radeon_irq_kms_enable_afmt(struct radeon_device *rdev, int block)
 void radeon_irq_kms_disable_afmt(struct radeon_device *rdev, int block)
 {
 	unsigned long irqflags;
+
+	if (!rdev->ddev->irq_enabled)
+		return;
 
 	DRM_SPINLOCK_IRQSAVE(&rdev->irq.lock, irqflags);
 	rdev->irq.afmt[block] = false;
@@ -442,6 +448,9 @@ void radeon_irq_kms_enable_hpd(struct radeon_device *rdev, unsigned hpd_mask)
 	unsigned long irqflags;
 	int i;
 
+	if (!rdev->ddev->irq_enabled)
+		return;
+
 	DRM_SPINLOCK_IRQSAVE(&rdev->irq.lock, irqflags);
 	for (i = 0; i < RADEON_MAX_HPD_PINS; ++i)
 		rdev->irq.hpd[i] |= !!(hpd_mask & (1 << i));
@@ -461,6 +470,9 @@ void radeon_irq_kms_disable_hpd(struct radeon_device *rdev, unsigned hpd_mask)
 {
 	unsigned long irqflags;
 	int i;
+
+	if (!rdev->ddev->irq_enabled)
+		return;
 
 	DRM_SPINLOCK_IRQSAVE(&rdev->irq.lock, irqflags);
 	for (i = 0; i < RADEON_MAX_HPD_PINS; ++i)

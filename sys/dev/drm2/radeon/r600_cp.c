@@ -44,6 +44,35 @@ __FBSDID("$FreeBSD$");
 #define R700_PFP_UCODE_SIZE 848
 #define R700_PM4_UCODE_SIZE 1360
 
+#ifdef __linux__
+/* Firmware Names */
+MODULE_FIRMWARE("radeon/R600_pfp.bin");
+MODULE_FIRMWARE("radeon/R600_me.bin");
+MODULE_FIRMWARE("radeon/RV610_pfp.bin");
+MODULE_FIRMWARE("radeon/RV610_me.bin");
+MODULE_FIRMWARE("radeon/RV630_pfp.bin");
+MODULE_FIRMWARE("radeon/RV630_me.bin");
+MODULE_FIRMWARE("radeon/RV620_pfp.bin");
+MODULE_FIRMWARE("radeon/RV620_me.bin");
+MODULE_FIRMWARE("radeon/RV635_pfp.bin");
+MODULE_FIRMWARE("radeon/RV635_me.bin");
+MODULE_FIRMWARE("radeon/RV670_pfp.bin");
+MODULE_FIRMWARE("radeon/RV670_me.bin");
+MODULE_FIRMWARE("radeon/RS780_pfp.bin");
+MODULE_FIRMWARE("radeon/RS780_me.bin");
+MODULE_FIRMWARE("radeon/RV770_pfp.bin");
+MODULE_FIRMWARE("radeon/RV770_me.bin");
+MODULE_FIRMWARE("radeon/RV730_pfp.bin");
+MODULE_FIRMWARE("radeon/RV730_me.bin");
+MODULE_FIRMWARE("radeon/RV710_pfp.bin");
+MODULE_FIRMWARE("radeon/RV710_me.bin");
+#endif
+
+
+int r600_cs_legacy(struct drm_device *dev, void *data, struct drm_file *filp,
+			unsigned family, u32 *ib, int *l);
+void r600_cs_legacy_init(void);
+
 # define ATI_PCIGART_PAGE_SIZE		4096	/**< PCI GART page size */
 # define ATI_PCIGART_PAGE_MASK		(~(ATI_PCIGART_PAGE_SIZE-1))
 
@@ -92,7 +121,7 @@ static int r600_do_wait_for_fifo(drm_radeon_private_t *dev_priv, int entries)
 				 & R600_CMDFIFO_AVAIL_MASK);
 		if (slots >= entries)
 			return 0;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	DRM_INFO("wait for fifo failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(R600_GRBM_STATUS),
@@ -116,7 +145,7 @@ static int r600_do_wait_for_idle(drm_radeon_private_t *dev_priv)
 	for (i = 0; i < dev_priv->usec_timeout; i++) {
 		if (!(RADEON_READ(R600_GRBM_STATUS) & R600_GUI_ACTIVE))
 			return 0;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	DRM_INFO("wait idle failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(R600_GRBM_STATUS),
@@ -225,7 +254,7 @@ static void r600_vm_flush_gart_range(struct drm_device *dev)
 	do {
 		resp = RADEON_READ(R600_VM_CONTEXT0_REQUEST_RESPONSE);
 		countdown--;
-		udelay(1);
+		DRM_UDELAY(1);
 	} while (((resp & 0xf0) == 0) && countdown);
 }
 
@@ -526,7 +555,7 @@ static void r600_test_writeback(drm_radeon_private_t *dev_priv)
 		val = radeon_read_ring_rptr(dev_priv, R600_SCRATCHOFF(1));
 		if (val == 0xdeadbeef)
 			break;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 
 	if (tmp < dev_priv->usec_timeout) {
@@ -566,7 +595,7 @@ int r600_do_engine_reset(struct drm_device *dev)
 
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0x7fff);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
-	udelay(50);
+	DRM_UDELAY(50);
 	RADEON_WRITE(R600_GRBM_SOFT_RESET, 0);
 	RADEON_READ(R600_GRBM_SOFT_RESET);
 

@@ -53,6 +53,16 @@ __FBSDID("$FreeBSD$");
 #define FIRMWARE_RS600		"radeonkmsfw_RS600_cp"
 #define FIRMWARE_R520		"radeonkmsfw_R520_cp"
 
+#ifdef __linux__
+MODULE_FIRMWARE(FIRMWARE_R100);
+MODULE_FIRMWARE(FIRMWARE_R200);
+MODULE_FIRMWARE(FIRMWARE_R300);
+MODULE_FIRMWARE(FIRMWARE_R420);
+MODULE_FIRMWARE(FIRMWARE_RS690);
+MODULE_FIRMWARE(FIRMWARE_RS600);
+MODULE_FIRMWARE(FIRMWARE_R520);
+#endif
+
 static int radeon_do_cleanup_cp(struct drm_device * dev);
 static void radeon_do_cp_start(drm_radeon_private_t * dev_priv);
 
@@ -334,7 +344,7 @@ static int radeon_do_pixcache_flush(drm_radeon_private_t * dev_priv)
 			      & RADEON_RB3D_DC_BUSY)) {
 				return 0;
 			}
-			udelay(1);
+			DRM_UDELAY(1);
 		}
 	} else {
 		/* don't flush or purge cache here or lockup */
@@ -359,7 +369,7 @@ static int radeon_do_wait_for_fifo(drm_radeon_private_t * dev_priv, int entries)
 			     & RADEON_RBBM_FIFOCNT_MASK);
 		if (slots >= entries)
 			return 0;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	DRM_DEBUG("wait for fifo failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(RADEON_RBBM_STATUS),
@@ -388,7 +398,7 @@ static int radeon_do_wait_for_idle(drm_radeon_private_t * dev_priv)
 			radeon_do_pixcache_flush(dev_priv);
 			return 0;
 		}
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 	DRM_DEBUG("wait idle failed status : 0x%08X 0x%08X\n",
 		 RADEON_READ(RADEON_RBBM_STATUS),
@@ -872,7 +882,7 @@ static void radeon_test_writeback(drm_radeon_private_t * dev_priv)
 		val = radeon_read_ring_rptr(dev_priv, RADEON_SCRATCHOFF(1));
 		if (val == 0xdeadbeef)
 			break;
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 
 	if (tmp < dev_priv->usec_timeout) {
@@ -947,7 +957,7 @@ static void radeon_set_igpgart(drm_radeon_private_t * dev_priv, int on)
 			temp = IGP_READ_MCIND(dev_priv, RS480_GART_CACHE_CNTRL);
 			if ((temp & RS480_GART_CACHE_INVALIDATE) == 0)
 				break;
-			udelay(1);
+			DRM_UDELAY(1);
 		} while (1);
 
 		IGP_WRITE_MCIND(RS480_GART_CACHE_CNTRL,
@@ -957,7 +967,7 @@ static void radeon_set_igpgart(drm_radeon_private_t * dev_priv, int on)
 			temp = IGP_READ_MCIND(dev_priv, RS480_GART_CACHE_CNTRL);
 			if ((temp & RS480_GART_CACHE_INVALIDATE) == 0)
 				break;
-			udelay(1);
+			DRM_UDELAY(1);
 		} while (1);
 
 		IGP_WRITE_MCIND(RS480_GART_CACHE_CNTRL, 0);
@@ -1655,7 +1665,6 @@ int radeon_cp_init(struct drm_device *dev, void *data, struct drm_file *file_pri
 		return radeon_do_init_cp(dev, init, file_priv);
 	case RADEON_INIT_R600_CP:
 		return r600_do_init_cp(dev, init, file_priv);
-		break;
 	case RADEON_CLEANUP_CP:
 		if ((dev_priv->flags & RADEON_FAMILY_MASK) >= CHIP_R600)
 			return r600_do_cleanup_cp(dev);
@@ -1943,7 +1952,7 @@ struct drm_buf *radeon_freelist_get(struct drm_device * dev)
 		}
 
 		if (t) {
-			udelay(1);
+			DRM_UDELAY(1);
 			dev_priv->stats.freelist_loops++;
 		}
 	}
@@ -1990,7 +1999,7 @@ int radeon_wait_ring(drm_radeon_private_t * dev_priv, int n)
 			i = 0;
 		last_head = head;
 
-		udelay(1);
+		DRM_UDELAY(1);
 	}
 
 	/* FIXME: This return value is ignored in the BEGIN_RING macro! */
@@ -2066,7 +2075,7 @@ int radeon_driver_load(struct drm_device *dev, unsigned long flags)
 	int ret = 0;
 
 	dev_priv = malloc(sizeof(drm_radeon_private_t),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (dev_priv == NULL)
 		return -ENOMEM;
 
@@ -2126,7 +2135,7 @@ int radeon_master_create(struct drm_device *dev, struct drm_master *master)
 	int ret;
 
 	master_priv = malloc(sizeof(*master_priv),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (!master_priv)
 		return -ENOMEM;
 
@@ -2160,11 +2169,7 @@ void radeon_master_destroy(struct drm_device *dev, struct drm_master *master)
 
 	master_priv->sarea_priv = NULL;
 	if (master_priv->sarea)
-#ifdef __linux__
 		drm_rmmap_locked(dev, master_priv->sarea);
-#else
-		drm_rmmap(dev, master_priv->sarea);
-#endif
 
 	free(master_priv, DRM_MEM_DRIVER);
 

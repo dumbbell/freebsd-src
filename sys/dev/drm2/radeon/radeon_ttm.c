@@ -567,7 +567,7 @@ static struct ttm_tt *radeon_ttm_tt_create(struct ttm_bo_device *bdev,
 #endif
 
 	gtt = malloc(sizeof(struct radeon_ttm_tt),
-	    DRM_MEM_DRIVER, M_WAITOK | M_ZERO);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (gtt == NULL) {
 		return NULL;
 	}
@@ -594,10 +594,6 @@ static int radeon_ttm_tt_populate(struct ttm_tt *ttm)
 		return 0;
 
 #ifdef FREEBSD_WIP
-	/*
-	 * Maybe unneeded on FreeBSD.
-	 *   -- dumbbell@
-	 */
 	if (slave && ttm->sg) {
 		drm_prime_sg_to_page_addr_arrays(ttm->sg, ttm->pages,
 						 gtt->ttm.dma_address, ttm->num_pages);
@@ -704,7 +700,7 @@ static struct ttm_bo_driver radeon_bo_driver = {
 
 int radeon_ttm_init(struct radeon_device *rdev)
 {
-	int r, r2;
+	int r;
 
 	r = radeon_ttm_global_init(rdev);
 	if (r) {
@@ -750,12 +746,6 @@ int radeon_ttm_init(struct radeon_device *rdev)
 				rdev->mc.gtt_size >> PAGE_SHIFT);
 	if (r) {
 		DRM_ERROR("Failed initializing GTT heap.\n");
-		r2 = radeon_bo_reserve(rdev->stollen_vga_memory, false);
-		if (likely(r2 == 0)) {
-			radeon_bo_unpin(rdev->stollen_vga_memory);
-			radeon_bo_unreserve(rdev->stollen_vga_memory);
-		}
-		radeon_bo_unref(&rdev->stollen_vga_memory);
 		return r;
 	}
 	DRM_INFO("radeon: %uM of GTT memory ready.\n",
@@ -764,12 +754,6 @@ int radeon_ttm_init(struct radeon_device *rdev)
 	r = radeon_ttm_debugfs_init(rdev);
 	if (r) {
 		DRM_ERROR("Failed to init debugfs\n");
-		r2 = radeon_bo_reserve(rdev->stollen_vga_memory, false);
-		if (likely(r2 == 0)) {
-			radeon_bo_unpin(rdev->stollen_vga_memory);
-			radeon_bo_unreserve(rdev->stollen_vga_memory);
-		}
-		radeon_bo_unref(&rdev->stollen_vga_memory);
 		return r;
 	}
 	return 0;

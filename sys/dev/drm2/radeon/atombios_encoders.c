@@ -197,7 +197,7 @@ void radeon_atom_backlight_init(struct radeon_encoder *radeon_encoder,
 	if (!(rdev->mode_info.firmware_flags & ATOM_BIOS_INFO_BL_CONTROLLED_BY_GPU))
 		return;
 
-	pdata = malloc(sizeof(struct radeon_backlight_privdata), DRM_MEM_DRIVER, M_WAITOK);
+	pdata = malloc(sizeof(struct radeon_backlight_privdata), DRM_MEM_DRIVER, M_NOWAIT);
 	if (!pdata) {
 		DRM_ERROR("Memory allocation failed\n");
 		goto error;
@@ -278,6 +278,10 @@ static void radeon_atom_backlight_exit(struct radeon_encoder *encoder)
 }
 
 #endif
+
+/* evil but including atombios.h is much worse */
+bool radeon_atom_get_tv_timings(struct radeon_device *rdev, int index,
+				struct drm_display_mode *mode);
 
 
 static inline bool radeon_encoder_is_digital(struct drm_encoder *encoder)
@@ -2506,7 +2510,7 @@ radeon_atombios_set_dac_info(struct radeon_encoder *radeon_encoder)
 	struct drm_device *dev = radeon_encoder->base.dev;
 	struct radeon_device *rdev = dev->dev_private;
 	struct radeon_encoder_atom_dac *dac = malloc(sizeof(struct radeon_encoder_atom_dac),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 
 	if (!dac)
 		return NULL;
@@ -2520,7 +2524,7 @@ radeon_atombios_set_dig_info(struct radeon_encoder *radeon_encoder)
 {
 	int encoder_enum = (radeon_encoder->encoder_enum & ENUM_ID_MASK) >> ENUM_ID_SHIFT;
 	struct radeon_encoder_atom_dig *dig = malloc(sizeof(struct radeon_encoder_atom_dig),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 
 	if (!dig)
 		return NULL;
@@ -2559,7 +2563,7 @@ radeon_add_atom_encoder(struct drm_device *dev,
 
 	/* add a new one */
 	radeon_encoder = malloc(sizeof(struct radeon_encoder),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (!radeon_encoder)
 		return;
 

@@ -219,6 +219,7 @@ static int radeonfb_create(struct radeon_fbdev *rfbdev,
 
 	rbo = gem_to_radeon_bo(gobj);
 
+	/* okay we have an object now allocate the framebuffer */
 	info = framebuffer_alloc();
 	if (info == NULL) {
 		ret = -ENOMEM;
@@ -327,7 +328,7 @@ int radeon_fbdev_init(struct radeon_device *rdev)
 		bpp_sel = 8;
 
 	rfbdev = malloc(sizeof(struct radeon_fbdev),
-	    DRM_MEM_DRIVER, M_WAITOK | M_ZERO);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (!rfbdev)
 		return -ENOMEM;
 

@@ -43,6 +43,7 @@ static int r600_cs_packet_next_reloc_nomm(struct radeon_cs_parser *p,
 					struct radeon_cs_reloc **cs_reloc);
 typedef int (*next_reloc_t)(struct radeon_cs_parser*, struct radeon_cs_reloc**);
 static next_reloc_t r600_cs_packet_next_reloc = &r600_cs_packet_next_reloc_mm;
+extern void r600_cs_legacy_get_tiling_conf(struct drm_device *dev, u32 *npipes, u32 *nbanks, u32 *group_size);
 
 
 struct r600_cs_track {
@@ -2400,7 +2401,7 @@ int r600_cs_parse(struct radeon_cs_parser *p)
 	if (p->track == NULL) {
 		/* initialize tracker, we are in kms */
 		track = malloc(sizeof(*track),
-		    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+		    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 		if (track == NULL)
 			return -ENOMEM;
 		r600_cs_track_init(track);
@@ -2461,7 +2462,7 @@ static int r600_cs_parser_relocs_legacy(struct radeon_cs_parser *p)
 		return 0;
 	}
 	p->relocs = malloc(sizeof(struct radeon_cs_reloc),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (p->relocs == NULL) {
 		return -ENOMEM;
 	}
@@ -2502,7 +2503,7 @@ int r600_cs_legacy(struct drm_device *dev, void *data, struct drm_file *filp,
 	int r;
 
 	/* initialize tracker */
-	track = malloc(sizeof(*track), DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	track = malloc(sizeof(*track), DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (track == NULL)
 		return -ENOMEM;
 	r600_cs_track_init(track);

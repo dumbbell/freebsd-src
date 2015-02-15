@@ -35,6 +35,15 @@ __FBSDID("$FreeBSD$");
 #include "radeon.h"
 #include "atom.h"
 
+extern void
+radeon_combios_connected_scratch_regs(struct drm_connector *connector,
+				      struct drm_encoder *encoder,
+				      bool connected);
+extern void
+radeon_atombios_connected_scratch_regs(struct drm_connector *connector,
+				       struct drm_encoder *encoder,
+				       bool connected);
+
 void radeon_connector_hotplug(struct drm_connector *connector)
 {
 	struct drm_device *dev = connector->dev;
@@ -1555,7 +1564,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 	}
 
 	radeon_connector = malloc(sizeof(struct radeon_connector),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (!radeon_connector)
 		return;
 
@@ -1577,7 +1586,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 	if (is_dp_bridge) {
 		radeon_dig_connector = malloc(
 		    sizeof(struct radeon_connector_atom_dig),
-		    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+		    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 		if (!radeon_dig_connector)
 			goto failed;
 		radeon_dig_connector->igp_lane_info = igp_lane_info;
@@ -1685,7 +1694,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 		case DRM_MODE_CONNECTOR_DVID:
 			radeon_dig_connector = malloc(
 			    sizeof(struct radeon_connector_atom_dig),
-			    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+			    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 			if (!radeon_dig_connector)
 				goto failed;
 			radeon_dig_connector->igp_lane_info = igp_lane_info;
@@ -1728,7 +1737,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 		case DRM_MODE_CONNECTOR_HDMIB:
 			radeon_dig_connector = malloc(
 			    sizeof(struct radeon_connector_atom_dig),
-			    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+			    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 			if (!radeon_dig_connector)
 				goto failed;
 			radeon_dig_connector->igp_lane_info = igp_lane_info;
@@ -1764,7 +1773,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 		case DRM_MODE_CONNECTOR_DisplayPort:
 			radeon_dig_connector = malloc(
 			    sizeof(struct radeon_connector_atom_dig),
-			    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+			    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 			if (!radeon_dig_connector)
 				goto failed;
 			radeon_dig_connector->igp_lane_info = igp_lane_info;
@@ -1802,7 +1811,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 		case DRM_MODE_CONNECTOR_eDP:
 			radeon_dig_connector = malloc(
 			    sizeof(struct radeon_connector_atom_dig),
-			    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+			    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 			if (!radeon_dig_connector)
 				goto failed;
 			radeon_dig_connector->igp_lane_info = igp_lane_info;
@@ -1845,7 +1854,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 		case DRM_MODE_CONNECTOR_LVDS:
 			radeon_dig_connector = malloc(
 			    sizeof(struct radeon_connector_atom_dig),
-			    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+			    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 			if (!radeon_dig_connector)
 				goto failed;
 			radeon_dig_connector->igp_lane_info = igp_lane_info;
@@ -1918,7 +1927,7 @@ radeon_add_legacy_connector(struct drm_device *dev,
 	}
 
 	radeon_connector = malloc(sizeof(struct radeon_connector),
-	    DRM_MEM_DRIVER, M_ZERO | M_WAITOK);
+	    DRM_MEM_DRIVER, M_NOWAIT | M_ZERO);
 	if (!radeon_connector)
 		return;
 
