@@ -162,7 +162,7 @@ i915_gem_wait_for_error(struct drm_device *dev)
 		ret = -msleep(&dev_priv->error_completion,
 		    &dev_priv->error_completion_lock, PCATCH, "915wco", 0);
 		if (ret == -ERESTART)
-			ret = -ERESARTSYS;
+			ret = -ERESTARTSYS;
 		if (ret != 0) {
 			mtx_unlock(&dev_priv->error_completion_lock);
 			return (ret);
@@ -3335,7 +3335,7 @@ static int __wait_seqno(struct intel_ring_buffer *ring, u32 seqno,
 	    ret == 0) {
 		ret = -msleep(ring, &dev_priv->irq_lock, flags, "915gwr", 0);
 		if (ret == -ERESTART)
-			ret = -ERESARTSYS;
+			ret = -ERESTARTSYS;
 	}
 	ring->irq_put(ring);
 	mtx_unlock(&dev_priv->irq_lock);

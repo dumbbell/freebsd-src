@@ -95,7 +95,7 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		ret = -sx_sleep(&master->lock.lock_queue, &drm_global_mutex,
 		    PCATCH, "drmlk2", 0);
 		if (ret == -ERESTART)
-			ret = -ERESARTSYS;
+			ret = -ERESTARTSYS;
 		if (ret != 0)
 			break;
 	}

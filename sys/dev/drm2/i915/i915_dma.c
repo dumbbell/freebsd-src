@@ -817,7 +817,7 @@ static int i915_wait_irq(struct drm_device * dev, int irq_nr)
 			ret = -msleep(ring, &dev_priv->irq_lock, PCATCH,
 			    "915wtq", 3 * hz);
 			if (ret == -ERESTART)
-				ret = -ERESARTSYS;
+				ret = -ERESTARTSYS;
 		}
 		ring->irq_put(ring);
 		mtx_unlock(&dev_priv->irq_lock);

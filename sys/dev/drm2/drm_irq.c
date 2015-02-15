@@ -1257,7 +1257,7 @@ int drm_wait_vblank(struct drm_device *dev, void *data,
 		ret = -msleep(&dev->_vblank_count[crtc], &dev->vblank_time_lock,
 		    PCATCH, "drmvbl", 3 * hz);
 		if (ret == -ERESTART)
-			ret = -ERESARTSYS;
+			ret = -ERESTARTSYS;
 		if (ret != 0)
 			break;
 	}
