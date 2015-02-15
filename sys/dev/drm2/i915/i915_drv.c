@@ -300,7 +300,7 @@ static int i915_drm_freeze(struct drm_device *dev)
 
 	/* If KMS is active, we do the leavevt stuff here */
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
-		error = -i915_gem_idle(dev);
+		error = i915_gem_idle(dev);
 		if (error) {
 			device_printf(dev->dev,
 			    "GEM idle failed, resume might fail\n");

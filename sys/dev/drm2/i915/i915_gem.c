@@ -627,7 +627,7 @@ i915_gem_object_pin(struct drm_i915_gem_object *obj, uint32_t alignment,
 void
 i915_gem_object_unpin(struct drm_i915_gem_object *obj)
 {
-	
+
 	KASSERT(obj->pin_count != 0, ("zero pin count"));
 	KASSERT(obj->gtt_space != NULL, ("No gtt mapping"));
 
@@ -949,7 +949,7 @@ i915_gem_create(struct drm_file *file, struct drm_device *dev, uint64_t size,
 		drm_gem_object_release(&obj->base);
 		i915_gem_info_remove_obj(dev->dev_private, obj->base.size);
 		free(obj, DRM_I915_GEM);
-		return (-ret);
+		return (ret);
 	}
 
 	/* drop reference from allocate - handle holds it now */
@@ -1023,7 +1023,7 @@ fault_in_multipages_readable(const char __user *uaddr, int size)
 		return ret;
 
 	while (uaddr <= end) {
-		ret = copyin(uaddr, &c, 1);
+		ret = -copyin(uaddr, &c, 1);
 		if (ret != 0)
 			return -EFAULT;
 		uaddr += PAGE_SIZE;
@@ -1032,10 +1032,10 @@ fault_in_multipages_readable(const char __user *uaddr, int size)
 	/* Check whether the range spilled into the next page. */
 	if (((unsigned long)uaddr & ~PAGE_MASK) ==
 			((unsigned long)end & ~PAGE_MASK)) {
-		ret = copyin(end, &c, 1);
+		ret = -copyin(end, &c, 1);
 	}
 
-	return -ret;
+	return ret;
 }
 
 static inline int
@@ -1874,7 +1874,7 @@ i915_gem_mmap_ioctl(struct drm_device *dev, void *data,
 	PROC_LOCK(p);
 	if (map->size + size > lim_cur(p, RLIMIT_VMEM)) {
 		PROC_UNLOCK(p);
-		error = ENOMEM;
+		error = -ENOMEM;
 		goto out;
 	}
 	PROC_UNLOCK(p);
@@ -4200,7 +4200,7 @@ i915_gem_attach_phys_object(struct drm_device *dev,
 	}
 	VM_OBJECT_WUNLOCK(obj->base.vm_obj);
 
-	return (0);
+	return (ret);
 }
 
 static int
