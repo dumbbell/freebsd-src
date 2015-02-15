@@ -141,7 +141,6 @@ reserve:
 			break;
 		case -EBUSY:
 		case -ERESTARTSYS:
-		case -EINTR:
 			kern_yield(0);
 			goto reserve;
 		default:
