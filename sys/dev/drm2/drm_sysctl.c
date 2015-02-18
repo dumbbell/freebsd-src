@@ -263,9 +263,9 @@ static int drm_vm_info DRM_SYSCTL_HANDLER_ARGS
 			yesno = "yes";
 
 		DRM_SYSCTL_PRINT(
-		    "%4d 0x%016lx 0x%08lx %4.4s  0x%02x 0x%016lx %s\n",
-		    i, map->offset, map->size, type, map->flags,
-		    (unsigned long)map->handle, yesno);
+		    "%4d 0x%016llx 0x%08lx %4.4s  0x%02x 0x%016lx %s\n",
+		    i, (unsigned long long)map->offset, map->size, type,
+		    map->flags, (unsigned long)map->handle, yesno);
 	}
 	SYSCTL_OUT(req, "", 1);
 
