@@ -114,7 +114,6 @@ SRCS	+=								\
 
 .include <bsd.kmod.mk>
 
-CFLAGS.gcc+=			-fms-extensions
 CFLAGS+=			-I${.CURDIR}/../../../dev/drm2/radeon
 
 CWARNFLAGS.radeon_cp.c=		-Wno-unused-value
