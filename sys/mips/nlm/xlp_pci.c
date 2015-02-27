@@ -52,6 +52,9 @@ __FBSDID("$FreeBSD$");
 #include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <machine/bus.h>
 #include <machine/md_var.h>
 #include <machine/intr_machdep.h>
@@ -74,31 +77,6 @@ __FBSDID("$FreeBSD$");
 #define	EMUL_MEM_START	0x16000000UL
 #define	EMUL_MEM_END	0x18ffffffUL
 
-/* SoC device qurik handling */
-static int irt_irq_map[4 * 256];
-static int irq_irt_map[64];
-
-static void
-xlp_add_irq(int node, int irt, int irq)
-{
-	int nodeirt = node * 256 + irt;
-
-	irt_irq_map[nodeirt] = irq;
-	irq_irt_map[irq] = nodeirt;
-}
-
-int
-xlp_irq_to_irt(int irq)
-{
-	return irq_irt_map[irq];
-}
-
-int
-xlp_irt_to_irq(int nodeirt)
-{
-	return irt_irq_map[nodeirt];
-}
-
 /* Override PCI a bit for SoC devices */
 
 enum {
@@ -108,43 +86,12 @@ enum {
 	DEV_MMIO32	= 0x8,	/* byte access not allowed to mmio */
 };
 
-struct soc_dev_desc {
-	u_int	devid;		/* device ID */
-	int	irqbase;	/* start IRQ */
-	u_int	flags;		/* flags */
-	int	ndevs;		/* to keep track of number of devices */
-};
-
-struct soc_dev_desc xlp_dev_desc[] = {
-	{ PCI_DEVICE_ID_NLM_ICI,               0, INTERNAL_DEV },
-	{ PCI_DEVICE_ID_NLM_PIC,               0, INTERNAL_DEV },
-	{ PCI_DEVICE_ID_NLM_FMN,               0, INTERNAL_DEV },
-	{ PCI_DEVICE_ID_NLM_UART, PIC_UART_0_IRQ, MEM_RES_EMUL | DEV_MMIO32},
-	{ PCI_DEVICE_ID_NLM_I2C,               0, MEM_RES_EMUL | DEV_MMIO32 },
-	{ PCI_DEVICE_ID_NLM_NOR,               0, MEM_RES_EMUL },
-	{ PCI_DEVICE_ID_NLM_MMC,     PIC_MMC_IRQ, MEM_RES_EMUL },
-	{ PCI_DEVICE_ID_NLM_EHCI, PIC_EHCI_0_IRQ, 0 }
-};
-
 struct  xlp_devinfo {
 	struct pci_devinfo pcidev;
 	int	irq;
 	int	flags;
 	u_long	mem_res_start;
 };
-
-static __inline struct soc_dev_desc *
-xlp_find_soc_desc(int devid)
-{
-	struct soc_dev_desc *p;
-	int i, n;
-
-	n = sizeof(xlp_dev_desc) / sizeof(xlp_dev_desc[0]);
-	for (i = 0, p = xlp_dev_desc; i < n; i++, p++)
-		if (p->devid == devid)
-			return (p);
-	return (NULL);
-}
 
 static struct resource *
 xlp_pci_alloc_resource(device_t bus, device_t child, int type, int *rid,
@@ -219,9 +166,7 @@ xlp_add_soc_child(device_t pcib, device_t dev, int b, int s, int f)
 {
 	struct pci_devinfo *dinfo;
 	struct xlp_devinfo *xlp_dinfo;
-	struct soc_dev_desc *si;
-	uint64_t pcibase;
-	int domain, node, irt, irq, flags, devoffset, num;
+	int domain, node, irq, devoffset, flags;
 	uint16_t devid;
 
 	domain = pcib_get_domain(dev);
@@ -232,42 +177,46 @@ xlp_add_soc_child(device_t pcib, device_t dev, int b, int s, int f)
 
 	/* Find if there is a desc for the SoC device */
 	devid = PCIB_READ_CONFIG(pcib, b, s, f, PCIR_DEVICE, 2);
-	si = xlp_find_soc_desc(devid);
-
-	/* update flags and irq from desc if available */
-	irq = 0;
 	flags = 0;
-	if (si != NULL) {
-		if (si->irqbase != 0)
-			irq = si->irqbase + si->ndevs;
-		flags = si->flags;
-		si->ndevs++;
-	}
-
-	/* skip internal devices */
-	if ((flags & INTERNAL_DEV) != 0)
+	irq = 0;
+	switch (devid) {
+	case PCI_DEVICE_ID_NLM_UART:
+		irq = PIC_UART_0_IRQ + f;
+		flags = MEM_RES_EMUL | DEV_MMIO32;
+		break;
+	case PCI_DEVICE_ID_NLM_I2C:
+		flags = MEM_RES_EMUL | DEV_MMIO32;
+		break;
+	case PCI_DEVICE_ID_NLM_NOR:
+		flags = MEM_RES_EMUL;
+		break;
+	case PCI_DEVICE_ID_NLM_MMC:
+		irq = PIC_MMC_IRQ;
+		flags = MEM_RES_EMUL;
+		break;
+	case PCI_DEVICE_ID_NLM_EHCI:
+		irq = PIC_USB_0_IRQ + f;
+		break;
+	case PCI_DEVICE_ID_NLM_PCIE:
+		break;
+	case PCI_DEVICE_ID_NLM_ICI:
+	case PCI_DEVICE_ID_NLM_PIC:
+	case PCI_DEVICE_ID_NLM_FMN:
+	default:
 		return;
-
-	/* PCIe interfaces are special, bug in Ax */
-	if (devid == PCI_DEVICE_ID_NLM_PCIE) {
-		xlp_add_irq(node, xlp_pcie_link_irt(f), PIC_PCIE_0_IRQ + f);
-	} else {
-		/* Stash intline and pin in shadow reg for devices */
-		pcibase = nlm_pcicfg_base(devoffset);
-		irt = nlm_irtstart(pcibase);
-		num = nlm_irtnum(pcibase);
-		if (irq != 0 && num > 0) {
-			xlp_add_irq(node, irt, irq);
-			nlm_write_reg(pcibase, XLP_PCI_DEVSCRATCH_REG0,
-			    (1 << 8) | irq);
-		}
 	}
+
 	dinfo = pci_read_device(pcib, domain, b, s, f, sizeof(*xlp_dinfo));
 	if (dinfo == NULL)
 		return;
 	xlp_dinfo = (struct xlp_devinfo *)dinfo;
 	xlp_dinfo->irq = irq;
 	xlp_dinfo->flags = flags;
+
+	/* SoC device with interrupts need fixup (except PCIe controllers) */
+	if (irq != 0 && devid != PCI_DEVICE_ID_NLM_PCIE)
+		PCIB_WRITE_CONFIG(pcib, b, s, f, XLP_PCI_DEVSCRATCH_REG0 << 2,
+		    (1 << 8) | irq, 4);
 
 	/* memory resource from ecfg space, if MEM_RES_EMUL is set */
 	if ((flags & MEM_RES_EMUL) != 0)
@@ -335,7 +284,6 @@ DEFINE_CLASS_1(pci, xlp_pci_driver, xlp_pci_methods, sizeof(struct pci_softc),
     pci_driver);
 DRIVER_MODULE(xlp_pci, pcib, xlp_pci_driver, pci_devclass, 0, 0);
 
-static devclass_t pcib_devclass;
 static struct rman irq_rman, port_rman, mem_rman, emul_rman;
 
 static void
@@ -382,8 +330,11 @@ static int
 xlp_pcib_probe(device_t dev)
 {
 
-	device_set_desc(dev, "XLP PCI bus");
-	return (BUS_PROBE_NOWILDCARD);
+	if (ofw_bus_is_compatible(dev, "netlogic,xlp-pci")) {
+		device_set_desc(dev, "XLP PCI bus");
+		return (BUS_PROBE_DEFAULT);
+	}
+	return (ENXIO);
 }
 
 static int
@@ -535,13 +486,6 @@ xlp_pcib_attach(device_t dev)
 	return (0);
 }
 
-static void
-xlp_pcib_identify(driver_t * driver, device_t parent)
-{
-
-	BUS_ADD_CHILD(parent, 0, "pcib", 0);
-}
-
 /*
  * XLS PCIe can have upto 4 links, and each link has its on IRQ
  * Find the link on which the device is on 
@@ -601,25 +545,21 @@ static int
 xlp_map_msi(device_t pcib, device_t dev, int irq, uint64_t *addr,
     uint32_t *data)
 {
-	int msi, irt;
+	int link;
 
-	if (irq >= 64) {
-		msi = irq - 64;
-		*addr = MIPS_MSI_ADDR(0);
-
-		irt = xlp_pcie_link_irt(msi/32);
-		if (irt != -1)
-			*data = MIPS_MSI_DATA(xlp_irt_to_irq(irt));
-		return (0);
-	} else {
+	if (irq < 64) {
 		device_printf(dev, "%s: map_msi for irq %d  - ignored", 
 		    device_get_nameunit(pcib), irq);
 		return (ENXIO);
 	}
+	link = (irq - 64) / 32;
+	*addr = MIPS_MSI_ADDR(0);
+	*data = MIPS_MSI_DATA(PIC_PCIE_IRQ(link));
+	return (0);
 }
 
 static void
-bridge_pcie_ack(int irq)
+bridge_pcie_ack(int irq, void *arg)
 {
 	uint32_t node,reg;
 	uint64_t base;
@@ -655,7 +595,6 @@ mips_platform_pcib_setup_intr(device_t dev, device_t child,
 {
 	int error = 0;
 	int xlpirq;
-	void *extra_ack;
 
 	error = rman_activate_resource(irq);
 	if (error)
@@ -711,20 +650,14 @@ mips_platform_pcib_setup_intr(device_t dev, device_t child,
 		nlm_write_pci_reg(base, PCIE_BRIDGE_MSI_CAP, 
 		    (val | (PCIM_MSICTRL_MSI_ENABLE << 16) |
 		        (PCIM_MSICTRL_MMC_32 << 16)));
-
-		xlpirq = xlp_pcie_link_irt(xlpirq / 32);
-		if (xlpirq == -1)
-			return (EINVAL);
-		xlpirq = xlp_irt_to_irq(xlpirq);
+		xlpirq = PIC_PCIE_IRQ(link);
 	}
-	/* Set all irqs to CPU 0 for now */
-	nlm_pic_write_irt_direct(xlp_pic_base, xlp_irq_to_irt(xlpirq), 1, 0,
-	    PIC_LOCAL_SCHEDULING, xlpirq, 0);
-	extra_ack = NULL;
-	if (xlpirq >= PIC_PCIE_0_IRQ && xlpirq <= PIC_PCIE_3_IRQ)
-		extra_ack = bridge_pcie_ack;
-	xlp_establish_intr(device_get_name(child), filt,
-	    intr, arg, xlpirq, flags, cookiep, extra_ack);
+
+	/* if it is for real PCIe, we need to ack at bridge too */
+	if (xlpirq >= PIC_PCIE_IRQ(0) && xlpirq <= PIC_PCIE_IRQ(3))
+		xlp_set_bus_ack(xlpirq, bridge_pcie_ack, NULL);
+	cpu_establish_hardintr(device_get_name(child), filt, intr, arg,
+	    xlpirq, flags, cookiep);
 
 	return (0);
 }
@@ -816,7 +749,7 @@ xlp_pcib_deactivate_resource(device_t bus, device_t child, int type, int rid,
 static int
 mips_pcib_route_interrupt(device_t bus, device_t dev, int pin)
 {
-	int irt, link;
+	int f, d;
 
 	/*
 	 * Validate requested pin number.
@@ -826,43 +759,25 @@ mips_pcib_route_interrupt(device_t bus, device_t dev, int pin)
 
 	if (pci_get_bus(dev) == 0 &&
 	    pci_get_vendor(dev) == PCI_VENDOR_NETLOGIC) {
-		/* SoC devices */
-		uint64_t pcibase;
-		int f, n, d, num;
-
 		f = pci_get_function(dev);
-		n = pci_get_slot(dev) / 8;
 		d = pci_get_slot(dev) % 8;
 
 		/*
 		 * For PCIe links, return link IRT, for other SoC devices
 		 * get the IRT from its PCIe header
 		 */
-		if (d == 1) {
-			irt = xlp_pcie_link_irt(f);
-		} else {
-			pcibase = nlm_pcicfg_base(XLP_HDR_OFFSET(n, 0, d, f));
-			irt = nlm_irtstart(pcibase);
-			num = nlm_irtnum(pcibase);
-			if (num != 1)
-				device_printf(bus, "[%d:%d:%d] Error %d IRQs\n",
-				    n, d, f, num);
-		}
+		if (d == 1)
+			return (PIC_PCIE_IRQ(f));
+		else
+			return (255);	/* use intline, don't reroute */
 	} else {
 		/* Regular PCI devices */
-		link = xlp_pcie_link(bus, dev);
-		irt = xlp_pcie_link_irt(link);
+		return (PIC_PCIE_IRQ(xlp_pcie_link(bus, dev)));
 	}
-
-	if (irt != -1)
-		return (xlp_irt_to_irq(irt));
-
-	return (255);
 }
 
 static device_method_t xlp_pcib_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify, xlp_pcib_identify),
 	DEVMETHOD(device_probe, xlp_pcib_probe),
 	DEVMETHOD(device_attach, xlp_pcib_attach),
 
@@ -895,4 +810,5 @@ static driver_t xlp_pcib_driver = {
 	1, /* no softc */
 };
 
-DRIVER_MODULE(pcib, nexus, xlp_pcib_driver, pcib_devclass, 0, 0);
+static devclass_t pcib_devclass;
+DRIVER_MODULE(xlp_pcib, simplebus, xlp_pcib_driver, pcib_devclass, 0, 0);
