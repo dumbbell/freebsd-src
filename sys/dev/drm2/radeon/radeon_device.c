@@ -1121,7 +1121,7 @@ int radeon_device_init(struct radeon_device *rdev,
 	if (rdev->rio_mem == NULL)
 		DRM_ERROR("Unable to find PCI I/O BAR\n");
 
-	rdev->tq = taskqueue_create("radeonkms", M_NOWAIT,
+	rdev->tq = taskqueue_create("radeonkms", M_WAITOK,
 	    taskqueue_thread_enqueue, &rdev->tq);
 	taskqueue_start_threads(&rdev->tq, 1, PWAIT, "radeon taskq");
 
