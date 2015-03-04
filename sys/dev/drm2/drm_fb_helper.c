@@ -74,10 +74,6 @@ vt_kms_postswitch(void *arg)
 
 	sc = (struct vt_kms_softc *)arg;
 
-	/* Bail if the driver didn't call drm_vblank_init() */
-	if (sc->fb_helper->dev->num_crtcs == 0)
-		return (ENODEV);
-
 	if (!kdb_active && panicstr == NULL)
 		taskqueue_enqueue_fast(taskqueue_thread, &sc->fb_mode_task);
 	else
