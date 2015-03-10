@@ -35,6 +35,7 @@ __FBSDID("$FreeBSD$");
 #include "radeon.h"
 #include "atom.h"
 
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 extern void
 radeon_combios_connected_scratch_regs(struct drm_connector *connector,
 				      struct drm_encoder *encoder,
@@ -43,6 +44,7 @@ extern void
 radeon_atombios_connected_scratch_regs(struct drm_connector *connector,
 				       struct drm_encoder *encoder,
 				       bool connected);
+#endif
 
 void radeon_connector_hotplug(struct drm_connector *connector)
 {

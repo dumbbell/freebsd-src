@@ -43,7 +43,9 @@ static int r600_cs_packet_next_reloc_nomm(struct radeon_cs_parser *p,
 					struct radeon_cs_reloc **cs_reloc);
 typedef int (*next_reloc_t)(struct radeon_cs_parser*, struct radeon_cs_reloc**);
 static next_reloc_t r600_cs_packet_next_reloc = &r600_cs_packet_next_reloc_mm;
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 extern void r600_cs_legacy_get_tiling_conf(struct drm_device *dev, u32 *npipes, u32 *nbanks, u32 *group_size);
+#endif
 
 
 struct r600_cs_track {

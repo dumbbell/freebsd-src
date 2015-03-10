@@ -40,7 +40,9 @@ __FBSDID("$FreeBSD$");
 static int rv515_debugfs_pipes_info_init(struct radeon_device *rdev);
 static int rv515_debugfs_ga_info_init(struct radeon_device *rdev);
 static void rv515_gpu_init(struct radeon_device *rdev);
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 int rv515_mc_wait_for_idle(struct radeon_device *rdev);
+#endif
 
 static const u32 crtc_offsets[2] =
 {

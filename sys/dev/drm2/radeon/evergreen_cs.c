@@ -40,8 +40,10 @@ __FBSDID("$FreeBSD$");
 #define MAX(a,b)                   (((a)>(b))?(a):(b))
 #define MIN(a,b)                   (((a)<(b))?(a):(b))
 
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 int r600_dma_cs_next_reloc(struct radeon_cs_parser *p,
 			   struct radeon_cs_reloc **cs_reloc);
+#endif
 static int evergreen_cs_packet_next_reloc(struct radeon_cs_parser *p,
 					  struct radeon_cs_reloc **cs_reloc);
 

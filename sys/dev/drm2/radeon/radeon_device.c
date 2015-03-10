@@ -248,6 +248,7 @@ void radeon_wb_fini(struct radeon_device *rdev)
 int radeon_wb_init(struct radeon_device *rdev)
 {
 	int r;
+	void *wb_ptr; /* FreeBSD: to please GCC 4.2. */
 
 	if (rdev->wb.wb_obj == NULL) {
 		r = radeon_bo_create(rdev, RADEON_GPU_PAGE_SIZE, PAGE_SIZE, true,
@@ -270,7 +271,8 @@ int radeon_wb_init(struct radeon_device *rdev)
 		radeon_wb_fini(rdev);
 		return r;
 	}
-	r = radeon_bo_kmap(rdev->wb.wb_obj, (void **)&rdev->wb.wb);
+	wb_ptr = &rdev->wb.wb;
+	r = radeon_bo_kmap(rdev->wb.wb_obj, wb_ptr);
 	radeon_bo_unreserve(rdev->wb.wb_obj);
 	if (r) {
 		dev_warn(rdev->dev, "(%d) map WB bo failed\n", r);
@@ -279,7 +281,7 @@ int radeon_wb_init(struct radeon_device *rdev)
 	}
 
 	/* clear wb memory */
-	memset((char *)rdev->wb.wb, 0, RADEON_GPU_PAGE_SIZE);
+	memset(*(void **)wb_ptr, 0, RADEON_GPU_PAGE_SIZE);
 	/* disable event_write fences */
 	rdev->wb.use_event = false;
 	/* disabled via module param */

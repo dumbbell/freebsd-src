@@ -69,9 +69,11 @@ MODULE_FIRMWARE("radeon/RV710_me.bin");
 #endif
 
 
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 int r600_cs_legacy(struct drm_device *dev, void *data, struct drm_file *filp,
 			unsigned family, u32 *ib, int *l);
 void r600_cs_legacy_init(void);
+#endif
 
 # define ATI_PCIGART_PAGE_SIZE		4096	/**< PCI GART page size */
 # define ATI_PCIGART_PAGE_MASK		(~(ATI_PCIGART_PAGE_SIZE-1))

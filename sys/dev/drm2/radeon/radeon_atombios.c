@@ -35,6 +35,7 @@ __FBSDID("$FreeBSD$");
 #include "atom.h"
 #include "atom-bits.h"
 
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 /* from radeon_encoder.c */
 extern uint32_t
 radeon_get_encoder_enum(struct drm_device *dev, uint32_t supported_device,
@@ -60,6 +61,7 @@ radeon_add_atom_connector(struct drm_device *dev,
 extern void
 radeon_add_legacy_encoder(struct drm_device *dev, uint32_t encoder_enum,
 			  uint32_t supported_device);
+#endif
 
 /* local */
 static int radeon_atom_get_max_vddc(struct radeon_device *rdev, u8 voltage_type,

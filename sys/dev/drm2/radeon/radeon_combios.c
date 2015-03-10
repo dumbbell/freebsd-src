@@ -41,6 +41,7 @@ __FBSDID("$FreeBSD$");
 #include <asm/pci-bridge.h>
 #endif /* CONFIG_PPC_PMAC */
 
+#ifdef FREEBSD_WIP /* FreeBSD: to please GCC 4.2. */
 /* from radeon_encoder.c */
 extern uint32_t
 radeon_get_encoder_enum(struct drm_device *dev, uint32_t supported_device,
@@ -61,6 +62,7 @@ radeon_add_legacy_connector(struct drm_device *dev,
 extern void
 radeon_add_legacy_encoder(struct drm_device *dev, uint32_t encoder_enum,
 			  uint32_t supported_device);
+#endif
 
 /* old legacy ATI BIOS routines */
 
