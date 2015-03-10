@@ -31,8 +31,10 @@
  * $NetBSD: syncicache.c,v 1.2 1999/05/05 12:36:40 tsubai Exp $
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
+#ifndef lint
+static const char rcsid[] =
+  "$FreeBSD$";
+#endif /* not lint */
 
 #include <sys/param.h>
 #if	defined(_KERNEL) || defined(_STANDALONE)
@@ -45,13 +47,44 @@ __FBSDID("$FreeBSD$");
 #include <machine/cpu.h>
 #include <machine/md_var.h>
 
+#ifdef _STANDALONE
+int cacheline_size = 32;
+#endif
+
+#if	!defined(_KERNEL) && !defined(_STANDALONE)
+#include <stdlib.h>
+
+int cacheline_size = 0;
+
+static void getcachelinesize(void);
+
+static void
+getcachelinesize()
+{
+	static int	cachemib[] = { CTL_MACHDEP, CPU_CACHELINE };
+	int		clen;
+
+	clen = sizeof(cacheline_size);
+
+	if (sysctl(cachemib, sizeof(cachemib) / sizeof(cachemib[0]),
+	    &cacheline_size, &clen, NULL, 0) < 0 || !cacheline_size) {
+		abort();
+	}
+}
+#endif
+
 void
 __syncicache(void *from, int len)
 {
-	register_t l, off;
+	int	l, off;
 	char	*p;
 
-	off = (uintptr_t)from & (cacheline_size - 1);
+#if	!defined(_KERNEL) && !defined(_STANDALONE)
+	if (!cacheline_size)
+		getcachelinesize();
+#endif	
+
+	off = (u_int)from & (cacheline_size - 1);
 	l = len += off;
 	p = (char *)from - off;
 
