@@ -318,6 +318,14 @@ int drm_irq_install(struct drm_device *dev)
 	/* Install handler */
 	sh_flags = INTR_TYPE_TTY | INTR_MPSAFE;
 	if (!drm_core_check_feature(dev, DRIVER_IRQ_SHARED))
+		/*
+		 * FIXME Linux<->FreeBSD: This seems to make
+		 * bus_setup_intr() unhappy: it was reported to return
+		 * EINVAL on an i915 board (8086:2592 in a Thinkpad
+		 * X41).
+		 *
+		 * For now, no driver we have use that.
+		 */
 		sh_flags |= INTR_EXCL;
 
 	ret = -bus_setup_intr(dev->dev, dev->irqr, sh_flags, NULL,

@@ -1652,9 +1652,13 @@ extern int i915_compat_ioctls_nr;
 #endif
 
 struct drm_driver i915_driver_info = {
-	.driver_features =   DRIVER_USE_AGP | DRIVER_REQUIRE_AGP |
-	    DRIVER_USE_MTRR | DRIVER_HAVE_IRQ |
-	    DRIVER_GEM /*| DRIVER_MODESET*/,
+	/*
+	 * FIXME Linux<->FreeBSD: DRIVER_USE_MTRR is commented out on
+	 * Linux.
+	 */
+	.driver_features =
+	    DRIVER_USE_AGP | DRIVER_REQUIRE_AGP | DRIVER_USE_MTRR |
+	    DRIVER_HAVE_IRQ | DRIVER_IRQ_SHARED | DRIVER_GEM | DRIVER_PRIME,
 
 	.buf_priv_size	= sizeof(drm_i915_private_t),
 	.load		= i915_driver_load,
