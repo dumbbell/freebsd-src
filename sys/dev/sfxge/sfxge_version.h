@@ -1,6 +1,9 @@
-/* $FreeBSD$ */
 /*-
- * Copyright (c) 2008 Hans Petter Selasky. All rights reserved.
+ * Copyright (c) 2015 Solarflare Communications, Inc.
+ * All rights reserved.
+ *
+ * This software was developed in part by OKTET Labs under contract for
+ * Solarflare Communications, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -22,46 +25,13 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $FreeBSD$
  */
 
-/*
- * USB specifications and other documentation can be found at
- * http://www.usb.org/developers/docs/ and
- * http://www.usb.org/developers/devclass_docs/
- */
+#ifndef _SFXGE_VERSION_H
+#define	_SFXGE_VERSION_H
 
-#ifdef USB_GLOBAL_INCLUDE_FILE
-#include USB_GLOBAL_INCLUDE_FILE
-#else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
-#include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
+#define	SFXGE_VERSION_STRING	"v3.3.4.6363"
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
-
-const struct usb_string_lang usb_string_lang_en = {
-	sizeof(usb_string_lang_en), UDESC_STRING,
-	{ 0x09, 0x04 } /* American English */
-};
-
-MALLOC_DEFINE(M_USB, "USB", "USB");
-MALLOC_DEFINE(M_USBDEV, "USBdev", "USB device");
-
-MODULE_VERSION(usb, 1);
+#endif	/* _SFXGE_DRIVER_VERSION_H */
