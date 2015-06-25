@@ -35,18 +35,13 @@ __FBSDID("$FreeBSD$");
 #include <linux/io.h>
 #include <linux/pci.h>
 #include <linux/vmalloc.h>
-
-/* From sys/queue.h */
-#undef LIST_HEAD
-#define LIST_HEAD(name, type)						\
-struct name {								\
-	struct type *lh_first;	/* first element */			\
-}
+#include <linux/netdevice.h>
 
 struct device linux_rootdev;
 
 #define miscclass LINUXAPI_PREFIXED_SYM(miscclass)
 static struct class miscclass;
+struct net init_net;
 
 /*
  * Hash of vmmap addresses.  This is infrequently accessed and does not
@@ -59,7 +54,9 @@ struct vmmap {
 	unsigned long		vm_size;
 };
 
-LIST_HEAD(vmmaphd, vmmap);
+struct vmmaphd {
+	struct vmmap *lh_first;
+};
 #define	VMMAP_HASH_SIZE	64
 #define	VMMAP_HASH_MASK	(VMMAP_HASH_SIZE - 1)
 #define	VM_HASH(addr)	((uintptr_t)(addr) >> PAGE_SHIFT) & VMMAP_HASH_MASK
