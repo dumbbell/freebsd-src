@@ -204,35 +204,6 @@ linux_timer_init(void *arg)
 }
 SYSINIT(linux_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, linux_timer_init, NULL);
 
-static void
-linux_compat_init(void)
-{
-	struct sysctl_oid *rootoid;
-	int i;
-
-	rootoid = SYSCTL_ADD_ROOT_NODE(NULL,
-	    OID_AUTO, "sys", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "sys");
-	kobject_init(&class_root, &class_ktype);
-	kobject_set_name(&class_root, "class");
-	class_root.oidp = SYSCTL_ADD_NODE(NULL, SYSCTL_CHILDREN(rootoid),
-	    OID_AUTO, "class", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "class");
-	kobject_init(&linux_rootdev.kobj, &dev_ktype);
-	kobject_set_name(&linux_rootdev.kobj, "device");
-	linux_rootdev.kobj.oidp = SYSCTL_ADD_NODE(NULL,
-	    SYSCTL_CHILDREN(rootoid), OID_AUTO, "device", CTLFLAG_RD, NULL,
-	    "device");
-	linux_rootdev.bsddev = root_bus;
-	miscclass.name = "misc";
-	class_register(&miscclass);
-	INIT_LIST_HEAD(&pci_drivers);
-	INIT_LIST_HEAD(&pci_devices);
-	spin_lock_init(&pci_lock);
-	mtx_init(&vmmaplock, "IO Map lock", NULL, MTX_DEF);
-	for (i = 0; i < VMMAP_HASH_SIZE; i++)
-		LIST_INIT(&vmmaphead[i]);
-}
-SYSINIT(linux_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND, linux_compat_init, NULL);
-
 char *
 kasprintf(gfp_t gfp, const char *fmt, ...)
 {
@@ -247,7 +218,7 @@ kasprintf(gfp_t gfp, const char *fmt, ...)
 }
 
 static void
-LINUXAPI_PREFIXED_SYM(compat_init)(void)
+LINUXAPI_PREFIXED_SYM(compat_init)(void *arg)
 {
 	struct sysctl_oid *rootoid;
 	int i;
@@ -277,7 +248,7 @@ SYSINIT(linuxapi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
     LINUXAPI_PREFIXED_SYM(compat_init), NULL);
 
 static void
-LINUXAPI_PREFIXED_SYM(compat_uninit)(void)
+LINUXAPI_PREFIXED_SYM(compat_uninit)(void *arg)
 {
 	kobject_kfree_name(&class_root);
 	kobject_kfree_name(&linux_rootdev.kobj);
