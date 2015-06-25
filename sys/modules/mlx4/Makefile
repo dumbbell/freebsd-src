@@ -15,7 +15,6 @@ CFLAGS+= -I${.CURDIR}/../../compat/linuxapi/3.15/include -I${.CURDIR}/../../comp
 
 .include <bsd.kmod.mk>
 
-CFLAGS+= -Wno-cast-qual -Wno-pointer-arith ${GCC_MS_EXTENSIONS}
-CFLAGS+= -fms-extensions
+CFLAGS+= -Wno-cast-qual -Wno-pointer-arith
 
 CWARNFLAGS.mcg.c=	-Wno-unused
