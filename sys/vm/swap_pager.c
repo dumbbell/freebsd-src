@@ -198,11 +198,13 @@ swap_reserve_by_cred(vm_ooffset_t incr, struct ucred *cred)
 		panic("swap_reserve: & PAGE_MASK");
 
 #ifdef RACCT
-	PROC_LOCK(curproc);
-	error = racct_add(curproc, RACCT_SWAP, incr);
-	PROC_UNLOCK(curproc);
-	if (error != 0)
-		return (0);
+	if (racct_enable) {
+		PROC_LOCK(curproc);
+		error = racct_add(curproc, RACCT_SWAP, incr);
+		PROC_UNLOCK(curproc);
+		if (error != 0)
+			return (0);
+	}
 #endif
 
 	res = 0;
@@ -2579,7 +2581,6 @@ swapgeom_done(struct bio *bp2)
 	struct swdevt *sp;
 	struct buf *bp;
 	struct g_consumer *cp;
-	int destroy;
 
 	bp = bp2->bio_caller2;
 	cp = bp2->bio_from;
@@ -2590,15 +2591,14 @@ swapgeom_done(struct bio *bp2)
 	bp->b_error = bp2->bio_error;
 	bufdone(bp);
 	mtx_lock(&sw_dev_mtx);
-	destroy = ((--cp->index) == 0 && cp->private);
-	if (destroy) {
-		sp = bp2->bio_caller1;
-		sp->sw_id = NULL;
+	if ((--cp->index) == 0 && cp->private) {
+		if (g_post_event(swapgeom_close_ev, cp, M_NOWAIT, NULL) == 0) {
+			sp = bp2->bio_caller1;
+			sp->sw_id = NULL;
+		}
 	}
 	mtx_unlock(&sw_dev_mtx);
 	g_destroy_bio(bp2);
-	if (destroy)
-		g_waitfor_event(swapgeom_close_ev, cp, M_WAITOK, NULL);
 }
 
 static void
