@@ -214,6 +214,9 @@ sfxge_tx_qdpl_swizzle(struct sfxge_txq *txq)
 		count++;
 	} while (mbuf != NULL);
 
+	if (count > stdp->std_put_hiwat)
+		stdp->std_put_hiwat = count;
+
 	/* Append the reversed put list to the get list. */
 	KASSERT(*get_tailp == NULL, ("*get_tailp != NULL"));
 	*stdp->std_getp = get_next;
@@ -308,7 +311,7 @@ static int sfxge_tx_queue_mbuf(struct sfxge_txq *txq, struct mbuf *mbuf)
 	if (mbuf->m_pkthdr.csum_flags & CSUM_TSO)
 		prefetch_read_many(mbuf->m_data);
 
-	if (txq->init_state != SFXGE_TXQ_STARTED) {
+	if (__predict_false(txq->init_state != SFXGE_TXQ_STARTED)) {
 		rc = EINTR;
 		goto reject;
 	}
@@ -1140,7 +1143,7 @@ sfxge_tx_qunblock(struct sfxge_txq *txq)
 
 	SFXGE_EVQ_LOCK_ASSERT_OWNED(evq);
 
-	if (txq->init_state != SFXGE_TXQ_STARTED)
+	if (__predict_false(txq->init_state != SFXGE_TXQ_STARTED))
 		return;
 
 	SFXGE_TXQ_LOCK(txq);
@@ -1485,6 +1488,10 @@ sfxge_tx_qinit(struct sfxge_softc *sc, unsigned int txq_index,
 			SYSCTL_CHILDREN(txq_node), OID_AUTO,
 			"dpl_get_hiwat", CTLFLAG_RD | CTLFLAG_STATS,
 			&stdp->std_get_hiwat, 0, "");
+	SYSCTL_ADD_UINT(device_get_sysctl_ctx(sc->dev),
+			SYSCTL_CHILDREN(txq_node), OID_AUTO,
+			"dpl_put_hiwat", CTLFLAG_RD | CTLFLAG_STATS,
+			&stdp->std_put_hiwat, 0, "");
 #endif
 
 	txq->type = type;
