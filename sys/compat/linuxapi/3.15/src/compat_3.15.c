@@ -36,6 +36,7 @@ __FBSDID("$FreeBSD$");
 #include <linux/pci.h>
 #include <linux/vmalloc.h>
 #include <linux/netdevice.h>
+#include <linux/timer.h>
 
 struct device linux_rootdev;
 
@@ -148,6 +149,89 @@ iounmap(void *addr)
 	pmap_unmapdev((vm_offset_t)addr, vmmap->vm_size);
 	kfree(vmmap);
 }
+
+static int
+linux_timer_jiffies_until(unsigned long expires)
+{
+	int delta = expires - jiffies;
+	/* guard against already expired values */
+	if (delta < 1)
+		delta = 1;
+	return (delta);
+}
+
+static void
+linux_timer_callback_wrapper(void *context)
+{
+	struct timer_list *timer;
+
+	timer = context;
+	timer->function(timer->data);
+}
+
+void
+mod_timer(struct timer_list *timer, unsigned long expires)
+{
+
+	timer->expires = expires;
+	callout_reset(&timer->timer_callout,
+	    linux_timer_jiffies_until(expires),
+	    &linux_timer_callback_wrapper, timer);
+}
+
+void
+add_timer(struct timer_list *timer)
+{
+
+	callout_reset(&timer->timer_callout,
+	    linux_timer_jiffies_until(timer->expires),
+	    &linux_timer_callback_wrapper, timer);
+}
+
+static void
+linux_timer_init(void *arg)
+{
+
+	/*
+	 * Compute an internal HZ value which can divide 2**32 to
+	 * avoid timer rounding problems when the tick value wraps
+	 * around 2**32:
+	 */
+	linux_timer_hz_mask = 1;
+	while (linux_timer_hz_mask < (unsigned long)hz)
+		linux_timer_hz_mask *= 2;
+	linux_timer_hz_mask--;
+}
+SYSINIT(linux_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, linux_timer_init, NULL);
+
+static void
+linux_compat_init(void)
+{
+	struct sysctl_oid *rootoid;
+	int i;
+
+	rootoid = SYSCTL_ADD_ROOT_NODE(NULL,
+	    OID_AUTO, "sys", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "sys");
+	kobject_init(&class_root, &class_ktype);
+	kobject_set_name(&class_root, "class");
+	class_root.oidp = SYSCTL_ADD_NODE(NULL, SYSCTL_CHILDREN(rootoid),
+	    OID_AUTO, "class", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "class");
+	kobject_init(&linux_rootdev.kobj, &dev_ktype);
+	kobject_set_name(&linux_rootdev.kobj, "device");
+	linux_rootdev.kobj.oidp = SYSCTL_ADD_NODE(NULL,
+	    SYSCTL_CHILDREN(rootoid), OID_AUTO, "device", CTLFLAG_RD, NULL,
+	    "device");
+	linux_rootdev.bsddev = root_bus;
+	miscclass.name = "misc";
+	class_register(&miscclass);
+	INIT_LIST_HEAD(&pci_drivers);
+	INIT_LIST_HEAD(&pci_devices);
+	spin_lock_init(&pci_lock);
+	mtx_init(&vmmaplock, "IO Map lock", NULL, MTX_DEF);
+	for (i = 0; i < VMMAP_HASH_SIZE; i++)
+		LIST_INIT(&vmmaphead[i]);
+}
+SYSINIT(linux_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND, linux_compat_init, NULL);
 
 char *
 kasprintf(gfp_t gfp, const char *fmt, ...)
