@@ -50,8 +50,8 @@ vm-${_CW:tl}:
 
 .if defined(WITH_VMIMAGES) && !empty(WITH_VMIMAGES)
 CLEANDIRS+=	${VMTARGETS}
-CLEANFILES+=	${VMBASE}.img
 . for FORMAT in ${VMFORMATS}
+CLEANFILES+=	${FORMAT}.img
 CLEANFILES+=	${VMBASE}.${FORMAT}
 . endfor
 .endif
@@ -65,7 +65,7 @@ vm-image:
 	env TARGET=${TARGET} TARGET_ARCH=${TARGET_ARCH} \
 		${.CURDIR}/scripts/mk-vmimage.sh \
 		-C ${.CURDIR}/tools/vmimage.subr -d ${.OBJDIR}/${.TARGET} \
-		-i ${.OBJDIR}/${VMBASE}.img -s ${VMSIZE} -f ${FORMAT} \
+		-i ${.OBJDIR}/${FORMAT}.img -s ${VMSIZE} -f ${FORMAT} \
 		-S ${WORLDDIR} -o ${.OBJDIR}/${VMBASE}.${FORMAT}
 . endfor
 .endif
@@ -101,7 +101,7 @@ vm-install:
 # the DESTDIR.
 .  for FORMAT in ${VMFORMATS}
 	# Don't keep the originals.  There is a copy in ${.OBJDIR} if needed.
-	${XZCMD} ${DESTDIR}/vmimages/${OSRELEASE}.${FORMAT}
+	${XZCMD} ${XZ_FLAGS} ${DESTDIR}/vmimages/${OSRELEASE}.${FORMAT}
 .  endfor
 . endif
 	cd ${DESTDIR}/vmimages && sha256 ${OSRELEASE}* > \
