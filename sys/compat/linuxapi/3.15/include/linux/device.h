@@ -215,17 +215,6 @@ static inline char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
 	return p;
 }
 
-static inline char *kasprintf(gfp_t gfp, const char *fmt, ...)
-{
-	va_list ap;
-	char *p;
-
-	va_start(ap, fmt);
-	p = kvasprintf(gfp, fmt, ap);
-	va_end(ap);
-
-	return p;
-}
-
+char *kasprintf(gfp_t gfp, const char *fmt, ...);
 
 #endif	/* _LINUX_DEVICE_H_ */
