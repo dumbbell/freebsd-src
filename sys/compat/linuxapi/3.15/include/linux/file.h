@@ -29,6 +29,8 @@
 #ifndef	_LINUX_FILE_H_
 #define	_LINUX_FILE_H_
 
+#include <linux/_linuxapi_shim.h>
+
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/filedesc.h>
@@ -42,7 +44,8 @@ struct linux_file;
 
 #undef file
 
-extern struct fileops linuxfileops;
+#define linuxapi_fileops LINUXAPI_PREFIXED_SYM(linuxapi_fileops)
+extern struct fileops linuxapi_fileops;
 
 static inline struct linux_file *
 linux_fget(unsigned int fd)
@@ -102,7 +105,7 @@ fd_install(unsigned int fd, struct linux_file *filp)
 		file = NULL;
 	}
 	filp->_file = file;
-	finit(file, filp->f_mode, DTYPE_DEV, filp, &linuxfileops);
+	finit(file, filp->f_mode, DTYPE_DEV, filp, &linuxapi_fileops);
 
 	/* drop the extra reference */
 	fput(filp);

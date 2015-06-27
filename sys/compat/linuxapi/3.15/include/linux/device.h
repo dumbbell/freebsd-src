@@ -66,8 +66,8 @@ struct device {
 	unsigned int	msix_max;
 };
 
-#define linux_rootdev LINUXAPI_PREFIXED_SYM(linux_rootdev)
-extern struct device linux_rootdev;
+#define linuxapi_rootdev LINUXAPI_PREFIXED_SYM(linuxapi_rootdev)
+extern struct device linuxapi_rootdev;
 #define class_root LINUXAPI_PREFIXED_SYM(class_root)
 extern struct kobject class_root;
 
@@ -202,21 +202,9 @@ static inline int dev_to_node(struct device *dev)
                 return -1;
 }
 
-static inline char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
-{
-	unsigned int len;
-	char *p = NULL;
-	va_list aq;
-
-	va_copy(aq, ap);
-	len = vsnprintf(NULL, 0, fmt, aq);
-	va_end(aq);
-
-	vsnprintf(p, len+1, fmt, ap);
-
-	return p;
-}
-
+#define kvasprintf LINUXAPI_PREFIXED_SYM(kvasprintf)
+char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap);
+#define kasprintf LINUXAPI_PREFIXED_SYM(kasprintf)
 char *kasprintf(gfp_t, const char *, ...);
 
 #endif	/* _LINUX_DEVICE_H_ */

@@ -30,6 +30,8 @@
 #ifndef	_LINUX_CDEV_H_
 #define	_LINUX_CDEV_H_
 
+#include <linux/_linuxapi_shim.h>
+
 #include <linux/kobject.h>
 #include <linux/kdev_t.h>
 #include <linux/list.h>
@@ -38,7 +40,8 @@ struct file_operations;
 struct inode;
 struct module;
 
-extern struct cdevsw linuxcdevsw;
+#define linuxapi_cdevsw LINUXAPI_PREFIXED_SYM(linuxapi_cdevsw)
+extern struct cdevsw linuxapi_cdevsw;
 
 struct linux_cdev {
 	struct kobject	kobj;
@@ -107,7 +110,7 @@ cdev_add(struct linux_cdev *cdev, dev_t dev, unsigned count)
 {
 	if (count != 1)
 		panic("cdev_add: Unsupported count: %d", count);
-	cdev->cdev = make_dev(&linuxcdevsw, MINOR(dev), 0, 0, 0700, 
+	cdev->cdev = make_dev(&linuxapi_cdevsw, MINOR(dev), 0, 0, 0700,
 	    "%s", kobject_name(&cdev->kobj));
 	cdev->dev = dev;
 	cdev->cdev->si_drv1 = cdev;

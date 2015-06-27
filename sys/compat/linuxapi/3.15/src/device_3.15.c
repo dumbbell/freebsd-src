@@ -431,7 +431,7 @@ LINUXAPI_PREFIXED_SYM(dev_mmap_single)(struct cdev *dev, vm_ooffset_t *offset,
 	return (error);
 }
 
-struct cdevsw LINUXAPI_PREFIXED_SYM(linuxcdevsw) = {
+struct cdevsw linuxapi_cdevsw = {
 	.d_version = D_VERSION,
 	.d_flags = D_TRACKCLOSE,
 	.d_open = LINUXAPI_PREFIXED_SYM(dev_open),
@@ -557,7 +557,7 @@ LINUXAPI_PREFIXED_SYM(file_fill_kinfo)(struct file *fp, struct kinfo_file *kif,
 	return (0);
 }
 
-struct fileops LINUXAPI_PREFIXED_SYM(linuxfileops) = {
+struct fileops linuxapi_fileops = {
 	.fo_read = LINUXAPI_PREFIXED_SYM(file_read),
 	.fo_write = invfo_rdwr,
 	.fo_truncate = invfo_truncate,

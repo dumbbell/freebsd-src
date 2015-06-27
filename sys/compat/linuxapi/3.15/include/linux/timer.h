@@ -29,6 +29,8 @@
 #ifndef _LINUX_TIMER_H_
 #define	_LINUX_TIMER_H_
 
+#include <linux/_linuxapi_shim.h>
+
 #include <linux/types.h>
 
 #include <sys/param.h>
@@ -42,7 +44,8 @@ struct timer_list {
 	unsigned long expires;
 };
 
-extern unsigned long linux_timer_hz_mask;
+#define timer_hz_mask LINUXAPI_PREFIXED_SYM(timer_hz_mask)
+extern unsigned long timer_hz_mask;
 
 #define	setup_timer(timer, func, dat)					\
 do {									\
@@ -58,14 +61,16 @@ do {									\
 	callout_init(&(timer)->timer_callout, 1);			\
 } while (0)
 
-extern void mod_timer(struct timer_list *, unsigned long);
-extern void add_timer(struct timer_list *);
+#define mod_timer LINUXAPI_PREFIXED_SYM(mod_timer)
+void mod_timer(struct timer_list *, unsigned long);
+#define add_timer LINUXAPI_PREFIXED_SYM(add_timer)
+void add_timer(struct timer_list *);
 
 #define	del_timer(timer)	callout_stop(&(timer)->timer_callout)
 #define	del_timer_sync(timer)	callout_drain(&(timer)->timer_callout)
 #define	timer_pending(timer)	callout_pending(&(timer)->timer_callout)
 #define	round_jiffies(j) \
-	((unsigned long)(((j) + linux_timer_hz_mask) & ~linux_timer_hz_mask))
+	((unsigned long)(((j) + timer_hz_mask) & ~timer_hz_mask))
 #define	round_jiffies_relative(j) \
 	round_jiffies(j)
 

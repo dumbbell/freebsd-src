@@ -29,6 +29,8 @@
 #ifndef	_LINUX_NETDEVICE_H_
 #define	_LINUX_NETDEVICE_H_
 
+#include <linux/_linuxapi_shim.h>
+
 #include <linux/types.h>
 
 #include <sys/socket.h>
@@ -47,6 +49,7 @@
 struct net {
 };
 
+#define init_net LINUXAPI_PREFIXED_SYM(init_net)
 extern struct net init_net;
 
 #define	MAX_ADDR_LEN		20

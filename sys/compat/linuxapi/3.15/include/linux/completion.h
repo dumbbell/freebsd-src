@@ -30,6 +30,8 @@
 #ifndef	_LINUX_COMPLETION_H_
 #define	_LINUX_COMPLETION_H_
 
+#include <linux/_linuxapi_shim.h>
+
 #include <linux/errno.h>
 
 struct completion {
@@ -41,26 +43,27 @@ struct completion {
 #define	init_completion(c) \
 	((c)->done = 0)
 #define	complete(c)				\
-	linux_complete_common((c), 0)
+	LINUXAPI_PREFIXED_SYM(complete_common)((c), 0)
 #define	complete_all(c)				\
-	linux_complete_common((c), 1)
+	LINUXAPI_PREFIXED_SYM(complete_common)((c), 1)
 #define	wait_for_completion(c)			\
-	linux_wait_for_common((c), 0)
+	LINUXAPI_PREFIXED_SYM(wait_for_common)((c), 0)
 #define	wait_for_completion_interuptible(c)	\
-	linux_wait_for_common((c), 1)
+	LINUXAPI_PREFIXED_SYM(wait_for_common)((c), 1)
 #define	wait_for_completion_timeout(c, timeout)	\
-	linux_wait_for_timeout_common((c), (timeout), 0)
+	LINUXAPI_PREFIXED_SYM(wait_for_timeout_common)((c), (timeout), 0)
 #define	wait_for_completion_interruptible_timeout(c, timeout)	\
-	linux_wait_for_timeout_common((c), (timeout), 1)
-#define	try_wait_for_completion(c) \
-	linux_try_wait_for_completion(c)
-#define	completion_done(c) \
-	linux_completion_done(c)
+	LINUXAPI_PREFIXED_SYM(wait_for_timeout_common)((c), (timeout), 1)
 
-extern void linux_complete_common(struct completion *, int);
-extern long linux_wait_for_common(struct completion *, int);
-extern long linux_wait_for_timeout_common(struct completion *, long, int);
-extern int linux_try_wait_for_completion(struct completion *);
-extern int linux_completion_done(struct completion *);
+#define complete_common LINUXAPI_PREFIXED_SYM(complete_common)
+void complete_common(struct completion *, int);
+#define wait_for_common LINUXAPI_PREFIXED_SYM(wait_for_common)
+long wait_for_common(struct completion *, int);
+#define wait_for_timeout_common LINUXAPI_PREFIXED_SYM(wait_for_timeout_common)
+long wait_for_timeout_common(struct completion *, long, int);
+#define try_wait_for_completion LINUXAPI_PREFIXED_SYM(try_wait_for_completion)
+int try_wait_for_completion(struct completion *);
+#define completion_done LINUXAPI_PREFIXED_SYM(completion_done)
+int completion_done(struct completion *);
 
 #endif					/* _LINUX_COMPLETION_H_ */

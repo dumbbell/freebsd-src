@@ -44,11 +44,15 @@ __FBSDID("$FreeBSD$");
 #include <linux/netdevice.h>
 #include <linux/timer.h>
 
-struct device linux_rootdev;
+struct device linuxapi_rootdev;
+
+unsigned long timer_hz_mask;
 
 #define miscclass LINUXAPI_PREFIXED_SYM(miscclass)
 static struct class miscclass;
 struct net init_net;
+
+unsigned long timer_hz_mask;
 
 /*
  * Hash of vmmap addresses.  This is infrequently accessed and does not
@@ -167,7 +171,7 @@ linux_timer_jiffies_until(unsigned long expires)
 }
 
 static void
-linux_timer_callback_wrapper(void *context)
+LINUXAPI_PREFIXED_SYM(timer_callback_wrapper)(void *context)
 {
 	struct timer_list *timer;
 
@@ -182,7 +186,7 @@ mod_timer(struct timer_list *timer, unsigned long expires)
 	timer->expires = expires;
 	callout_reset(&timer->timer_callout,
 	    linux_timer_jiffies_until(expires),
-	    &linux_timer_callback_wrapper, timer);
+	    &LINUXAPI_PREFIXED_SYM(timer_callback_wrapper), timer);
 }
 
 void
@@ -191,11 +195,11 @@ add_timer(struct timer_list *timer)
 
 	callout_reset(&timer->timer_callout,
 	    linux_timer_jiffies_until(timer->expires),
-	    &linux_timer_callback_wrapper, timer);
+	    &LINUXAPI_PREFIXED_SYM(timer_callback_wrapper), timer);
 }
 
 static void
-linux_timer_init(void *arg)
+LINUXAPI_PREFIXED_SYM(timer_init)(void *arg)
 {
 
 	/*
@@ -203,15 +207,15 @@ linux_timer_init(void *arg)
 	 * avoid timer rounding problems when the tick value wraps
 	 * around 2**32:
 	 */
-	linux_timer_hz_mask = 1;
-	while (linux_timer_hz_mask < (unsigned long)hz)
-		linux_timer_hz_mask *= 2;
-	linux_timer_hz_mask--;
+	timer_hz_mask = 1;
+	while (timer_hz_mask < (unsigned long)hz)
+		timer_hz_mask *= 2;
+	timer_hz_mask--;
 }
-SYSINIT(linux_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, linux_timer_init, NULL);
+SYSINIT(linuxapi_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, LINUXAPI_PREFIXED_SYM(timer_init), NULL);
 
 void
-linux_complete_common(struct completion *c, int all)
+complete_common(struct completion *c, int all)
 {
 	int wakeup_swapper;
 
@@ -230,7 +234,7 @@ linux_complete_common(struct completion *c, int all)
  * Indefinite wait for done != 0 with or without signals.
  */
 long
-linux_wait_for_common(struct completion *c, int flags)
+wait_for_common(struct completion *c, int flags)
 {
 
 	if (flags != 0)
@@ -258,7 +262,7 @@ linux_wait_for_common(struct completion *c, int flags)
  * Time limited wait for done != 0 with or without signals.
  */
 long
-linux_wait_for_timeout_common(struct completion *c, long timeout, int flags)
+wait_for_timeout_common(struct completion *c, long timeout, int flags)
 {
 	long end = jiffies + timeout;
 
@@ -294,7 +298,7 @@ linux_wait_for_timeout_common(struct completion *c, long timeout, int flags)
 }
 
 int
-linux_try_wait_for_completion(struct completion *c)
+try_wait_for_completion(struct completion *c)
 {
 	int isdone;
 
@@ -309,7 +313,7 @@ linux_try_wait_for_completion(struct completion *c)
 }
 
 int
-linux_completion_done(struct completion *c)
+completion_done(struct completion *c)
 {
 	int isdone;
 
@@ -319,6 +323,22 @@ linux_completion_done(struct completion *c)
 		isdone = 0;
 	sleepq_release(c);
 	return (isdone);
+}
+
+inline char *
+kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
+{
+	unsigned int len;
+	char *p = NULL;
+	va_list aq;
+
+	va_copy(aq, ap);
+	len = vsnprintf(NULL, 0, fmt, aq);
+	va_end(aq);
+
+	vsnprintf(p, len+1, fmt, ap);
+
+	return p;
 }
 
 char *
@@ -346,12 +366,12 @@ LINUXAPI_PREFIXED_SYM(compat_init)(void *arg)
 	kobject_set_name(&class_root, "class");
 	class_root.oidp = SYSCTL_ADD_NODE(NULL, SYSCTL_CHILDREN(rootoid),
 	    OID_AUTO, "class", CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, "class");
-	kobject_init(&linux_rootdev.kobj, &dev_ktype);
-	kobject_set_name(&linux_rootdev.kobj, "device");
-	linux_rootdev.kobj.oidp = SYSCTL_ADD_NODE(NULL,
+	kobject_init(&linuxapi_rootdev.kobj, &dev_ktype);
+	kobject_set_name(&linuxapi_rootdev.kobj, "device");
+	linuxapi_rootdev.kobj.oidp = SYSCTL_ADD_NODE(NULL,
 	    SYSCTL_CHILDREN(rootoid), OID_AUTO, "device", CTLFLAG_RD, NULL,
 	    "device");
-	linux_rootdev.bsddev = root_bus;
+	linuxapi_rootdev.bsddev = root_bus;
 	miscclass.name = "misc";
 	class_register(&miscclass);
 	INIT_LIST_HEAD(&pci_drivers);
@@ -368,7 +388,7 @@ static void
 LINUXAPI_PREFIXED_SYM(compat_uninit)(void *arg)
 {
 	kobject_kfree_name(&class_root);
-	kobject_kfree_name(&linux_rootdev.kobj);
+	kobject_kfree_name(&linuxapi_rootdev.kobj);
 	kobject_kfree_name(&miscclass.kobj);
 }
 

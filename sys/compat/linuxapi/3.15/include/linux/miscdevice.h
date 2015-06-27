@@ -50,7 +50,7 @@ extern struct class	miscclass;
 static inline int
 misc_register(struct miscdevice *misc)
 {
-	misc->this_device = device_create(&miscclass, &linux_rootdev, 0, misc, 
+	misc->this_device = device_create(&miscclass, &linuxapi_rootdev, 0, misc,
 	    misc->name);
 	misc->cdev = cdev_alloc();
 	if (misc->cdev == NULL)
