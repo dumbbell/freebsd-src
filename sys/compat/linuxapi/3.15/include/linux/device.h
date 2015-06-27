@@ -66,6 +66,11 @@ struct device {
 	unsigned int	msix_max;
 };
 
+#define linux_rootdev LINUXAPI_PREFIXED_SYM(linux_rootdev)
+extern struct device linux_rootdev;
+#define class_root LINUXAPI_PREFIXED_SYM(class_root)
+extern struct kobject class_root;
+
 struct class_attribute {
         struct attribute attr;
         ssize_t (*show)(struct class *, struct class_attribute *, char *);
@@ -96,32 +101,14 @@ struct class_attribute_string {
 	char *str;
 };
 
-#define linux_rootdev LINUXAPI_PREFIXED_SYM(linux_rootdev)
-extern struct device linux_rootdev;
-#define class_root LINUXAPI_PREFIXED_SYM(class_root)
-extern struct kobject class_root;
+#define show_class_attr_string LINUXAPI_PREFIXED_SYM(show_class_attr_string)
+ssize_t		show_class_attr_string(struct class *class,
+		    struct class_attribute *attr, char *buf);
+
 #define class_ktype LINUXAPI_PREFIXED_SYM(class_ktype)
 extern struct kobj_type class_ktype;
 #define dev_ktype LINUXAPI_PREFIXED_SYM(dev_ktype)
 extern struct kobj_type dev_ktype;
-
-#define class_register LINUXAPI_PREFIXED_SYM(class_register)
-int		class_register(struct class *class);
-#define class_unregister LINUXAPI_PREFIXED_SYM(class_unregister)
-void		class_unregister(struct class *class);
-#define class_create LINUXAPI_PREFIXED_SYM(class_create)
-struct class *	class_create(struct module *owner, const char *name);
-#define class_destroy LINUXAPI_PREFIXED_SYM(class_destroy)
-void		class_destroy(struct class *class);
-#define class_create_file LINUXAPI_PREFIXED_SYM(class_create_file)
-int		class_create_file(struct class *class,
-		    const struct class_attribute *attr);
-#define class_remove_file LINUXAPI_PREFIXED_SYM(class_remove_file)
-void		class_remove_file(struct class *class,
-		    const struct class_attribute *attr);
-#define show_class_attr_string LINUXAPI_PREFIXED_SYM(show_class_attr_string)
-ssize_t		show_class_attr_string(struct class *class,
-		    struct class_attribute *attr, char *buf);
 
 /* Currently read-only only */
 #define _CLASS_ATTR_STRING(_name, _mode, _str) \
@@ -178,6 +165,21 @@ put_device(struct device *dev)
 		kobject_put(&dev->kobj);
 }
 
+#define class_register LINUXAPI_PREFIXED_SYM(class_register)
+int		class_register(struct class *class);
+#define class_unregister LINUXAPI_PREFIXED_SYM(class_unregister)
+void		class_unregister(struct class *class);
+#define class_create LINUXAPI_PREFIXED_SYM(class_create)
+struct class *	class_create(struct module *owner, const char *name);
+#define class_destroy LINUXAPI_PREFIXED_SYM(class_destroy)
+void		class_destroy(struct class *class);
+#define class_create_file LINUXAPI_PREFIXED_SYM(class_create_file)
+int		class_create_file(struct class *class,
+		    const struct class_attribute *attr);
+#define class_remove_file LINUXAPI_PREFIXED_SYM(class_remove_file)
+void		class_remove_file(struct class *class,
+		    const struct class_attribute *attr);
+
 #define device_register LINUXAPI_PREFIXED_SYM(device_register)
 int	device_register(struct device *dev);
 #define device_unregister LINUXAPI_PREFIXED_SYM(device_unregister)
@@ -215,6 +217,6 @@ static inline char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
 	return p;
 }
 
-char *kasprintf(gfp_t gfp, const char *fmt, ...);
+char *kasprintf(gfp_t, const char *, ...);
 
 #endif	/* _LINUX_DEVICE_H_ */

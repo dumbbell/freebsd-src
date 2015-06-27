@@ -32,6 +32,35 @@ __FBSDID("$FreeBSD$");
 
 #include <linux/kobject.h>
 
+void
+kobject_init(struct kobject *kobj, struct kobj_type *ktype)
+{
+
+	kref_init(&kobj->kref);
+	INIT_LIST_HEAD(&kobj->entry);
+	kobj->ktype = ktype;
+	kobj->oidp = NULL;
+}
+
+static void kobject_release(struct kref *kref);
+
+void
+kobject_put(struct kobject *kobj)
+{
+
+	if (kobj)
+		kref_put(&kobj->kref, kobject_release);
+}
+
+struct kobject *
+kobject_get(struct kobject *kobj)
+{
+
+	if (kobj)
+		kref_get(&kobj->kref);
+	return kobj;
+}
+
 int
 kobject_set_name_vargs(struct kobject *kobj, const char *fmt, va_list args)
 {
@@ -68,14 +97,6 @@ kobject_set_name(struct kobject *kobj, const char *fmt, ...)
 	return (error);
 }
 
-void
-kobject_kfree_name(struct kobject *kobj)
-{
-	if (kobj) {
-		kfree(kobj->name);
-	}
-}
-
 static inline int
 LINUXAPI_PREFIXED_SYM(kobject_add_complete)(struct kobject *kobj, struct kobject *parent)
 {
@@ -95,6 +116,7 @@ LINUXAPI_PREFIXED_SYM(kobject_add_complete)(struct kobject *kobj, struct kobject
 		}
 		if (error)
 			sysfs_remove_dir(kobj);
+		
 	}
 	return (error);
 }
@@ -134,8 +156,15 @@ kobject_release(struct kref *kref)
 static void
 LINUXAPI_PREFIXED_SYM(kobject_kfree)(struct kobject *kobj)
 {
-
 	kfree(kobj);
+}
+
+void
+kobject_kfree_name(struct kobject *kobj)
+{
+	if (kobj) {
+		kfree(kobj->name);
+	}
 }
 
 struct kobj_type kfree_type = { .release = LINUXAPI_PREFIXED_SYM(kobject_kfree) };
@@ -158,33 +187,6 @@ kobject_init_and_add(struct kobject *kobj, struct kobj_type *ktype,
 	if (error)
 		return (error);
 	return LINUXAPI_PREFIXED_SYM(kobject_add_complete)(kobj, parent);
-}
-
-void
-kobject_init(struct kobject *kobj, struct kobj_type *ktype)
-{
-
-	kref_init(&kobj->kref);
-	INIT_LIST_HEAD(&kobj->entry);
-	kobj->ktype = ktype;
-	kobj->oidp = NULL;
-}
-
-void
-kobject_put(struct kobject *kobj)
-{
-
-	if (kobj)
-		kref_put(&kobj->kref, kobject_release);
-}
-
-struct kobject *
-kobject_get(struct kobject *kobj)
-{
-
-	if (kobj)
-		kref_get(&kobj->kref);
-	return kobj;
 }
 
 struct kobject *

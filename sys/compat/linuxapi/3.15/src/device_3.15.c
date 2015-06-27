@@ -63,7 +63,8 @@ show_class_attr_string(struct class *class,
 }
 
 static ssize_t
-LINUXAPI_PREFIXED_SYM(class_show)(struct kobject *kobj, struct attribute *attr, char *buf)
+LINUXAPI_PREFIXED_SYM(class_show)(struct kobject *kobj,
+    struct attribute *attr, char *buf)
 {
 	struct class_attribute *dattr;
 	ssize_t error;
@@ -77,8 +78,8 @@ LINUXAPI_PREFIXED_SYM(class_show)(struct kobject *kobj, struct attribute *attr, 
 }
 
 static ssize_t
-LINUXAPI_PREFIXED_SYM(class_store)(struct kobject *kobj, struct attribute *attr, const char *buf,
-    size_t count)
+LINUXAPI_PREFIXED_SYM(class_store)(struct kobject *kobj,
+    struct attribute *attr, const char *buf, size_t count)
 {
 	struct class_attribute *dattr;
 	ssize_t error;
@@ -193,7 +194,8 @@ LINUXAPI_PREFIXED_SYM(file_dtor)(void *cdp)
 }
 
 static int
-LINUXAPI_PREFIXED_SYM(dev_open)(struct cdev *dev, int oflags, int devtype, struct thread *td)
+LINUXAPI_PREFIXED_SYM(dev_open)(struct cdev *dev, int oflags, int devtype,
+    struct thread *td)
 {
 	struct linux_cdev *ldev;
 	struct linux_file *filp;
@@ -228,7 +230,8 @@ LINUXAPI_PREFIXED_SYM(dev_open)(struct cdev *dev, int oflags, int devtype, struc
 }
 
 static int
-LINUXAPI_PREFIXED_SYM(dev_close)(struct cdev *dev, int fflag, int devtype, struct thread *td)
+LINUXAPI_PREFIXED_SYM(dev_close)(struct cdev *dev, int fflag, int devtype,
+    struct thread *td)
 {
 	struct linux_cdev *ldev;
 	struct linux_file *filp;
@@ -249,8 +252,8 @@ LINUXAPI_PREFIXED_SYM(dev_close)(struct cdev *dev, int fflag, int devtype, struc
 }
 
 static int
-LINUXAPI_PREFIXED_SYM(dev_ioctl)(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-    struct thread *td)
+LINUXAPI_PREFIXED_SYM(dev_ioctl)(struct cdev *dev, u_long cmd, caddr_t data,
+    int fflag, struct thread *td)
 {
 	struct linux_cdev *ldev;
 	struct linux_file *filp;
@@ -583,7 +586,8 @@ LINUXAPI_PREFIXED_SYM(device_release)(struct kobject *kobj)
 }
 
 static ssize_t
-LINUXAPI_PREFIXED_SYM(dev_show)(struct kobject *kobj, struct attribute *attr, char *buf)
+LINUXAPI_PREFIXED_SYM(dev_show)(struct kobject *kobj, struct attribute *attr,
+    char *buf)
 {
 	struct device_attribute *dattr;
 	ssize_t error;
@@ -597,8 +601,8 @@ LINUXAPI_PREFIXED_SYM(dev_show)(struct kobject *kobj, struct attribute *attr, ch
 }
 
 static ssize_t
-LINUXAPI_PREFIXED_SYM(dev_store)(struct kobject *kobj, struct attribute *attr, const char *buf,
-    size_t count)
+LINUXAPI_PREFIXED_SYM(dev_store)(struct kobject *kobj, struct attribute *attr,
+    const char *buf, size_t count)
 {
 	struct device_attribute *dattr;
 	ssize_t error;

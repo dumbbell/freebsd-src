@@ -87,8 +87,7 @@ int	kobject_set_name_vargs(struct kobject *kobj, const char *fmt,
 #define kobject_kfree_name LINUXAPI_PREFIXED_SYM(kobject_kfree_name)
 void	kobject_kfree_name(struct kobject *kobj);
 
-/*
- * sysfs.h calls for 'kobject' which is defined here,
+/* sysfs.h calles for 'kobject' which is defined here, 
  * so we need to add the include only after the 'kobject' def.
  */
 #include <linux/sysfs.h>
