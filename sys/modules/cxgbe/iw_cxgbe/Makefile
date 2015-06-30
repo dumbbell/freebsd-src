@@ -24,6 +24,6 @@ SRCS+=	resource.c
 SRCS+=	vnode_if.h
 
 CFLAGS+= -I${CXGBE} -I${.CURDIR}/../../../ofed/include -DLINUX_TYPES_DEFINED
-CFLAGS+= -I${.CURDIR}/../../../compat/linuxapi/3.15/include -I${.CURDIR}/../../../compat/linuxapi/common/include
+CFLAGS+= -I${.CURDIR}/../../../compat/linuxkpi/3.15/include -I${.CURDIR}/../../../compat/linuxkpi/common/include
 
 .include <bsd.kmod.mk>

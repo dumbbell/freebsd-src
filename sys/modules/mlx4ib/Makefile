@@ -10,7 +10,7 @@ SRCS=	device_if.h bus_if.h vnode_if.h pci_if.h \
 
 CFLAGS+= -I${.CURDIR}/../../ofed/drivers/infiniband/hw/mlx4
 CFLAGS+= -I${.CURDIR}/../../ofed/include/
-CFLAGS+= -I${.CURDIR}/../../compat/linuxapi/3.15/include -I${.CURDIR}/../../compat/linuxapi/common/include
+CFLAGS+= -I${.CURDIR}/../../compat/linuxkpi/3.15/include -I${.CURDIR}/../../compat/linuxkpi/common/include
 CFLAGS+= -DCONFIG_INFINIBAND_USER_MEM
 CFLAGS+= -DINET6 -DINET
 

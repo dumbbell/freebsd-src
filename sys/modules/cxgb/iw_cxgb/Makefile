@@ -10,6 +10,6 @@ SRCS+=  iw_cxgb_ev.c iw_cxgb_mem.c iw_cxgb_dbg.c iw_cxgb_cq.c
 SRCS+=  bus_if.h device_if.h opt_sched.h pci_if.h pcib_if.h opt_ktr.h
 SRCS+=  opt_inet.h opt_ofed.h vnode_if.h
 CFLAGS+= -I${CXGB} -I${.CURDIR}/../../../ofed/include -DLINUX_TYPES_DEFINED
-CFLAGS+= -I${.CURDIR}/../../../compat/linuxapi/3.15/include -I${.CURDIR}/../../../compat/linuxapi/common/include
+CFLAGS+= -I${.CURDIR}/../../../compat/linuxkpi/3.15/include -I${.CURDIR}/../../../compat/linuxkpi/common/include
 
 .include <bsd.kmod.mk>

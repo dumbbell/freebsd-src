@@ -258,14 +258,14 @@ compat/freebsd32/freebsd32_ioctl.c	optional compat_freebsd32
 compat/freebsd32/freebsd32_misc.c	optional compat_freebsd32
 compat/freebsd32/freebsd32_syscalls.c	optional compat_freebsd32
 compat/freebsd32/freebsd32_sysent.c	optional compat_freebsd32
-compat/linuxapi/common/src/kmod.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/common/src/rbtree.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/3.15/src/compat_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/3.15/src/device_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/3.15/src/idr_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/3.15/src/kobject_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/3.15/src/pci_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
-compat/linuxapi/3.15/src/radix_3.15.c	optional compat_linuxapi no-depend compile-with "${LINUXAPI_C}"
+compat/linuxkpi/common/src/kmod.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/common/src/rbtree.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/3.15/src/compat_3.15.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/3.15/src/device_3.15.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/3.15/src/idr_3.15.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/3.15/src/kobject_3.15.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/3.15/src/pci_3.15.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
+compat/linuxkpi/3.15/src/radix_3.15.c	optional compat_linuxkpi no-depend compile-with "${LINUXKPI_C}"
 contrib/dev/acpica/common/ahids.c			optional acpi acpi_debug
 contrib/dev/acpica/common/ahuuids.c			optional acpi acpi_debug
 contrib/dev/acpica/components/debugger/dbcmds.c		optional acpi acpi_debug

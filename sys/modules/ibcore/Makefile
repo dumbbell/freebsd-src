@@ -13,7 +13,7 @@ SRCS=	addr.c iwcm.c sa_query.c ucma.c uverbs_cmd.c \
 CFLAGS+= -I${.CURDIR}/../../ofed/drivers/infiniband/core
 CFLAGS+= -I${.CURDIR}/../mlx4ib
 CFLAGS+= -I${.CURDIR}/../../ofed/include/
-CFLAGS+= -I${.CURDIR}/../../compat/linuxapi/3.15/include -I${.CURDIR}/../../compat/linuxapi/common/include
+CFLAGS+= -I${.CURDIR}/../../compat/linuxkpi/3.15/include -I${.CURDIR}/../../compat/linuxkpi/common/include
 CFLAGS+= -DINET6 -DINET
 
 .include <bsd.kmod.mk>

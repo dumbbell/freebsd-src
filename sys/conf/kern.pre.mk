@@ -220,6 +220,6 @@ DDB_ENABLED!=	grep DDB opt_ddb.h || true ; echo
 DTR_ENABLED!=	grep KDTRACE_FRAME opt_kdtrace.h || true ; echo
 HWPMC_ENABLED!=	grep HWPMC opt_hwpmc_hooks.h || true ; echo
 
-LINUXAPI_INCLUDES=	-I${.IMPSRC:H:H}/include -I$S/compat/linuxapi/common/include
-LINUXAPI_NOERR=		-Wno-pointer-arith -Wno-pointer-sign
-LINUXAPI_C=		${NORMAL_C} ${LINUXAPI_INCLUDES} ${LINUXAPI_NOERR}
+LINUXKPI_INCLUDES=	-I${.IMPSRC:H:H}/include -I$S/compat/linuxkpi/common/include
+LINUXKPI_NOERR=		-Wno-pointer-arith -Wno-pointer-sign
+LINUXKPI_C=		${NORMAL_C} ${LINUXKPI_INCLUDES} ${LINUXKPI_NOERR}

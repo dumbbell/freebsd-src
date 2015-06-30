@@ -11,7 +11,7 @@ SRCS+=	mthca_reset.c mthca_srq.c mthca_uar.c
 SRCS+=	opt_inet.h opt_inet6.h
 
 CFLAGS+= -I${.CURDIR}/../../ofed/include
-CFLAGS+= -I${.CURDIR}/../../compat/linuxapi/3.15/include -I${.CURDIR}/../../compat/linuxapi/common/include
+CFLAGS+= -I${.CURDIR}/../../compat/linuxkpi/3.15/include -I${.CURDIR}/../../compat/linuxkpi/common/include
 
 .include <bsd.kmod.mk>
 
