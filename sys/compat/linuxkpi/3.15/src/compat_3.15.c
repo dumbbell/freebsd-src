@@ -325,20 +325,22 @@ completion_done(struct completion *c)
 	return (isdone);
 }
 
-inline char *
+char *
 kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
 {
 	unsigned int len;
-	char *p = NULL;
+	char *p;
 	va_list aq;
 
 	va_copy(aq, ap);
 	len = vsnprintf(NULL, 0, fmt, aq);
 	va_end(aq);
 
-	vsnprintf(p, len+1, fmt, ap);
+	p = kmalloc(len + 1, gfp);
+	if (p != NULL)
+		vsnprintf(p, len + 1, fmt, ap);
 
-	return p;
+	return (p);
 }
 
 char *
@@ -351,7 +353,7 @@ kasprintf(gfp_t gfp, const char *fmt, ...)
 	p = kvasprintf(gfp, fmt, ap);
 	va_end(ap);
 
-	return p;
+	return (p);
 }
 
 static void

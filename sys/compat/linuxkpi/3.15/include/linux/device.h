@@ -203,7 +203,7 @@ static inline int dev_to_node(struct device *dev)
 }
 
 #define kvasprintf LINUXKPI_PREFIXED_SYM(kvasprintf)
-char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap);
+char *kvasprintf(gfp_t, const char *, va_list);
 #define kasprintf LINUXKPI_PREFIXED_SYM(kasprintf)
 char *kasprintf(gfp_t, const char *, ...);
 
