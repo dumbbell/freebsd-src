@@ -45,6 +45,7 @@ struct miscdevice  {
 	umode_t mode;
 };
 
+#define miscclass LINUXKPI_PREFIXED_SYM(miscclass)
 extern struct class	miscclass;
 
 static inline int

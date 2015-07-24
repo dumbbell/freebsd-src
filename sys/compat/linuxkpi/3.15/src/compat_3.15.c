@@ -41,6 +41,7 @@ __FBSDID("$FreeBSD$");
 #include <linux/io.h>
 #include <linux/pci.h>
 #include <linux/vmalloc.h>
+#include <linux/miscdevice.h>
 #include <linux/netdevice.h>
 #include <linux/timer.h>
 
@@ -48,8 +49,7 @@ struct device linuxkpi_rootdev;
 
 unsigned long timer_hz_mask;
 
-#define miscclass LINUXKPI_PREFIXED_SYM(miscclass)
-static struct class miscclass;
+struct class miscclass;
 struct net init_net;
 
 unsigned long timer_hz_mask;

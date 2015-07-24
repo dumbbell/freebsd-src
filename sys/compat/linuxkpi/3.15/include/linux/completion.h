@@ -43,17 +43,17 @@ struct completion {
 #define	init_completion(c) \
 	((c)->done = 0)
 #define	complete(c)				\
-	LINUXKPI_PREFIXED_SYM(complete_common)((c), 0)
+	complete_common((c), 0)
 #define	complete_all(c)				\
-	LINUXKPI_PREFIXED_SYM(complete_common)((c), 1)
+	complete_common((c), 1)
 #define	wait_for_completion(c)			\
-	LINUXKPI_PREFIXED_SYM(wait_for_common)((c), 0)
+	wait_for_common((c), 0)
 #define	wait_for_completion_interuptible(c)	\
-	LINUXKPI_PREFIXED_SYM(wait_for_common)((c), 1)
+	wait_for_common((c), 1)
 #define	wait_for_completion_timeout(c, timeout)	\
-	LINUXKPI_PREFIXED_SYM(wait_for_timeout_common)((c), (timeout), 0)
+	wait_for_timeout_common((c), (timeout), 0)
 #define	wait_for_completion_interruptible_timeout(c, timeout)	\
-	LINUXKPI_PREFIXED_SYM(wait_for_timeout_common)((c), (timeout), 1)
+	wait_for_timeout_common((c), (timeout), 1)
 
 #define complete_common LINUXKPI_PREFIXED_SYM(complete_common)
 void complete_common(struct completion *, int);
