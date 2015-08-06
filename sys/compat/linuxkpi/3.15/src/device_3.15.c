@@ -63,7 +63,7 @@ show_class_attr_string(struct class *class,
 }
 
 static ssize_t
-LINUXKPI_PREFIXED_SYM(class_show)(struct kobject *kobj,
+class_show(struct kobject *kobj,
     struct attribute *attr, char *buf)
 {
 	struct class_attribute *dattr;
@@ -78,7 +78,7 @@ LINUXKPI_PREFIXED_SYM(class_show)(struct kobject *kobj,
 }
 
 static ssize_t
-LINUXKPI_PREFIXED_SYM(class_store)(struct kobject *kobj,
+class_store(struct kobject *kobj,
     struct attribute *attr, const char *buf, size_t count)
 {
 	struct class_attribute *dattr;
@@ -93,7 +93,7 @@ LINUXKPI_PREFIXED_SYM(class_store)(struct kobject *kobj,
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(class_release)(struct kobject *kobj)
+class_release(struct kobject *kobj)
 {
 	struct class *class;
 
@@ -102,13 +102,13 @@ LINUXKPI_PREFIXED_SYM(class_release)(struct kobject *kobj)
 		class->class_release(class);
 }
 
-static struct sysfs_ops LINUXKPI_PREFIXED_SYM(class_sysfs) = {
-	.show  = LINUXKPI_PREFIXED_SYM(class_show),
-	.store = LINUXKPI_PREFIXED_SYM(class_store),
+static struct sysfs_ops class_sysfs = {
+	.show  = class_show,
+	.store = class_store,
 };
 struct kobj_type class_ktype = {
-	.release = LINUXKPI_PREFIXED_SYM(class_release),
-	.sysfs_ops = &LINUXKPI_PREFIXED_SYM(class_sysfs)
+	.release = class_release,
+	.sysfs_ops = &class_sysfs
 };
 
 int
@@ -131,7 +131,7 @@ class_unregister(struct class *class)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(class_kfree)(struct class *class)
+class_kfree(struct class *class)
 {
 
 	kfree(class);
@@ -146,7 +146,7 @@ class_create(struct module *owner, const char *name)
 	class = kzalloc(sizeof(*class), M_WAITOK);
 	class->owner = owner;
 	class->name= name;
-	class->class_release = LINUXKPI_PREFIXED_SYM(class_kfree);
+	class->class_release = class_kfree;
 	error = class_register(class);
 	if (error) {
 		kfree(class);
@@ -183,7 +183,7 @@ class_remove_file(struct class *class, const struct class_attribute *attr)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(file_dtor)(void *cdp)
+file_dtor(void *cdp)
 {
 	struct linux_file *filp;
 
@@ -194,7 +194,7 @@ LINUXKPI_PREFIXED_SYM(file_dtor)(void *cdp)
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_open)(struct cdev *dev, int oflags, int devtype,
+dev_open(struct cdev *dev, int oflags, int devtype,
     struct thread *td)
 {
 	struct linux_cdev *ldev;
@@ -219,7 +219,7 @@ LINUXKPI_PREFIXED_SYM(dev_open)(struct cdev *dev, int oflags, int devtype,
 			return (error);
 		}
 	}
-	error = devfs_set_cdevpriv(filp, LINUXKPI_PREFIXED_SYM(file_dtor));
+	error = devfs_set_cdevpriv(filp, file_dtor);
 	if (error) {
 		filp->f_op->release(file->f_vnode, filp);
 		kfree(filp);
@@ -230,7 +230,7 @@ LINUXKPI_PREFIXED_SYM(dev_open)(struct cdev *dev, int oflags, int devtype,
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_close)(struct cdev *dev, int fflag, int devtype,
+dev_close(struct cdev *dev, int fflag, int devtype,
     struct thread *td)
 {
 	struct linux_cdev *ldev;
@@ -252,7 +252,7 @@ LINUXKPI_PREFIXED_SYM(dev_close)(struct cdev *dev, int fflag, int devtype,
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_ioctl)(struct cdev *dev, u_long cmd, caddr_t data,
+dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
     int fflag, struct thread *td)
 {
 	struct linux_cdev *ldev;
@@ -283,7 +283,7 @@ LINUXKPI_PREFIXED_SYM(dev_ioctl)(struct cdev *dev, u_long cmd, caddr_t data,
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_read)(struct cdev *dev, struct uio *uio, int ioflag)
+dev_read(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	struct linux_cdev *ldev;
 	struct linux_file *filp;
@@ -318,7 +318,7 @@ LINUXKPI_PREFIXED_SYM(dev_read)(struct cdev *dev, struct uio *uio, int ioflag)
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_write)(struct cdev *dev, struct uio *uio, int ioflag)
+dev_write(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	struct linux_cdev *ldev;
 	struct linux_file *filp;
@@ -353,7 +353,7 @@ LINUXKPI_PREFIXED_SYM(dev_write)(struct cdev *dev, struct uio *uio, int ioflag)
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_poll)(struct cdev *dev, int events, struct thread *td)
+dev_poll(struct cdev *dev, int events, struct thread *td)
 {
 	struct linux_cdev *ldev;
 	struct linux_file *filp;
@@ -377,7 +377,7 @@ LINUXKPI_PREFIXED_SYM(dev_poll)(struct cdev *dev, int events, struct thread *td)
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_mmap)(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
+dev_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
     int nprot, vm_memattr_t *memattr)
 {
 
@@ -387,7 +387,7 @@ LINUXKPI_PREFIXED_SYM(dev_mmap)(struct cdev *dev, vm_ooffset_t offset, vm_paddr_
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(dev_mmap_single)(struct cdev *dev, vm_ooffset_t *offset,
+dev_mmap_single(struct cdev *dev, vm_ooffset_t *offset,
     vm_size_t size, struct vm_object **object, int nprot)
 {
 	struct linux_cdev *ldev;
@@ -434,18 +434,18 @@ LINUXKPI_PREFIXED_SYM(dev_mmap_single)(struct cdev *dev, vm_ooffset_t *offset,
 struct cdevsw linuxkpi_cdevsw = {
 	.d_version = D_VERSION,
 	.d_flags = D_TRACKCLOSE,
-	.d_open = LINUXKPI_PREFIXED_SYM(dev_open),
-	.d_close = LINUXKPI_PREFIXED_SYM(dev_close),
-	.d_read = LINUXKPI_PREFIXED_SYM(dev_read),
-	.d_write = LINUXKPI_PREFIXED_SYM(dev_write),
-	.d_ioctl = LINUXKPI_PREFIXED_SYM(dev_ioctl),
-	.d_mmap_single = LINUXKPI_PREFIXED_SYM(dev_mmap_single),
-	.d_mmap = LINUXKPI_PREFIXED_SYM(dev_mmap),
-	.d_poll = LINUXKPI_PREFIXED_SYM(dev_poll),
+	.d_open = dev_open,
+	.d_close = dev_close,
+	.d_read = dev_read,
+	.d_write = dev_write,
+	.d_ioctl = dev_ioctl,
+	.d_mmap_single = dev_mmap_single,
+	.d_mmap = dev_mmap,
+	.d_poll = dev_poll,
 };
 
 static int
-LINUXKPI_PREFIXED_SYM(file_read)(struct file *file, struct uio *uio, struct ucred *active_cred,
+file_read(struct file *file, struct uio *uio, struct ucred *active_cred,
     int flags, struct thread *td)
 {
 	struct linux_file *filp;
@@ -475,7 +475,7 @@ LINUXKPI_PREFIXED_SYM(file_read)(struct file *file, struct uio *uio, struct ucre
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(file_poll)(struct file *file, int events, struct ucred *active_cred,
+file_poll(struct file *file, int events, struct ucred *active_cred,
     struct thread *td)
 {
 	struct linux_file *filp;
@@ -492,7 +492,7 @@ LINUXKPI_PREFIXED_SYM(file_poll)(struct file *file, int events, struct ucred *ac
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(file_close)(struct file *file, struct thread *td)
+file_close(struct file *file, struct thread *td)
 {
 	struct linux_file *filp;
 	int error;
@@ -507,7 +507,7 @@ LINUXKPI_PREFIXED_SYM(file_close)(struct file *file, struct thread *td)
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(file_ioctl)(struct file *fp, u_long cmd, void *data, struct ucred *cred,
+file_ioctl(struct file *fp, u_long cmd, void *data, struct ucred *cred,
     struct thread *td)
 {
 	struct linux_file *filp;
@@ -542,7 +542,7 @@ LINUXKPI_PREFIXED_SYM(file_ioctl)(struct file *fp, u_long cmd, void *data, struc
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(file_stat)(struct file *fp, struct stat *sb, struct ucred *active_cred,
+file_stat(struct file *fp, struct stat *sb, struct ucred *active_cred,
     struct thread *td)
 {
 
@@ -550,7 +550,7 @@ LINUXKPI_PREFIXED_SYM(file_stat)(struct file *fp, struct stat *sb, struct ucred 
 }
 
 static int
-LINUXKPI_PREFIXED_SYM(file_fill_kinfo)(struct file *fp, struct kinfo_file *kif,
+file_fill_kinfo(struct file *fp, struct kinfo_file *kif,
     struct filedesc *fdp)
 {
 
@@ -558,22 +558,22 @@ LINUXKPI_PREFIXED_SYM(file_fill_kinfo)(struct file *fp, struct kinfo_file *kif,
 }
 
 struct fileops linuxkpi_fileops = {
-	.fo_read = LINUXKPI_PREFIXED_SYM(file_read),
+	.fo_read = file_read,
 	.fo_write = invfo_rdwr,
 	.fo_truncate = invfo_truncate,
 	.fo_kqfilter = invfo_kqfilter,
-	.fo_stat = LINUXKPI_PREFIXED_SYM(file_stat),
-	.fo_fill_kinfo = LINUXKPI_PREFIXED_SYM(file_fill_kinfo),
-	.fo_poll = LINUXKPI_PREFIXED_SYM(file_poll),
-	.fo_close = LINUXKPI_PREFIXED_SYM(file_close),
-	.fo_ioctl = LINUXKPI_PREFIXED_SYM(file_ioctl),
+	.fo_stat = file_stat,
+	.fo_fill_kinfo = file_fill_kinfo,
+	.fo_poll = file_poll,
+	.fo_close = file_close,
+	.fo_ioctl = file_ioctl,
 	.fo_chmod = invfo_chmod,
 	.fo_chown = invfo_chown,
 	.fo_sendfile = invfo_sendfile,
 };
 
 static void
-LINUXKPI_PREFIXED_SYM(device_release)(struct kobject *kobj)
+device_release(struct kobject *kobj)
 {
 	struct device *dev;
 
@@ -586,7 +586,7 @@ LINUXKPI_PREFIXED_SYM(device_release)(struct kobject *kobj)
 }
 
 static ssize_t
-LINUXKPI_PREFIXED_SYM(dev_show)(struct kobject *kobj, struct attribute *attr,
+dev_show(struct kobject *kobj, struct attribute *attr,
     char *buf)
 {
 	struct device_attribute *dattr;
@@ -601,7 +601,7 @@ LINUXKPI_PREFIXED_SYM(dev_show)(struct kobject *kobj, struct attribute *attr,
 }
 
 static ssize_t
-LINUXKPI_PREFIXED_SYM(dev_store)(struct kobject *kobj, struct attribute *attr,
+dev_store(struct kobject *kobj, struct attribute *attr,
     const char *buf, size_t count)
 {
 	struct device_attribute *dattr;
@@ -615,13 +615,13 @@ LINUXKPI_PREFIXED_SYM(dev_store)(struct kobject *kobj, struct attribute *attr,
 	return (error);
 }
 
-static struct sysfs_ops LINUXKPI_PREFIXED_SYM(dev_sysfs) = {
-	.show  = LINUXKPI_PREFIXED_SYM(dev_show),
-	.store = LINUXKPI_PREFIXED_SYM(dev_store),
+static struct sysfs_ops dev_sysfs = {
+	.show  = dev_show,
+	.store = dev_store,
 };
 struct kobj_type dev_ktype = {
-	.release = LINUXKPI_PREFIXED_SYM(device_release),
-	.sysfs_ops = &LINUXKPI_PREFIXED_SYM(dev_sysfs)
+	.release = device_release,
+	.sysfs_ops = &dev_sysfs
 };
 
 /*
@@ -670,7 +670,7 @@ device_unregister(struct device *dev)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(dev_release)(struct device *dev)
+dev_release(struct device *dev)
 {
 	pr_debug("dev_release: %s\n", dev_name(dev));
 	kfree(dev);
@@ -688,7 +688,7 @@ device_create(struct class *class, struct device *parent, dev_t devt,
 	dev->class = class;
 	dev->devt = devt;
 	dev->driver_data = drvdata;
-	dev->release = LINUXKPI_PREFIXED_SYM(dev_release);
+	dev->release = dev_release;
 	va_start(args, fmt);
 	kobject_set_name_vargs(&dev->kobj, fmt, args);
 	va_end(args);

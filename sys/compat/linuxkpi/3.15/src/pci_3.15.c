@@ -60,14 +60,10 @@ struct list_head pci_drivers;
 struct list_head pci_devices;
 spinlock_t pci_lock;
 
-#define pci_probe LINUXKPI_PREFIXED_SYM(pci_probe)
 static device_probe_t pci_probe;
-#define pci_attach LINUXKPI_PREFIXED_SYM(pci_attach)
 static device_attach_t pci_attach;
-#define pci_detach LINUXKPI_PREFIXED_SYM(pci_detach)
 static device_detach_t pci_detach;
 
-#define pci_methods LINUXKPI_PREFIXED_SYM(pci_methods)
 static device_method_t pci_methods[] = {
 	DEVMETHOD(device_probe, pci_probe),
 	DEVMETHOD(device_attach, pci_attach),
@@ -75,7 +71,6 @@ static device_method_t pci_methods[] = {
 	DEVMETHOD_END
 };
 
-#define pci_find LINUXKPI_PREFIXED_SYM(pci_find)
 static struct pci_driver *
 pci_find(device_t dev, const struct pci_device_id **idp)
 {

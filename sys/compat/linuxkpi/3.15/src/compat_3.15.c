@@ -71,9 +71,7 @@ struct vmmaphd {
 #define	VMMAP_HASH_SIZE	64
 #define	VMMAP_HASH_MASK	(VMMAP_HASH_SIZE - 1)
 #define	VM_HASH(addr)	((uintptr_t)(addr) >> PAGE_SHIFT) & VMMAP_HASH_MASK
-#define vmmaphead LINUXKPI_PREFIXED_SYM(vmmaphead)
 static struct vmmaphd vmmaphead[VMMAP_HASH_SIZE];
-#define vmmaplock LINUXKPI_PREFIXED_SYM(vmmaplock)
 static struct mtx vmmaplock;
 
 static void
@@ -171,7 +169,7 @@ linux_timer_jiffies_until(unsigned long expires)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(timer_callback_wrapper)(void *context)
+timer_callback_wrapper(void *context)
 {
 	struct timer_list *timer;
 
@@ -186,7 +184,7 @@ mod_timer(struct timer_list *timer, unsigned long expires)
 	timer->expires = expires;
 	callout_reset(&timer->timer_callout,
 	    linux_timer_jiffies_until(expires),
-	    &LINUXKPI_PREFIXED_SYM(timer_callback_wrapper), timer);
+	    &timer_callback_wrapper, timer);
 }
 
 void
@@ -195,11 +193,11 @@ add_timer(struct timer_list *timer)
 
 	callout_reset(&timer->timer_callout,
 	    linux_timer_jiffies_until(timer->expires),
-	    &LINUXKPI_PREFIXED_SYM(timer_callback_wrapper), timer);
+	    &timer_callback_wrapper, timer);
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(timer_init)(void *arg)
+timer_init(void *arg)
 {
 
 	/*
@@ -212,7 +210,7 @@ LINUXKPI_PREFIXED_SYM(timer_init)(void *arg)
 		timer_hz_mask *= 2;
 	timer_hz_mask--;
 }
-SYSINIT(linuxkpi_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, LINUXKPI_PREFIXED_SYM(timer_init), NULL);
+SYSINIT(linuxkpi_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, timer_init, NULL);
 
 void
 complete_common(struct completion *c, int all)
@@ -357,7 +355,7 @@ kasprintf(gfp_t gfp, const char *fmt, ...)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(compat_init)(void *arg)
+compat_init(void *arg)
 {
 	struct sysctl_oid *rootoid;
 	int i;
@@ -384,10 +382,10 @@ LINUXKPI_PREFIXED_SYM(compat_init)(void *arg)
 		LIST_INIT(&vmmaphead[i]);
 }
 SYSINIT(linuxkpi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
-    LINUXKPI_PREFIXED_SYM(compat_init), NULL);
+    compat_init, NULL);
 
 static void
-LINUXKPI_PREFIXED_SYM(compat_uninit)(void *arg)
+compat_uninit(void *arg)
 {
 	kobject_kfree_name(&class_root);
 	kobject_kfree_name(&linuxkpi_rootdev.kobj);
@@ -395,4 +393,4 @@ LINUXKPI_PREFIXED_SYM(compat_uninit)(void *arg)
 }
 
 SYSUNINIT(linuxkpi_compat, SI_SUB_DRIVERS, SI_ORDER_SECOND,
-    LINUXKPI_PREFIXED_SYM(compat_uninit), NULL);
+    compat_uninit, NULL);

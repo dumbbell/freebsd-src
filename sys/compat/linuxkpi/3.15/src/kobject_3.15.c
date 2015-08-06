@@ -98,7 +98,7 @@ kobject_set_name(struct kobject *kobj, const char *fmt, ...)
 }
 
 static inline int
-LINUXKPI_PREFIXED_SYM(kobject_add_complete)(struct kobject *kobj, struct kobject *parent)
+kobject_add_complete(struct kobject *kobj, struct kobject *parent)
 {
 	struct kobj_type *t;
 	int error;
@@ -133,7 +133,7 @@ kobject_add(struct kobject *kobj, struct kobject *parent, const char *fmt, ...)
 	if (error)
 		return (error);
 
-	return LINUXKPI_PREFIXED_SYM(kobject_add_complete)(kobj, parent);
+	return kobject_add_complete(kobj, parent);
 }
 
 static void
@@ -154,7 +154,7 @@ kobject_release(struct kref *kref)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(kobject_kfree)(struct kobject *kobj)
+kobject_kfree(struct kobject *kobj)
 {
 	kfree(kobj);
 }
@@ -167,7 +167,7 @@ kobject_kfree_name(struct kobject *kobj)
 	}
 }
 
-struct kobj_type kfree_type = { .release = LINUXKPI_PREFIXED_SYM(kobject_kfree) };
+struct kobj_type kfree_type = { .release = kobject_kfree };
 
 int
 kobject_init_and_add(struct kobject *kobj, struct kobj_type *ktype,
@@ -186,7 +186,7 @@ kobject_init_and_add(struct kobject *kobj, struct kobj_type *ktype,
 	va_end(args);
 	if (error)
 		return (error);
-	return LINUXKPI_PREFIXED_SYM(kobject_add_complete)(kobj, parent);
+	return kobject_add_complete(kobj, parent);
 }
 
 struct kobject *

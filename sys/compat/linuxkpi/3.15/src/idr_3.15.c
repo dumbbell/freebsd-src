@@ -87,7 +87,7 @@ idr_destroy(struct idr *idr)
 }
 
 static void
-LINUXKPI_PREFIXED_SYM(idr_remove_layer)(struct idr_layer *il, int layer)
+idr_remove_layer(struct idr_layer *il, int layer)
 {
 	int i;
 
@@ -99,7 +99,7 @@ LINUXKPI_PREFIXED_SYM(idr_remove_layer)(struct idr_layer *il, int layer)
 	}
 	for (i = 0; i < IDR_SIZE; i++)
 		if (il->ary[i])
-			LINUXKPI_PREFIXED_SYM(idr_remove_layer)(il->ary[i], layer - 1);
+			idr_remove_layer(il->ary[i], layer - 1);
 }
 
 void
@@ -107,7 +107,7 @@ idr_remove_all(struct idr *idr)
 {
 
 	mtx_lock(&idr->lock);
-	LINUXKPI_PREFIXED_SYM(idr_remove_layer)(idr->top, idr->layers - 1);
+	idr_remove_layer(idr->top, idr->layers - 1);
 	idr->top = NULL;
 	idr->layers = 0;
 	mtx_unlock(&idr->lock);
