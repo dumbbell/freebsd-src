@@ -234,11 +234,12 @@ fb_init(void)
 }
 SYSINIT(fb_init, SI_SUB_KLD, SI_ORDER_MIDDLE, fb_init, NULL);
 
-void
-linux_fb_destroy(void)
+static void
+fb_destroy(void)
 {
 	class_destroy(fb_class);
 }
+SYSUNINIT(fb_destroy, SI_SUB_KLD, SI_ORDER_MIDDLE, fb_destroy, NULL);
 
 
 struct linux_fb_info *
