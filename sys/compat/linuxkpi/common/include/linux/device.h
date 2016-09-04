@@ -60,6 +60,7 @@ struct class {
 	struct module	*owner;
 	struct kobject	kobj;
 	devclass_t	bsdclass;
+	struct pfs_node	*sd;
 	const struct attribute_group	**dev_groups;
 	void		(*class_release)(struct class *class);
 	void		(*dev_release)(struct device *dev);
@@ -330,13 +331,14 @@ class_register(struct class *class)
 	kobject_init(&class->kobj, &linux_class_ktype);
 	kobject_set_name(&class->kobj, class->name);
 	kobject_add(&class->kobj, &linux_class_root, class->name);
-	linsysfs_create_class_dir(&class->kobj, class->name);
+	class->sd = linsysfs_create_class_dir(class, class->name);
 	return (0);
 }
 
 static inline void
 class_unregister(struct class *class)
 {
+	linsysfs_destroy_class_dir(class);
 	kobject_put(&class->kobj);
 }
 
@@ -713,7 +715,7 @@ class_create(struct module *owner, const char *name)
 
 	class = kzalloc(sizeof(*class), M_WAITOK);
 	class->owner = owner;
-	class->name= name;
+	class->name = name;
 	class->class_release = linux_class_kfree;
 	error = class_register(class);
 	if (error) {
