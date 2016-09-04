@@ -216,6 +216,14 @@ fbd_init(struct linux_fb_info *fb_info, int unit)
 	return (0);
 }
 
+static int
+fbd_destroy(struct linux_fb_info *fb_info)
+{
+	destroy_dev(fb_info->fb_cdev);
+
+	return (0);
+}
+
 
 static int
 fb_init(void)
@@ -531,7 +539,7 @@ __register_framebuffer(struct linux_fb_info *fb_info)
 			fb_info->pixmap.access_align = 32;
 			fb_info->pixmap.flags = FB_PIXMAP_DEFAULT;
 		}
-	}	
+	}
 	fb_info->pixmap.offset = 0;
 
 	if (!fb_info->pixmap.blit_x)
@@ -571,14 +579,14 @@ __register_framebuffer(struct linux_fb_info *fb_info)
 	}
 	fb_info_print(&fb_info->fbio);
 
-#if 0	
+#if 0
 	if (!lock_fb_info(fb_info))
 		return -ENODEV;
 	console_lock();
 	fb_notifier_call_chain(FB_EVENT_FB_REGISTERED, &event);
 	console_unlock();
 	unlock_fb_info(fb_info);
-#endif	
+#endif
 	return 0;
 }
 
@@ -633,9 +641,10 @@ __unregister_framebuffer(struct linux_fb_info *fb_info)
 	}
 	if (num_registered_fb == 1)
 		vt_fb_detach(&fb_info->fbio);
+	fbd_destroy(fb_info);
 
 
-#if 0	
+#if 0
 	if (!lock_fb_info(fb_info))
 		return -ENODEV;
 	console_lock();
@@ -647,7 +656,7 @@ __unregister_framebuffer(struct linux_fb_info *fb_info)
 	if (ret)
 		return -EINVAL;
 #endif
-	
+
 	unlink_framebuffer(fb_info);
 	if (fb_info->pixmap.addr &&
 	    (fb_info->pixmap.flags & FB_PIXMAP_DEFAULT))
@@ -657,7 +666,7 @@ __unregister_framebuffer(struct linux_fb_info *fb_info)
 	num_registered_fb--;
 	event.info = fb_info;
 
-#if 0	
+#if 0
 	console_lock();
 	fb_notifier_call_chain(FB_EVENT_FB_UNREGISTERED, &event);
 	console_unlock();
@@ -680,7 +689,7 @@ unregister_framebuffer(struct linux_fb_info *fb_info)
 void
 fb_set_suspend(struct linux_fb_info *info, int state)
 {
-#if 0	
+#if 0
 	struct fb_event event;
 
 	event.info = info;
@@ -691,7 +700,7 @@ fb_set_suspend(struct linux_fb_info *info, int state)
 		info->state = FBINFO_STATE_RUNNING;
 		fb_notifier_call_chain(FB_EVENT_RESUME, &event);
 	}
-#endif	
+#endif
 }
 
 
@@ -830,7 +839,7 @@ fb_sys_read(struct linux_fb_info *info, char *ubuf, size_t count,
 		return -EPERM;
 
 	total_size = info->screen_size ? info->screen_size : info->fix.smem_len;
-	
+
 	if (p >= total_size)
 		return 0;
 
