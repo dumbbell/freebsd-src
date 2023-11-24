@@ -920,12 +920,11 @@ vpanic(const char *fmt, va_list ap)
 	 */
 	td->td_stopsched = 1;
 
-	bootopt = RB_AUTOBOOT;
+	bootopt = RB_AUTOBOOT | RB_DUMP;
 	newpanic = 0;
 	if (KERNEL_PANICKED())
 		bootopt |= RB_NOSYNC;
 	else {
-		bootopt |= RB_DUMP;
 		panicstr = fmt;
 		panicked = true;
 		newpanic = 1;
