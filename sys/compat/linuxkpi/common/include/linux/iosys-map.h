@@ -9,13 +9,13 @@
  * DRM driver version we support.
  */
 
-#ifndef _LINUX_DMA_BUF_MAP_H
-#define _LINUX_DMA_BUF_MAP_H
+#ifndef _LINUX_IOSYS_MAP_H
+#define _LINUX_IOSYS_MAP_H
 
 #include <linux/io.h>
 #include <linux/string.h>
 
-struct dma_buf_map {
+struct iosys_map {
 	union {
 		void *vaddr_iomem;
 		void *vaddr;
@@ -24,7 +24,7 @@ struct dma_buf_map {
 };
 
 static inline void
-dma_buf_map_incr(struct dma_buf_map *dbm, size_t n)
+iosys_map_incr(struct iosys_map *dbm, size_t n)
 {
 	if (dbm->is_iomem)
 		dbm->vaddr_iomem += n;
@@ -33,7 +33,7 @@ dma_buf_map_incr(struct dma_buf_map *dbm, size_t n)
 }
 
 static inline void
-dma_buf_map_memcpy_to(struct dma_buf_map *dbm, const void *src, size_t len)
+iosys_map_memcpy_to(struct iosys_map *dbm, const void *src, size_t len)
 {
 	if (dbm->is_iomem)
 		memcpy_toio(dbm->vaddr_iomem, src, len);
@@ -42,7 +42,7 @@ dma_buf_map_memcpy_to(struct dma_buf_map *dbm, const void *src, size_t len)
 }
 
 static inline bool
-dma_buf_map_is_null(const struct dma_buf_map *dbm)
+iosys_map_is_null(const struct iosys_map *dbm)
 {
 	if (dbm->is_iomem)
 		return (dbm->vaddr_iomem == NULL);
@@ -51,7 +51,7 @@ dma_buf_map_is_null(const struct dma_buf_map *dbm)
 }
 
 static inline bool
-dma_buf_map_is_set(const struct dma_buf_map *dbm)
+iosys_map_is_set(const struct iosys_map *dbm)
 {
 	if (dbm->is_iomem)
 		return (dbm->vaddr_iomem != NULL);
@@ -60,8 +60,8 @@ dma_buf_map_is_set(const struct dma_buf_map *dbm)
 }
 
 static inline bool
-dma_buf_map_is_equal(
-    const struct dma_buf_map *dbm_a, const struct dma_buf_map *dbm_b)
+iosys_map_is_equal(
+    const struct iosys_map *dbm_a, const struct iosys_map *dbm_b)
 {
 	if (dbm_a->is_iomem != dbm_b->is_iomem)
 		return (false);
@@ -73,7 +73,7 @@ dma_buf_map_is_equal(
 }
 
 static inline void
-dma_buf_map_clear(struct dma_buf_map *dbm)
+iosys_map_clear(struct iosys_map *dbm)
 {
 	if (dbm->is_iomem) {
 		dbm->vaddr_iomem = NULL;
@@ -84,14 +84,14 @@ dma_buf_map_clear(struct dma_buf_map *dbm)
 }
 
 static inline void
-dma_buf_map_set_vaddr_iomem(struct dma_buf_map *dbm, void *addr)
+iosys_map_set_vaddr_iomem(struct iosys_map *dbm, void *addr)
 {
 	dbm->vaddr_iomem = addr;
 	dbm->is_iomem = true;
 }
 
 static inline void
-dma_buf_map_set_vaddr(struct dma_buf_map *dbm, void *addr)
+iosys_map_set_vaddr(struct iosys_map *dbm, void *addr)
 {
 	dbm->vaddr = addr;
 	dbm->is_iomem = false;
