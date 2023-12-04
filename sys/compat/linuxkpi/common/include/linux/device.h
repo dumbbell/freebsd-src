@@ -212,6 +212,14 @@ show_class_attr_string(struct class *class,
 	}							\
 } while (0)
 
+#define dev_dbg_once(dev, ...) do {		\
+	static bool __dev_dbg_once;		\
+	if (!__dev_dbg_once) {			\
+	__dev_dbg_once = true;			\
+	dev_dbg(dev, __VA_ARGS__);		\
+	}					\
+} while (0)
+
 #define dev_info_once(dev, ...) do {		\
 	static bool __dev_info_once;		\
 	if (!__dev_info_once) {			\
@@ -246,6 +254,12 @@ show_class_attr_string(struct class *class,
 	static linux_ratelimit_t __ratelimited;	\
 	if (linux_ratelimited(&__ratelimited))	\
 		dev_warn(dev, __VA_ARGS__);	\
+} while (0)
+
+#define	dev_info_ratelimited(dev, ...) do {	\
+	static linux_ratelimit_t __ratelimited;	\
+	if (linux_ratelimited(&__ratelimited))	\
+		dev_info(dev, __VA_ARGS__);	\
 } while (0)
 
 #define	dev_dbg_ratelimited(dev, ...) do {	\
