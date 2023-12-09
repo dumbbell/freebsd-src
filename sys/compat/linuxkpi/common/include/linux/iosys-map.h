@@ -53,6 +53,46 @@ iosys_map_memcpy_to(struct iosys_map *dbm, const void *src, size_t len)
 }
 #endif
 
+static inline void
+iosys_map_memcpy_from(void *dbm, const struct iosys_map *src,
+    size_t src_offset, size_t len)
+{
+	if (src->is_iomem)
+		memcpy_toio(dbm, src->vaddr_iomem + src_offset, len);
+	else
+		memcpy(dbm, src->vaddr + src_offset, len);
+}
+
+#define	iosys_map_rd(map, offset, type) \
+({ \
+	type __var; \
+	iosys_map_memcpy_from(&__var, map, offset, sizeof(__var)); \
+	__var; \
+})
+
+#define	iosys_map_wr(map, offset, type, value) \
+({ \
+	type __var = (value); \
+	iosys_map_memcpy_to(map, offset, &__var, sizeof(__var)); \
+})
+
+#define	iosys_map_rd_field(map, offset, struct_type, field) \
+({ \
+	struct_type *__struct; \
+	iosys_map_rd(map, \
+	    offset + offsetof(struct_type, field), \
+	    typeof(__struct->field)); \
+})
+
+#define	iosys_map_wr_field(map, offset, struct_type, field, value) \
+({ \
+	struct_type *__struct; \
+	iosys_map_wr(map, \
+	    offset + offsetof(struct_type, field), \
+	    typeof(__struct->field), \
+	    value); \
+})
+
 static inline bool
 iosys_map_is_null(const struct iosys_map *dbm)
 {
