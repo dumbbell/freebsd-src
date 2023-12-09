@@ -23,6 +23,20 @@ struct iosys_map {
 	bool is_iomem;
 };
 
+#define	IOSYS_MAP_INIT_VADDR(_vaddr) \
+{ \
+	.vaddr = (_vaddr), \
+	is_iomem = false, \
+}
+
+#define	IOSYS_MAP_INIT_OFFSET(map, offset) \
+({ \
+	struct iosys_map __copy; \
+	__copy = *map; \
+	iosys_map_incr(&__copy, offset); \
+	__copy; \
+})
+
 static inline void
 iosys_map_incr(struct iosys_map *dbm, size_t n)
 {
