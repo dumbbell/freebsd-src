@@ -32,6 +32,17 @@ iosys_map_incr(struct iosys_map *dbm, size_t n)
 		dbm->vaddr += n;
 }
 
+#if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51801
+static inline void
+iosys_map_memcpy_to(struct iosys_map *dbm, size_t dbm_offset, const void *src,
+    size_t len)
+{
+	if (dbm->is_iomem)
+		memcpy_toio(dbm->vaddr_iomem + dbm_offset, src, len);
+	else
+		memcpy(dbm->vaddr + dbm_offset, src, len);
+}
+#else
 static inline void
 iosys_map_memcpy_to(struct iosys_map *dbm, const void *src, size_t len)
 {
@@ -40,6 +51,7 @@ iosys_map_memcpy_to(struct iosys_map *dbm, const void *src, size_t len)
 	else
 		memcpy(dbm->vaddr, src, len);
 }
+#endif
 
 static inline bool
 iosys_map_is_null(const struct iosys_map *dbm)
