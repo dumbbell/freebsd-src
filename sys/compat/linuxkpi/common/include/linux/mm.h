@@ -161,6 +161,23 @@ virt_to_head_page(const void *p)
 	return (virt_to_page(p));
 }
 
+static inline struct folio *
+virt_to_folio(const void *p)
+{
+	struct page *page = virt_to_page(p);
+
+	return (page_folio(page));
+}
+
+static inline void
+folio_put(struct folio *folio)
+{
+	struct page *page;
+
+	page = &folio->page;
+	__free_page(page);
+}
+
 /*
  * Compute log2 of the power of two rounded up count of pages
  * needed for size bytes.
@@ -184,7 +201,7 @@ get_order(unsigned long size)
  *
  * NOTE: This function only works for pages allocated by the kernel.
  */
-void *linux_page_address(struct page *);
+void *linux_page_address(const struct page *);
 #define	page_address(page) linux_page_address(page)
 
 static inline void *
@@ -410,6 +427,36 @@ static inline bool
 want_init_on_free(void)
 {
 	return (false);
+}
+
+static inline unsigned long
+folio_pfn(struct folio *folio)
+{
+	return (page_to_pfn(&folio->page));
+}
+
+static inline long
+folio_nr_pages(struct folio *folio)
+{
+	return (1);
+}
+
+static inline size_t
+folio_size(struct folio *folio)
+{
+	return (PAGE_SIZE);
+}
+
+static inline void
+folio_mark_dirty(struct folio *folio)
+{
+	set_page_dirty(&folio->page);
+}
+
+static inline void *
+folio_address(const struct folio *folio)
+{
+	return (page_address(&folio->page));
 }
 
 #endif					/* _LINUXKPI_LINUX_MM_H_ */

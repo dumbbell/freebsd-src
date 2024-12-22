@@ -79,4 +79,12 @@ mmgrab(struct mm_struct *mm)
 extern struct mm_struct *linux_get_task_mm(struct task_struct *);
 #define	get_task_mm(task) linux_get_task_mm(task)
 
+struct folio {
+	/*
+	 * The page member must be at the beginning because `page_folio(p)`
+	 * casts from a struct page to a struct folio.
+	 */
+	struct page page;
+};
+
 #endif					/* _LINUXKPI_LINUX_MM_TYPES_H_ */
