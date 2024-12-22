@@ -1,17 +1,18 @@
 /*-
- * SPDX-License-Identifier: BSD-2-Clause
+ * Copyright (c) 2024-2025 The FreeBSD Foundation
+ * Copyright (c) 2024-2025 Jean-Sébastien Pédron
  *
- * Copyright (c) 2022 Jean-Sébastien Pédron <dumbbell@FreeBSD.org>
+ * This software was developed by Jean-Sébastien Pédron under sponsorship
+ * from the FreeBSD Foundation.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ * modification, are permitted provided that the following conditions
+ * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -26,16 +27,34 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _LINUXKPI_LINUX_PAGEFLAGS_H_
-#define _LINUXKPI_LINUX_PAGEFLAGS_H_
-
+#include <linux/gfp.h>
+#include <linux/mm.h>
 #include <linux/mm_types.h>
+#include <linux/page.h>
+#include <linux/pagevec.h>
 
-#define	PageHighMem(p)		(0)
+struct folio *
+folio_alloc(gfp_t gfp, unsigned int order)
+{
+	struct page *page;
+	struct folio *folio;
 
-#define	page_folio(p) \
-    (_Generic((p), \
-	      const struct page *: (const struct folio *)(p), \
-	      struct page *: (struct folio *)(p)))
+	page = alloc_pages(gfp | __GFP_COMP, order);
+	folio = (struct folio *)page;
 
-#endif	/* _LINUXKPI_LINUX_PAGEFLAGS_H_ */
+	return (folio);
+}
+
+void
+__folio_batch_release(struct folio_batch *fbatch)
+{
+	int i;
+	struct folio *folio;
+
+	for (i = 0; i < folio_batch_count(fbatch); i++) {
+		folio = fbatch->folios[i];
+		put_page(&folio->page);
+	}
+
+	folio_batch_reinit(fbatch);
+}
