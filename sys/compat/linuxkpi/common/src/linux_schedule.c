@@ -30,6 +30,7 @@
 #include <sys/signalvar.h>
 #include <sys/sleepqueue.h>
 
+#include <asm/barrier.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -180,6 +181,29 @@ default_wake_function(wait_queue_t *wq, unsigned int state, int flags,
     void *key __unused)
 {
 	return (wake_up_task(wq->private, state));
+}
+
+int
+woken_wake_function(wait_queue_t *wq, unsigned int state, int flags,
+    void *key)
+{
+	smp_mb();
+	wq->flags |= WQ_FLAG_WOKEN;
+
+	return (default_wake_function(wq, state, flags, key));
+}
+
+long
+wait_woken(wait_queue_t *wq, unsigned state, long timeout)
+{
+	set_task_state(current, state);
+	if (!(wq->flags & WQ_FLAG_WOKEN))
+		timeout = linux_schedule_timeout(timeout);
+	set_task_state(current, TASK_RUNNING);
+
+	smp_store_mb(wq->flags, wq->flags & ~WQ_FLAG_WOKEN);
+
+	return (timeout);
 }
 
 void
