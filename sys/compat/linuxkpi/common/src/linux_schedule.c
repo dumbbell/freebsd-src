@@ -217,6 +217,58 @@ default_wake_function(wait_queue_t *wq, unsigned int state, int flags,
 	return (wake_up_task(wq->private, state));
 }
 
+long
+linux_wait_woken(wait_queue_t *wq, unsigned state, long timeout)
+{
+	void *wchan;
+	struct task_struct *task;
+	int ret;
+	int remainder;
+
+	wchan = wq->private;
+
+	task = current;
+	timeout = convert_to_sleepqueue_timeout(timeout);
+	remainder = compute_timeout_expiry(timeout);
+
+	set_task_state(task, state);
+
+	sleepq_lock(wchan);
+	if (!(wq->flags & WQ_FLAG_WOKEN)) {
+		ret = linux_add_to_sleepqueue(wchan, task, "woken",
+		    timeout, state);
+	} else {
+		sleepq_release(wchan);
+		ret = 0;
+	}
+
+	set_task_state(task, TASK_RUNNING);
+	wq->flags &= ~WQ_FLAG_WOKEN;
+
+	if (timeout == 0)
+		return (MAX_SCHEDULE_TIMEOUT);
+
+	remainder = compute_timeout_remainder(ret, timeout, remainder);
+
+	return (remainder);
+}
+
+int
+woken_wake_function(wait_queue_t *wq, unsigned int state,
+    int flags __unused, void *key __unused)
+{
+	void *wchan;
+
+	wchan = wq->private;
+
+	sleepq_lock(wchan);
+	wq->flags |= WQ_FLAG_WOKEN;
+	sleepq_signal(wchan, SLEEPQ_SLEEP, 0, 0);
+	sleepq_release(wchan);
+
+	return (1);
+}
+
 void
 linux_init_wait_entry(wait_queue_t *wq, int flags)
 {
