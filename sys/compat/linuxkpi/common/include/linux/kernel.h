@@ -138,11 +138,6 @@ extern int linuxkpi_warn_dump_stack;
 extern void linux_dump_stack(void);
 #define	dump_stack()		linux_dump_stack()
 
-struct va_format {
-	const char *fmt;
-	va_list *va;
-};
-
 static inline int
 vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
