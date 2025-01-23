@@ -665,6 +665,7 @@ kvprintf(char const *fmt, void (*func)(int, void*), void *arg, int radix, va_lis
 	char nbuf[MAXNBUF];
 	char *d;
 	const char *p, *percent, *q;
+	struct va_format *vaf;
 	u_char *up;
 	int ch, n, sign;
 	uintmax_t num;
@@ -819,11 +820,35 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			base = 8;
 			goto handle_nosign;
 		case 'p':
-			base = 16;
-			sharpflag = (width == 0);
-			sign = 0;
-			num = (uintptr_t)va_arg(ap, void *);
-			goto number;
+			switch (*fmt) {
+			case 'V':
+				fmt++;
+
+				vaf = va_arg(ap, struct va_format *);
+				if (vaf == NULL) {
+					p = "(null)";
+					n = strlen(p);
+					while (n--)
+						PCHAR(*p++);
+					break;
+				}
+
+				if (func) {
+					retval += kvprintf(vaf->fmt, func, arg, radix,
+					    *vaf->va);
+				} else {
+					retval += kvprintf(vaf->fmt, NULL, d, radix,
+					    *vaf->va);
+				}
+				break;
+			default:
+				base = 16;
+				sharpflag = (width == 0);
+				sign = 0;
+				num = (uintptr_t)va_arg(ap, void *);
+				goto number;
+			}
+			break;
 		case 'q':
 			qflag = 1;
 			goto reswitch;
