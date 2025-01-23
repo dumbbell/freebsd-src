@@ -251,6 +251,11 @@ void	hexdump(const void *ptr, int length, const char *hdr, int flags);
 #define	HD_OMIT_HEX	(1 << 17)
 #define	HD_OMIT_CHARS	(1 << 18)
 
+struct va_format {
+	const char	*fmt;
+	__va_list	*va;
+};
+
 #define ovbcopy(f, t, l) bcopy((f), (t), (l))
 void	explicit_bzero(void * _Nonnull, size_t);
 
