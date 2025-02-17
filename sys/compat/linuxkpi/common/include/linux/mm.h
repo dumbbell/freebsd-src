@@ -169,16 +169,6 @@ virt_to_folio(const void *p)
 	return (page_folio(page));
 }
 
-static inline void
-folio_put(struct folio *folio)
-{
-	struct page *page;
-
-	/* `__free_page()` takes care of the refcounting (unwire). */
-	page = &folio->page;
-	__free_page(page);
-}
-
 /*
  * Compute log2 of the power of two rounded up count of pages
  * needed for size bytes.
@@ -293,6 +283,37 @@ get_page(struct page *page)
 	vm_page_wire(page);
 }
 
+static inline void
+folio_get(struct folio *folio)
+{
+	get_page(&folio->page);
+}
+
+static inline void
+put_page(struct page *page)
+{
+	/* `__free_page()` takes care of the refcounting (unwire). */
+	__free_page(page);
+}
+
+static inline void
+folio_put(struct folio *folio)
+{
+	put_page(&folio->page);
+}
+
+/*
+ * Linux uses the following "transparent" union so that `release_pages()`
+ * accepts both a list of `struct page` or a list of `struct folio`. This
+ * relies on the fact that a `struct folio` can be casted to a `struct page`.
+ */
+typedef union {
+	struct page **pages;
+	struct folio **folios;
+} release_pages_arg __attribute__ ((__transparent_union__));
+
+void release_pages(release_pages_arg arg, int nr);
+
 extern long
 lkpi_get_user_pages(unsigned long start, unsigned long nr_pages,
     unsigned int gup_flags, struct page **);
@@ -347,12 +368,6 @@ pin_user_pages_remote(struct task_struct *task, struct mm_struct *mm,
 {
 	return get_user_pages_remote(
 	    task, mm, start, nr_pages, gup_flags, pages, vmas);
-}
-
-static inline void
-put_page(struct page *page)
-{
-	vm_page_unwire(page, PQ_ACTIVE);
 }
 
 #define	unpin_user_page(page) put_page(page)

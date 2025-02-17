@@ -52,30 +52,7 @@ folio_alloc(gfp_t gfp, unsigned int order)
 void
 __folio_batch_release(struct folio_batch *fbatch)
 {
-	int i;
-	struct folio *folio;
-
-	/*
-	 * On Linux, this function calls:
-	 *     release_pages(fbatch->folios, ...)
-	 * because it accepts both an array of struct pages pointers and an
-	 * array of struct folio pointers (a struct folio starts with a struct
-	 * page).
-	 *
-	 * However, our copy of `release_batch()` and `put_page()` only wrap
-	 * `vm_page_unwire()`, whereas our `__free_pages()` does more to undo
-	 * `alloc_pages()`.
-	 *
-	 * As we use `alloc_pages()` to allocate pages in `folio_alloc()`, we
-	 * have to use `__free_pages()` here. Curiously,
-	 * `__folio_batch_release()` on Linux releases pages directly too,
-	 * instead of using `folios_put()`.
-	 */
-	for (i = 0; i < folio_batch_count(fbatch); i++) {
-		/* `__free_page()` takes care of the refcounting (unwire). */
-		folio = fbatch->folios[i];
-		__free_page(&folio->page);
-	}
+	release_pages(fbatch->folios, folio_batch_count(fbatch));
 
 	folio_batch_reinit(fbatch);
 }

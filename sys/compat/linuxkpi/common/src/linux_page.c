@@ -164,8 +164,12 @@ linux_free_pages(struct page *page, unsigned int order)
 		for (x = 0; x != npages; x++) {
 			vm_page_t pgo = page + x;
 
-			if (vm_page_unwire_noq(pgo))
-				vm_page_free(pgo);
+			if ((pgo->oflags & VPO_UNMANAGED) == 0) {
+				vm_page_unwire(pgo, PQ_ACTIVE);
+			} else {
+				if (vm_page_unwire_noq(pgo))
+					vm_page_free(pgo);
+			}
 		}
 	} else {
 		vm_offset_t vaddr;
@@ -174,6 +178,15 @@ linux_free_pages(struct page *page, unsigned int order)
 
 		_linux_free_kmem(vaddr, order);
 	}
+}
+
+void
+release_pages(release_pages_arg arg, int nr)
+{
+	int i;
+
+	for (i = 0; i < nr; i++)
+		__free_page(arg.pages[i]);
 }
 
 vm_offset_t

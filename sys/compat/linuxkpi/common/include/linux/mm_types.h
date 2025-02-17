@@ -82,7 +82,10 @@ extern struct mm_struct *linux_get_task_mm(struct task_struct *);
 struct folio {
 	/*
 	 * The page member must be at the beginning because `page_folio(p)`
-	 * casts from a struct page to a struct folio.
+	 * casts from a `struct page` to a `struct folio`.
+	 *
+	 * `release_pages()` also relies on this to be able to accept either a
+	 * list of `struct page` or a list of `struct folio`.
 	 */
 	struct page page;
 };
