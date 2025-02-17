@@ -174,6 +174,7 @@ folio_put(struct folio *folio)
 {
 	struct page *page;
 
+	/* `__free_page()` takes care of the refcounting (unwire). */
 	page = &folio->page;
 	__free_page(page);
 }
