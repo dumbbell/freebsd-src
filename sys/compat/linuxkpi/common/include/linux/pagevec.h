@@ -103,7 +103,7 @@ static inline unsigned int
 folio_batch_add(struct folio_batch *fbatch, struct folio *folio)
 {
 	fbatch->folios[fbatch->nr++] = folio;
-	return (PAGEVEC_SIZE - fbatch->nr);
+	return (folio_batch_space(fbatch));
 }
 
 void __folio_batch_release(struct folio_batch *fbatch);
