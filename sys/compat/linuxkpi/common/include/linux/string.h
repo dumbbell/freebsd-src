@@ -161,6 +161,20 @@ skip_spaces(const char *str)
 	return (__DECONST(char *, str));
 }
 
+static inline char *
+strim(char *str)
+{
+	char *end;
+
+	end = str + strlen(str);
+	while (end >= str && (*end == '\0' || isspace(*end))) {
+		*end = '\0';
+		end--;
+	}
+
+	return (skip_spaces(str));
+}
+
 static inline void *
 memchr_inv(const void *start, int c, size_t length)
 {
