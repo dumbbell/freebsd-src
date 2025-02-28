@@ -35,6 +35,7 @@
 
 #include <linux/seq_file.h>
 #include <linux/file.h>
+#include <linux/printk.h>
 
 #undef file
 MALLOC_DEFINE(M_LSEQ, "seq_file", "seq_file");
@@ -298,4 +299,52 @@ bool
 seq_has_overflowed(struct seq_file *m)
 {
 	return (sbuf_len(m->buf) == -1);
+}
+
+void
+seq_hex_dump(struct seq_file *m, const char *prefix_str, int prefix_type,
+    int rowsize, int groupsize, const void *buf, size_t len, bool ascii)
+{
+	typedef const struct { long long value; } __packed *print_64p_t;
+	typedef const struct { uint32_t value; } __packed *print_32p_t;
+	typedef const struct { uint16_t value; } __packed *print_16p_t;
+	const void *buf_old = buf;
+	int row;
+
+	while (len > 0) {
+		switch (prefix_type) {
+		case DUMP_PREFIX_ADDRESS:
+			sbuf_printf(m->buf, "%s%p: ", prefix_str, buf);
+			break;
+		case DUMP_PREFIX_OFFSET:
+			sbuf_printf(m->buf, "%s%.8lx: ",
+			    prefix_str, ((const char *)buf - (const char *)buf_old));
+			break;
+		default:
+			sbuf_printf(m->buf, "%s", prefix_str);
+			break;
+		}
+		for (row = 0; row != rowsize; row++) {
+			if (groupsize == 8 && len > 7) {
+				sbuf_printf(m->buf, "%016llx ", ((print_64p_t)buf)->value);
+				buf = (const uint8_t *)buf + 8;
+				len -= 8;
+			} else if (groupsize == 4 && len > 3) {
+				sbuf_printf(m->buf, "%08x ", ((print_32p_t)buf)->value);
+				buf = (const uint8_t *)buf + 4;
+				len -= 4;
+			} else if (groupsize == 2 && len > 1) {
+				sbuf_printf(m->buf, "%04x ", ((print_16p_t)buf)->value);
+				buf = (const uint8_t *)buf + 2;
+				len -= 2;
+			} else if (len > 0) {
+				sbuf_printf(m->buf, "%02x ", *(const uint8_t *)buf);
+				buf = (const uint8_t *)buf + 1;
+				len--;
+			} else {
+				break;
+			}
+		}
+		sbuf_printf(m->buf, "\n");
+	}
 }

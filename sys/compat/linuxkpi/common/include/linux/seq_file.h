@@ -86,6 +86,9 @@ int single_release(struct inode *, struct linux_file *);
 void lkpi_seq_vprintf(struct seq_file *m, const char *fmt, va_list args);
 void lkpi_seq_printf(struct seq_file *m, const char *fmt, ...);
 
+void seq_hex_dump(struct seq_file *m, const char *prefix_str, int prefix_type,
+    int rowsize, int groupsize, const void *buf, size_t len, bool ascii);
+
 #define	seq_vprintf(...)	lkpi_seq_vprintf(__VA_ARGS__)
 #define	seq_printf(...)		lkpi_seq_printf(__VA_ARGS__)
 
