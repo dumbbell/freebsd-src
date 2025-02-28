@@ -139,4 +139,32 @@ kunmap_local(void *addr)
 	kunmap_atomic(addr);
 }
 
+static inline void
+memcpy_from_page(char *to, struct page *page, size_t offset, size_t len)
+{
+	char *from;
+
+	KASSERT(offset + len <= PAGE_SIZE,
+	    ("%s: offset+len (%lu+%lu) would go beyond page end",
+	     __func__, offset, len));
+
+	from = kmap_local_page(page);
+	memcpy(to, from + offset, len);
+	kunmap_local(from);
+}
+
+static inline void
+memcpy_to_page(struct page *page, size_t offset, const char *from, size_t len)
+{
+	char *to;
+
+	KASSERT(offset + len <= PAGE_SIZE,
+	    ("%s: offset+len (%lu+%lu) would go beyond page end",
+	     __func__, offset, len));
+
+	to = kmap_local_page(page);
+	memcpy(to + offset, from, len);
+	kunmap_local(to);
+}
+
 #endif	/* _LINUXKPI_LINUX_HIGHMEM_H_ */
