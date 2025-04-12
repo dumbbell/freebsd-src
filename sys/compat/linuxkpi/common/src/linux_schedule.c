@@ -38,6 +38,41 @@
 #include <linux/spinlock.h>
 #include <linux/wait.h>
 
+static long
+convert_to_sleepqueue_timeout(long timeout)
+{
+	/* range check timeout */
+	if (timeout < 1)
+		timeout = 1;
+	else if (timeout == MAX_SCHEDULE_TIMEOUT)
+		timeout = 0;
+
+	return (timeout);
+}
+
+static long
+compute_timeout_expiry(long timeout)
+{
+	return (jiffies + timeout);
+}
+
+static long
+compute_timeout_remainder(int ret, long timeout, long expiry)
+{
+	long remainder;
+
+	remainder = expiry - jiffies;
+
+	/* range check return value */
+	if (ret == -ERESTARTSYS && remainder < 1)
+		remainder = 1;
+	else if (remainder < 0)
+		remainder = 0;
+	else if (remainder > timeout)
+		remainder = timeout;
+	return (remainder);
+}
+
 static int
 linux_add_to_sleepqueue(void *wchan, struct task_struct *task,
     const char *wmesg, long timeout, int state)
@@ -258,13 +293,8 @@ linux_wait_event_common(wait_queue_head_t *wqh, wait_queue_t *wq, long timeout,
 	if (lock != NULL)
 		spin_unlock_irq(lock);
 
-	/* range check timeout */
-	if (timeout < 1)
-		timeout = 1;
-	else if (timeout == MAX_SCHEDULE_TIMEOUT)
-		timeout = 0;
-
 	task = current;
+	timeout = convert_to_sleepqueue_timeout(timeout);
 
 	sleepq_lock(task);
 	if (atomic_read(&task->state) != TASK_WAKING) {
@@ -289,14 +319,9 @@ linux_schedule_timeout(long timeout)
 	int state;
 
 	task = current;
+	timeout = convert_to_sleepqueue_timeout(timeout);
 
-	/* range check timeout */
-	if (timeout < 1)
-		timeout = 1;
-	else if (timeout == MAX_SCHEDULE_TIMEOUT)
-		timeout = 0;
-
-	remainder = jiffies + timeout;
+	remainder = compute_timeout_expiry(timeout);
 
 	sleepq_lock(task);
 	state = atomic_read(&task->state);
@@ -312,16 +337,8 @@ linux_schedule_timeout(long timeout)
 	if (timeout == 0)
 		return (MAX_SCHEDULE_TIMEOUT);
 
-	/* range check return value */
-	remainder -= jiffies;
+	remainder = compute_timeout_remainder(ret, timeout, remainder);
 
-	/* range check return value */
-	if (ret == -ERESTARTSYS && remainder < 1)
-		remainder = 1;
-	else if (remainder < 0)
-		remainder = 0;
-	else if (remainder > timeout)
-		remainder = timeout;
 	return (remainder);
 }
 
@@ -350,13 +367,9 @@ linux_wait_on_bit_timeout(unsigned long *word, int bit, unsigned int state,
 	void *wchan;
 	int ret;
 
-	/* range check timeout */
-	if (timeout < 1)
-		timeout = 1;
-	else if (timeout == MAX_SCHEDULE_TIMEOUT)
-		timeout = 0;
-
 	task = current;
+	timeout = convert_to_sleepqueue_timeout(timeout);
+
 	wchan = bit_to_wchan(word, bit);
 	for (;;) {
 		sleepq_lock(wchan);
