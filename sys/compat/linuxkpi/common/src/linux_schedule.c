@@ -39,6 +39,18 @@
 #include <linux/wait.h>
 
 static int
+convert_to_sleepqueue_timeout(int timeout)
+{
+	/* range check timeout */
+	if (timeout < 1)
+		timeout = 1;
+	else if (timeout == MAX_SCHEDULE_TIMEOUT)
+		timeout = 0;
+
+	return (timeout);
+}
+
+static int
 linux_add_to_sleepqueue(void *wchan, struct task_struct *task,
     const char *wmesg, int timeout, int state)
 {
@@ -258,13 +270,8 @@ linux_wait_event_common(wait_queue_head_t *wqh, wait_queue_t *wq, int timeout,
 	if (lock != NULL)
 		spin_unlock_irq(lock);
 
-	/* range check timeout */
-	if (timeout < 1)
-		timeout = 1;
-	else if (timeout == MAX_SCHEDULE_TIMEOUT)
-		timeout = 0;
-
 	task = current;
+	timeout = convert_to_sleepqueue_timeout(timeout);
 
 	sleepq_lock(task);
 	if (atomic_read(&task->state) != TASK_WAKING) {
@@ -289,12 +296,7 @@ linux_schedule_timeout(int timeout)
 	int remainder;
 
 	task = current;
-
-	/* range check timeout */
-	if (timeout < 1)
-		timeout = 1;
-	else if (timeout == MAX_SCHEDULE_TIMEOUT)
-		timeout = 0;
+	timeout = convert_to_sleepqueue_timeout(timeout);
 
 	remainder = ticks + timeout;
 
@@ -350,13 +352,9 @@ linux_wait_on_bit_timeout(unsigned long *word, int bit, unsigned int state,
 	void *wchan;
 	int ret;
 
-	/* range check timeout */
-	if (timeout < 1)
-		timeout = 1;
-	else if (timeout == MAX_SCHEDULE_TIMEOUT)
-		timeout = 0;
-
 	task = current;
+	timeout = convert_to_sleepqueue_timeout(timeout);
+
 	wchan = bit_to_wchan(word, bit);
 	for (;;) {
 		sleepq_lock(wchan);
