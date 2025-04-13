@@ -260,9 +260,27 @@ linux_waitqueue_active(wait_queue_head_t *wqh)
 	return (ret);
 }
 
+static int
+do_schedule_timeout(struct task_struct *task, int state, char *wmesg,
+    int timo)
+{
+	int ret;
+
+	sleepq_lock(task);
+	if (atomic_read(&task->state) != TASK_WAKING) {
+		ret = linux_add_to_sleepqueue(task, task, wmesg, timo, state);
+	} else {
+		sleepq_release(task);
+		ret = 0;
+	}
+
+	return (ret);
+}
+
 int
-linux_wait_event_common(wait_queue_head_t *wqh, wait_queue_t *wq, int timeout,
-    unsigned int state, spinlock_t *lock)
+linux_wait_event_common(wait_queue_head_t *wqh __unused,
+    wait_queue_t *wq __unused, int timeout, unsigned int state,
+    spinlock_t *lock)
 {
 	struct task_struct *task;
 	int ret;
@@ -273,14 +291,7 @@ linux_wait_event_common(wait_queue_head_t *wqh, wait_queue_t *wq, int timeout,
 	task = current;
 	timeout = convert_to_sleepqueue_timeout(timeout);
 
-	sleepq_lock(task);
-	if (atomic_read(&task->state) != TASK_WAKING) {
-		ret = linux_add_to_sleepqueue(task, task, "wevent", timeout,
-		    state);
-	} else {
-		sleepq_release(task);
-		ret = 0;
-	}
+	ret = do_schedule_timeout(task, state, "wevent", timeout);
 
 	if (lock != NULL)
 		spin_lock_irq(lock);
@@ -296,19 +307,11 @@ linux_schedule_timeout(int timeout)
 	int remainder;
 
 	task = current;
+	state = atomic_read(&task->state);
 	timeout = convert_to_sleepqueue_timeout(timeout);
-
 	remainder = ticks + timeout;
 
-	sleepq_lock(task);
-	state = atomic_read(&task->state);
-	if (state != TASK_WAKING) {
-		ret = linux_add_to_sleepqueue(task, task, "sched", timeout,
-		    state);
-	} else {
-		sleepq_release(task);
-		ret = 0;
-	}
+	ret = do_schedule_timeout(task, state, "sched", timeout);
 	set_task_state(task, TASK_RUNNING);
 
 	if (timeout == 0)
@@ -398,7 +401,8 @@ linux_wait_on_atomic_t(atomic_t *a, unsigned int state)
 			break;
 		}
 		set_task_state(task, state);
-		ret = linux_add_to_sleepqueue(wchan, task, "watomic", 0, state);
+		ret = linux_add_to_sleepqueue(wchan, task, "watomic", 0,
+		    state);
 		if (ret != 0)
 			break;
 	}
