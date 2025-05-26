@@ -40,6 +40,7 @@
 #include <sys/mutex.h>
 #include <sys/poll.h>
 #include <sys/proc.h>
+#include <sys/refcount.h>
 #include <sys/selinfo.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -99,6 +100,7 @@ struct eventfd_ctx {
 	uint32_t	efd_flags;
 	struct selinfo	efd_sel;
 	struct mtx	efd_lock;
+	int32_t		efd_refcount;
 };
 
 int
@@ -116,6 +118,7 @@ eventfd_create_file(struct thread *td, struct file *fp, uint32_t initval,
 	efd->efd_count = initval;
 	mtx_init(&efd->efd_lock, "eventfd", NULL, MTX_DEF);
 	knlist_init_mtx(&efd->efd_sel.si_note, &efd->efd_lock);
+	refcount_init(&efd->efd_refcount, 1);
 
 	fflags = FREAD | FWRITE;
 	if ((flags & EFD_NONBLOCK) != 0)
@@ -125,16 +128,39 @@ eventfd_create_file(struct thread *td, struct file *fp, uint32_t initval,
 	return (0);
 }
 
+struct eventfd_ctx *
+eventfd_get(struct file *fp)
+{
+	struct eventfd_ctx *efd;
+
+	if (fp->f_data == NULL || fp->f_ops != &eventfdops)
+		return (NULL);
+
+	efd = fp->f_data;
+	refcount_acquire(&efd->efd_refcount);
+
+	return (efd);
+}
+
+void
+eventfd_put(struct eventfd_ctx *efd)
+{
+	if (!refcount_release(&efd->efd_refcount))
+		return;
+
+	seldrain(&efd->efd_sel);
+	knlist_destroy(&efd->efd_sel.si_note);
+	mtx_destroy(&efd->efd_lock);
+	free(efd, M_EVENTFD);
+}
+
 static int
 eventfd_close(struct file *fp, struct thread *td)
 {
 	struct eventfd_ctx *efd;
 
 	efd = fp->f_data;
-	seldrain(&efd->efd_sel);
-	knlist_destroy(&efd->efd_sel.si_note);
-	mtx_destroy(&efd->efd_lock);
-	free(efd, M_EVENTFD);
+	eventfd_put(efd);
 	return (0);
 }
 
