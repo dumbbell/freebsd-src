@@ -94,7 +94,7 @@ static const struct filterops eventfd_wfiltops = {
 	.f_event = filt_eventfdwrite
 };
 
-struct eventfd {
+struct eventfd_ctx {
 	eventfd_t	efd_count;
 	uint32_t	efd_flags;
 	struct selinfo	efd_sel;
@@ -105,7 +105,7 @@ int
 eventfd_create_file(struct thread *td, struct file *fp, uint32_t initval,
     int flags)
 {
-	struct eventfd *efd;
+	struct eventfd_ctx *efd;
 	int fflags;
 
 	AUDIT_ARG_FFLAGS(flags);
@@ -128,7 +128,7 @@ eventfd_create_file(struct thread *td, struct file *fp, uint32_t initval,
 static int
 eventfd_close(struct file *fp, struct thread *td)
 {
-	struct eventfd *efd;
+	struct eventfd_ctx *efd;
 
 	efd = fp->f_data;
 	seldrain(&efd->efd_sel);
@@ -142,7 +142,7 @@ static int
 eventfd_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
     int flags, struct thread *td)
 {
-	struct eventfd *efd;
+	struct eventfd_ctx *efd;
 	eventfd_t count;
 	int error;
 
@@ -184,7 +184,7 @@ static int
 eventfd_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
     int flags, struct thread *td)
 {
-	struct eventfd *efd;
+	struct eventfd_ctx *efd;
 	eventfd_t count;
 	int error;
 
@@ -228,7 +228,7 @@ static int
 eventfd_poll(struct file *fp, int events, struct ucred *active_cred,
     struct thread *td)
 {
-	struct eventfd *efd;
+	struct eventfd_ctx *efd;
 	int revents;
 
 	efd = fp->f_data;
@@ -249,7 +249,7 @@ eventfd_poll(struct file *fp, int events, struct ucred *active_cred,
 static int
 eventfd_kqfilter(struct file *fp, struct knote *kn)
 {
-	struct eventfd *efd = fp->f_data;
+	struct eventfd_ctx *efd = fp->f_data;
 
 	mtx_lock(&efd->efd_lock);
 	switch (kn->kn_filter) {
@@ -274,7 +274,7 @@ eventfd_kqfilter(struct file *fp, struct knote *kn)
 static void
 filt_eventfddetach(struct knote *kn)
 {
-	struct eventfd *efd = kn->kn_hook;
+	struct eventfd_ctx *efd = kn->kn_hook;
 
 	mtx_lock(&efd->efd_lock);
 	knlist_remove(&efd->efd_sel.si_note, kn, 1);
@@ -284,7 +284,7 @@ filt_eventfddetach(struct knote *kn)
 static int
 filt_eventfdread(struct knote *kn, long hint)
 {
-	struct eventfd *efd = kn->kn_hook;
+	struct eventfd_ctx *efd = kn->kn_hook;
 	int ret;
 
 	mtx_assert(&efd->efd_lock, MA_OWNED);
@@ -297,7 +297,7 @@ filt_eventfdread(struct knote *kn, long hint)
 static int
 filt_eventfdwrite(struct knote *kn, long hint)
 {
-	struct eventfd *efd = kn->kn_hook;
+	struct eventfd_ctx *efd = kn->kn_hook;
 	int ret;
 
 	mtx_assert(&efd->efd_lock, MA_OWNED);
@@ -331,7 +331,7 @@ eventfd_stat(struct file *fp, struct stat *st, struct ucred *active_cred)
 static int
 eventfd_fill_kinfo(struct file *fp, struct kinfo_file *kif, struct filedesc *fdp)
 {
-	struct eventfd *efd = fp->f_data;
+	struct eventfd_ctx *efd = fp->f_data;
 
 	kif->kf_type = KF_TYPE_EVENTFD;
 	mtx_lock(&efd->efd_lock);
