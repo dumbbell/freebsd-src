@@ -38,8 +38,12 @@ typedef uint64_t eventfd_t;
 
 #ifdef _KERNEL
 
+struct eventfd_ctx;
+
 int eventfd_create_file(struct thread *td, struct file *fp, uint32_t initval,
     int flags);
+struct eventfd_ctx *eventfd_get(struct file *fp);
+void eventfd_put(struct eventfd_ctx *efd);
 
 #else
 
