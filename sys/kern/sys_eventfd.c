@@ -154,6 +154,21 @@ eventfd_put(struct eventfd_ctx *efd)
 	free(efd, M_EVENTFD);
 }
 
+void
+eventfd_signal_mask(struct eventfd_ctx *efd, unsigned int mask __unused)
+{
+	mtx_lock(&efd->efd_lock);
+
+	if (efd->efd_count < UINT64_MAX)
+		efd->efd_count++;
+
+	KNOTE_LOCKED(&efd->efd_sel.si_note, 0);
+	selwakeup(&efd->efd_sel);
+	wakeup(&efd->efd_count);
+
+	mtx_unlock(&efd->efd_lock);
+}
+
 static int
 eventfd_close(struct file *fp, struct thread *td)
 {
