@@ -69,6 +69,8 @@ div_u64_rem(uint64_t dividend, uint32_t divisor, uint32_t *remainder)
 	return (dividend / divisor);
 }
 
+#define	div64_ul(x, y)	div64_u64((x), (y))
+
 static inline int64_t
 div_s64(int64_t dividend, int32_t divisor)
 {
