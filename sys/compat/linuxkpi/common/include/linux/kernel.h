@@ -258,6 +258,8 @@ extern int linuxkpi_debug;
 })
 #endif
 
+#define	WARN_RATELIMIT(condition, ...) WARN((condition), __VA_ARGS__)
+
 #define	ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
 
 #define	u64_to_user_ptr(val)	((void *)(uintptr_t)(val))
