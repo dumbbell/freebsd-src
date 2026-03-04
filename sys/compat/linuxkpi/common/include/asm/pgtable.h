@@ -53,6 +53,21 @@ typedef struct page *pgtable_t;
 #define	_PAGE_PWT	(((pteval_t) 1) << _PAGE_BIT_PWT)
 #define	_PAGE_PCD	(((pteval_t) 1) << _PAGE_BIT_PCD)
 #define	_PAGE_PAT	(((pteval_t) 1) << _PAGE_BIT_PAT)
+
+#define	PMD_SHIFT	21
+
+#elif defined(__aarch64__)
+
+#define	PMD_SHIFT	21
+
+#elif defined(__powerpc__)
+
+#define	PMD_SHIFT	21
+
+#elif defined(__riscv)
+
+#define	PMD_SHIFT	21
+
 #endif
 
 #endif	/* _LINUXKPI_ASM_PGTABLE_H_ */
