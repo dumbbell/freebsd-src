@@ -37,19 +37,40 @@
 
 struct rw_semaphore {
 	struct sx sx;
+
+	/*
+	 * Implementations of `down_{read,write}()` attempts a "try lock"
+	 * first, and if they fail, they bump `waiters_count` and acquire the
+	 * lock using the blocking call.
+	 *
+	 * `rwsem_is_contended()` uses `waiters_count` to determine if other
+	 * threads are waiting for this lock. It assumes that the caller also
+	 * acquired the lock, though it does not enforce this.
+	 *
+	 * Linux uses a wait list (with the accompanying lock) instead of a
+	 * counter because the list is used for other operations.
+	 */
+	int waiters_count;
 };
 
-#define	down_write(_rw)			sx_xlock(&(_rw)->sx)
-#define	up_write(_rw)			sx_xunlock(&(_rw)->sx)
-#define	down_read(_rw)			sx_slock(&(_rw)->sx)
-#define	up_read(_rw)			sx_sunlock(&(_rw)->sx)
+void linuxkpi_init_rwsem(struct rw_semaphore *rw, const char *name);
+void linuxkpi_down_write(struct rw_semaphore *rw);
+void linuxkpi_up_write(struct rw_semaphore *rw);
+void linuxkpi_down_read(struct rw_semaphore *rw);
+void linuxkpi_up_read(struct rw_semaphore *rw);
+
+#define	init_rwsem(_rw)			linuxkpi_init_rwsem(_rw, rwsem_name("lnxrwsem"))
+#define	down_write(_rw)			linuxkpi_down_write(_rw)
+#define	up_write(_rw)			linuxkpi_up_write(_rw)
+#define	down_read(_rw)			linuxkpi_down_read(_rw)
+#define	up_read(_rw)			linuxkpi_up_read(_rw)
+
 #define	down_read_trylock(_rw)		!!sx_try_slock(&(_rw)->sx)
 #define	down_read_killable(_rw)		linux_down_read_killable(_rw)
 #define	down_write_trylock(_rw)		!!sx_try_xlock(&(_rw)->sx)
 #define	down_write_killable(_rw)	linux_down_write_killable(_rw)
 #define	downgrade_write(_rw)		sx_downgrade(&(_rw)->sx)
 #define	down_read_nested(_rw, _sc)	down_read(_rw)
-#define	init_rwsem(_rw)			linux_init_rwsem(_rw, rwsem_name("lnxrwsem"))
 #define	down_write_nest_lock(sem, _rw)	down_write(_rw)
 
 #ifdef WITNESS_ALL
@@ -67,16 +88,14 @@ struct rw_semaphore {
 struct rw_semaphore name;						\
 static void name##_rwsem_init(void *arg)				\
 {									\
-	linux_init_rwsem(&name, rwsem_name(#name));			\
+	linuxkpi_init_rwsem(&name, rwsem_name(#name));			\
 }									\
 SYSINIT(name, SI_SUB_LOCK, SI_ORDER_SECOND, name##_rwsem_init, NULL)
 
-static inline void
-linux_init_rwsem(struct rw_semaphore *rw, const char *name)
+static inline int
+rwsem_is_contended(struct rw_semaphore *sem)
 {
-
-	memset(rw, 0, sizeof(*rw));
-	sx_init_flags(&rw->sx, name, SX_NOWITNESS);
+	return (sem->waiters_count > 0);
 }
 
 extern int linux_down_read_killable(struct rw_semaphore *);

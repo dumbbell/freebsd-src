@@ -24,6 +24,7 @@ SRCS=	linux_compat.c \
 	linux_pci.c \
 	linux_radix.c \
 	linux_rcu.c \
+	linux_rwsem.c \
 	linux_schedule.c \
 	linux_seq_buf.c \
 	linux_seq_file.c \
