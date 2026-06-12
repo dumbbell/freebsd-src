@@ -908,6 +908,13 @@ pci_reset_function(struct pci_dev *pdev)
 #define	pci_unmap_len		dma_unmap_len
 #define	pci_unmap_len_set	dma_unmap_len_set
 
+void *linuxkpi_pci_map_rom(struct pci_dev *pdev, size_t *size);
+void linuxkpi_pci_unmap_rom(struct pci_dev *pdev, void *rom);
+#if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 61300
+#define	pci_map_rom(pdev, size)		linuxkpi_pci_map_rom(pdev, size)
+#define	pci_unmap_rom(pdev, rom)	linuxkpi_pci_unmap_rom(pdev, rom)
+#endif
+
 typedef unsigned int __bitwise pci_channel_state_t;
 typedef unsigned int __bitwise pci_ers_result_t;
 
