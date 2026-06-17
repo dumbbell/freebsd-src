@@ -110,6 +110,9 @@ task_fn_t lkpi_kthread_worker_init_fn;
 	__w;								\
 })
 
+#define	kthread_run_worker(flags, fmt, ...)				\
+	kthread_create_worker(flags, fmt, ##__VA_ARGS__)
+
 static inline void
 kthread_destroy_worker(struct kthread_worker *worker)
 {
