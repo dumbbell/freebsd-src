@@ -61,6 +61,12 @@ struct hrtimer {
 	linux_hrtimer_init(hrtimer);				\
 } while (0)
 
+#define	hrtimer_setup(hrtimer, restart, clock, mode) do {	\
+	CTASSERT((clock) == CLOCK_MONOTONIC);			\
+	CTASSERT((mode) == HRTIMER_MODE_REL);			\
+	linux_hrtimer_setup(hrtimer, restart);			\
+} while (0)
+
 #define	hrtimer_set_expires(hrtimer, time)			\
 	linux_hrtimer_set_expires(hrtimer, time)
 
@@ -82,6 +88,8 @@ bool	linux_hrtimer_active(struct hrtimer *);
 int	linux_hrtimer_try_to_cancel(struct hrtimer *);
 int	linux_hrtimer_cancel(struct hrtimer *);
 void	linux_hrtimer_init(struct hrtimer *);
+void	linux_hrtimer_setup(struct hrtimer *hrtimer,
+	    enum hrtimer_restart (*function)(struct hrtimer *));
 void	linux_hrtimer_set_expires(struct hrtimer *, ktime_t);
 void	linux_hrtimer_start(struct hrtimer *, ktime_t);
 void	linux_hrtimer_start_range_ns(struct hrtimer *, ktime_t, int64_t);

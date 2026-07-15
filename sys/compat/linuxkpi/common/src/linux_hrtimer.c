@@ -105,6 +105,23 @@ linux_hrtimer_init(struct hrtimer *hrtimer)
 	callout_init_mtx(&hrtimer->callout, &hrtimer->mtx, 0);
 }
 
+static enum hrtimer_restart
+hrtimer_dummy_timeout(struct hrtimer *unused)
+{
+	return (HRTIMER_NORESTART);
+}
+
+void
+linux_hrtimer_setup(struct hrtimer *hrtimer,
+    enum hrtimer_restart (*function)(struct hrtimer *))
+{
+	linux_hrtimer_init(hrtimer);
+	if (function != NULL)
+		hrtimer->function = function;
+	else
+		hrtimer->function = hrtimer_dummy_timeout;
+}
+
 void
 linux_hrtimer_set_expires(struct hrtimer *hrtimer, ktime_t time)
 {
