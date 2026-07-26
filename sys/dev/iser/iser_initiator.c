@@ -304,6 +304,7 @@ iser_bio_to_sg(struct bio *bp, struct iser_data_buf *data_buf)
 	int i;
 	size_t len, tlen;
 	int offset;
+	struct page *page;
 
 	tlen = bp->bio_bcount;
 	offset = bp->bio_ma_offset;
@@ -311,7 +312,18 @@ iser_bio_to_sg(struct bio *bp, struct iser_data_buf *data_buf)
 	for (i = 0; 0 < tlen; i++, tlen -= len) {
 		sg = &data_buf->sgl[i];
 		len = min(PAGE_SIZE - offset, tlen);
-		sg_set_page(sg, bp->bio_ma[i], len, offset);
+		/*
+		 * This is a historic LinuxKPI accident from the times when
+		 * Linux 'struct page' was aliased to 'struct vm_page'.
+		 * The sg_* interface was never meant to take a
+		 * FreeBSD native vm page *.
+		 */
+#ifdef PAGE_IS_LKPI_PAGE
+		page = lkpi_vm_page_to_page(bp->bio_ma[i]);
+#else
+		page = bp->bio_ma[i];
+#endif
+		sg_set_page(sg, page, len, offset);
 		offset = 0;
 	}
 

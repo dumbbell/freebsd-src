@@ -269,19 +269,31 @@ vma_pages(struct vm_area_struct *vma)
 static inline void
 set_page_dirty(struct page *page)
 {
+#ifdef PAGE_IS_LKPI_PAGE
+	vm_page_dirty(page->vm_page);
+#else
 	vm_page_dirty(page);
+#endif
 }
 
 static inline void
 mark_page_accessed(struct page *page)
 {
+#ifdef PAGE_IS_LKPI_PAGE
+	vm_page_reference(page->vm_page);
+#else
 	vm_page_reference(page);
+#endif
 }
 
 static inline void
 get_page(struct page *page)
 {
+#ifdef PAGE_IS_LKPI_PAGE
+	vm_page_wire(page->vm_page);
+#else
 	vm_page_wire(page);
+#endif
 }
 
 static inline void
@@ -375,7 +387,15 @@ pin_user_pages_remote(struct task_struct *task, struct mm_struct *mm,
 #define	unpin_user_page(page) put_page(page)
 #define	unpin_user_pages(pages, npages) release_pages(pages, npages)
 
+#ifdef PAGE_IS_LKPI_PAGE
+static inline void
+copy_highpage(struct page *to, struct page *from)
+{
+	pmap_copy_page(from->vm_page, to->vm_page);
+}
+#else
 #define	copy_highpage(to, from) pmap_copy_page(from, to)
+#endif
 
 static inline pgprot_t
 vm_get_page_prot(unsigned long vm_flags)
@@ -398,23 +418,37 @@ vm_flags_clear(struct vm_area_struct *vma, unsigned long flags)
 static inline struct page *
 vmalloc_to_page(const void *addr)
 {
+	struct vm_page *m;
 	vm_paddr_t paddr;
 
 	paddr = pmap_kextract((vm_offset_t)addr);
-	return (PHYS_TO_VM_PAGE(paddr));
+	m = PHYS_TO_VM_PAGE(paddr);
+#ifdef PAGE_IS_LKPI_PAGE
+	return (lkpi_vm_page_to_page(m));
+#else
+	return (m);
+#endif
 }
 
 static inline int
 trylock_page(struct page *page)
 {
+#ifdef PAGE_IS_LKPI_PAGE
+	return (vm_page_tryxbusy(page->vm_page));
+#else
 	return (vm_page_tryxbusy(page));
+#endif
 }
 
 static inline void
 unlock_page(struct page *page)
 {
 
+#ifdef PAGE_IS_LKPI_PAGE
+	vm_page_xunbusy(page->vm_page);
+#else
 	vm_page_xunbusy(page);
+#endif
 }
 
 extern int is_vmalloc_addr(const void *addr);

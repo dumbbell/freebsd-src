@@ -48,7 +48,23 @@ typedef unsigned long linux_pmd_t;
 typedef unsigned long linux_pgd_t;
 typedef unsigned long pgprot_t;
 
+#define	PAGE_IS_LKPI_PAGE
+
+#ifdef PAGE_IS_LKPI_PAGE
+struct page {
+	/* Native FreeBSD vm_page; SHOULD stay first. */
+	struct vm_page		*vm_page;
+
+	/* Linux fields. */
+	struct page_pool	*pp;
+	dma_addr_t		dma_addr;
+
+	uintptr_t		private;	/* drm-kmod ttm-pool */
+	struct list_head	lru;
+};
+#else
 #define page	vm_page
+#endif
 
 #define	LINUXKPI_PROT_VALID (1 << 3)
 #define	LINUXKPI_CACHE_MODE_SHIFT 4
@@ -72,10 +88,25 @@ pgprot2cachemode(pgprot_t prot)
 		return (VM_MEMATTR_DEFAULT);
 }
 
+#ifdef PAGE_IS_LKPI_PAGE
+/* Internal */
+void lkpi_page_set_vm_page(struct page *, struct vm_page *);
+struct page *lkpi_vm_page_to_page(struct vm_page *);
+
+/* Public */
+struct page *linuxkpi_virt_to_page(const void *);
+struct page *linuxkpi_pfn_to_page(unsigned long);
+
+#define	virt_to_page(_v)	linuxkpi_virt_to_page(_v)
+#define	page_to_pfn(_page)	atop(VM_PAGE_TO_PHYS((_page)->vm_page))
+#define	pfn_to_page(_pfn)	linuxkpi_pfn_to_page(_pfn)
+#define	page_to_phys(_page)	VM_PAGE_TO_PHYS((_page)->vm_page)
+#else /* !PAGE_IS_LKPI_PAGE */
 #define	virt_to_page(x)		PHYS_TO_VM_PAGE(vtophys(x))
 #define	page_to_pfn(pp)		atop(VM_PAGE_TO_PHYS(pp))
 #define	pfn_to_page(pfn)	PHYS_TO_VM_PAGE(ptoa(pfn))
 #define	page_to_phys(page)	VM_PAGE_TO_PHYS(page)
+#endif /* PAGE_IS_LKPI_PAGE */
 
 #define	page_to_virt(page)	linux_page_address(page)
 #define	nth_page(page,n)	pfn_to_page(page_to_pfn(page) + (n))

@@ -602,7 +602,11 @@ sg_pcopy_from_buffer(struct scatterlist *sgl, unsigned int nents,
 		len = min(piter.sg->length - skip, buflen);
 
 		page = sg_page_iter_page(&piter);
+#ifdef PAGE_IS_LKPI_PAGE
+		sf = sf_buf_alloc(page->vm_page, SFB_CPUPRIVATE | SFB_NOWAIT);
+#else
 		sf = sf_buf_alloc(page, SFB_CPUPRIVATE | SFB_NOWAIT);
+#endif
 		if (sf == NULL)
 			break;
 		p = (char *)sf_buf_kva(sf) + piter.sg_pgoffset + skip;
@@ -657,7 +661,11 @@ sg_pcopy_to_buffer(struct scatterlist *sgl, unsigned int nents,
 
 		page = sg_page_iter_page(&iter);
 		if (!PMAP_HAS_DMAP) {
+#ifdef PAGE_IS_LKPI_PAGE
+			sf = sf_buf_alloc(page->vm_page, SFB_CPUPRIVATE | SFB_NOWAIT);
+#else
 			sf = sf_buf_alloc(page, SFB_CPUPRIVATE | SFB_NOWAIT);
+#endif
 			if (sf == NULL)
 				break;
 			vaddr = sf_buf_kva(sf);
