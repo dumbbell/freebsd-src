@@ -517,4 +517,14 @@ folio_address(const struct folio *folio)
 	return (page_address(&folio->page));
 }
 
+static inline bool
+folio_mapped(struct folio *folio)
+{
+#ifdef PAGE_IS_LKPI_PAGE
+	return (pmap_page_is_mapped(folio->page.vm_page));
+#else
+	return (pmap_page_is_mapped(&folio->page));
+#endif
+}
+
 #endif					/* _LINUXKPI_LINUX_MM_H_ */
