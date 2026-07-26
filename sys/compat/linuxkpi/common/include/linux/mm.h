@@ -452,6 +452,11 @@ unlock_page(struct page *page)
 #endif
 }
 
+static inline void
+split_page(struct page *page, unsigned int order)
+{
+}
+
 extern int is_vmalloc_addr(const void *addr);
 void si_meminfo(struct sysinfo *si);
 
