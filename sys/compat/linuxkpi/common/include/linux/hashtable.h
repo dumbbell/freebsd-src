@@ -38,24 +38,14 @@
 #include <linux/rcupdate.h>
 #include <linux/rculist.h>
 
-#include <ck_queue.h>
-
-struct lkpi_hash_entry {
-	CK_LIST_ENTRY(lkpi_hash_entry) entry;
-};
-
-struct lkpi_hash_head {
-	CK_LIST_HEAD(, lkpi_hash_entry) head;
-};
-
 #define	DEFINE_HASHTABLE(name, bits) \
-	struct lkpi_hash_head name[1UL << (bits)]
+	struct hlist_head name[1UL << (bits)]
 
 #define	DEFINE_READ_MOSTLY_HASHTABLE(name, bits) \
-	struct lkpi_hash_head name[1UL << (bits)] __read_mostly
+	struct hlist_head name[1UL << (bits)] __read_mostly
 
 #define	DECLARE_HASHTABLE(name, bits) \
-	struct lkpi_hash_head name[1UL << (bits)]
+	struct hlist_head name[1UL << (bits)]
 
 #define	HASH_SIZE(name) ARRAY_SIZE(name)
 #define	HASH_BITS(name) ilog2(HASH_SIZE(name))
@@ -64,12 +54,12 @@ struct lkpi_hash_head {
 	hash_long(__VA_ARGS__)
 
 static inline void
-__hash_init(struct lkpi_hash_head *ht, unsigned long size)
+__hash_init(struct hlist_head *ht, unsigned long size)
 {
 	unsigned long x;
 
 	for (x = 0; x != size; x++)
-		CK_LIST_INIT(&ht[x].head);
+		INIT_HLIST_HEAD(&ht[x]);
 }
 
 #define	hash_init(ht) \
@@ -86,29 +76,28 @@ __hash_node_type_assert(struct hlist_node *node)
 	 * table node entries. The purpose of this function is simply
 	 * to check the type of the passed argument.
 	 */
-	CTASSERT(sizeof(struct lkpi_hash_entry) == sizeof(*node));
+	CTASSERT(sizeof(struct hlist_node) == sizeof(*node));
 }
 
-#define	hash_add_rcu(ht, node, key) do {				\
-	struct lkpi_hash_head *__head = &(ht)[hash_min(key, HASH_BITS(ht))]; \
-	__hash_node_type_assert(node); \
-	CK_LIST_INSERT_HEAD(&__head->head, \
-	    (struct lkpi_hash_entry *)(node), entry); \
+#define	hash_add_rcu(ht, node, key) do {					\
+	struct hlist_head *__head = &(ht)[hash_min(key, HASH_BITS(ht))];	\
+	__hash_node_type_assert(node);						\
+	hlist_add_head((struct hlist_node *)(node), __head);			\
 } while (0)
 
 static inline bool
 hash_hashed(struct hlist_node *node)
 {
-	return (((struct lkpi_hash_entry *)node)->entry.cle_prev != NULL);
+	return (((struct hlist_node *)node)->pprev != NULL);
 }
 
 static inline bool
-__hash_empty(struct lkpi_hash_head *ht, unsigned long size)
+__hash_empty(struct hlist_head *ht, unsigned long size)
 {
 	unsigned long x;
 
 	for (x = 0; x != size; x++) {
-		if (!CK_LIST_EMPTY(&ht[x].head))
+		if (!hlist_empty(&ht[x]))
 			return (false);
 	}
 	return (true);
@@ -123,22 +112,8 @@ __hash_empty(struct lkpi_hash_head *ht, unsigned long size)
 static inline void
 hash_del_rcu(struct hlist_node *node)
 {
-	CK_LIST_REMOVE((struct lkpi_hash_entry *)node, entry);
-	memset(node, 0, sizeof(*node));
+	hlist_del_init((struct hlist_node *)node);
 }
-
-#define	__hash_first(ht, type, member) ({ \
-	const struct lkpi_hash_entry *__first = CK_LIST_FIRST(&(ht)->head); \
-	__hash_node_type_assert(&((type *)0)->member); \
-	(__first != NULL ? container_of((const void *)__first, type, member) : NULL); \
-})
-
-#define	__hash_next(obj, type, member) ({ \
-	const struct lkpi_hash_entry *__next = \
-	    CK_LIST_NEXT((struct lkpi_hash_entry *)&(obj)->member, entry); \
-	__hash_node_type_assert(&(obj)->member); \
-	(__next != NULL ? container_of((const void *)__next, type, member) : NULL); \
-})
 
 #define	hash_for_each(...) \
 	hash_for_each_rcu(__VA_ARGS__)
@@ -146,20 +121,12 @@ hash_del_rcu(struct hlist_node *node)
 #define	hash_for_each_rcu(name, bkt, obj, member) \
 	for ((bkt) = 0, (obj) = NULL; (obj) == NULL && \
 	       (bkt) != HASH_SIZE(name); (bkt)++) \
-		for ((obj) = __hash_first(&(name)[bkt], \
-			__typeof(*(obj)), member); \
-		     (obj) != NULL; \
-		     (obj) = __hash_next(obj, \
-			__typeof(*(obj)), member))
+		hlist_for_each_entry(obj, &(name)[bkt], member)
 
 #define	hash_for_each_safe(name, bkt, tmp, obj, member) \
 	for ((bkt) = 0, (obj) = NULL; (obj) == NULL && \
 	       (bkt) != HASH_SIZE(name); (bkt)++) \
-		for ((obj) = __hash_first(&(name)[bkt], \
-			__typeof(*(obj)), member); \
-		     (obj) != NULL && ((tmp) = &__hash_next(obj, \
-			__typeof(*(obj)), member)->member, 1); \
-		     (obj) = container_of(tmp, __typeof(*(obj)), member))
+		hlist_for_each_entry_safe(obj, tmp, &(name)[bkt], member)
 
 #define	hash_for_each_possible(...) \
 	hash_for_each_possible_rcu(__VA_ARGS__)
@@ -168,16 +135,9 @@ hash_del_rcu(struct hlist_node *node)
 	hash_for_each_possible_rcu(__VA_ARGS__)
 
 #define	hash_for_each_possible_rcu(name, obj, member, key) \
-	for ((obj) = __hash_first(&(name)[hash_min(key, HASH_BITS(name))], \
-		__typeof(*(obj)), member); \
-	     (obj) != NULL; \
-	     (obj) = __hash_next(obj, __typeof(*(obj)), member))
+	hlist_for_each_entry(obj, &(name)[hash_min(key, HASH_BITS(name))], member)
 
 #define	hash_for_each_possible_safe(name, obj, tmp, member, key) \
-	for ((obj) = __hash_first(&(name)[hash_min(key, HASH_BITS(name))], \
-		__typeof(*(obj)), member); \
-	     (obj) != NULL && ((tmp) = &__hash_next(obj, \
-		__typeof(*(obj)), member)->member, 1); \
-	     (obj) = container_of(tmp, __typeof(*(obj)), member))
+	hlist_for_each_entry_safe(obj, tmp, &(name)[hash_min(key, HASH_BITS(name))], member)
 
 #endif					/* _LINUXKPI_LINUX_HASHTABLE_H */
