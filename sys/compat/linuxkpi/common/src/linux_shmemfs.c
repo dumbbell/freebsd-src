@@ -44,6 +44,7 @@
 struct page *
 linux_shmem_read_mapping_page_gfp(vm_object_t obj, int pindex, gfp_t gfp)
 {
+	struct vm_page *m;
 	struct page *page;
 	int rv;
 
@@ -51,11 +52,17 @@ linux_shmem_read_mapping_page_gfp(vm_object_t obj, int pindex, gfp_t gfp)
 		panic("GFP_NOWAIT is unimplemented");
 
 	VM_OBJECT_WLOCK(obj);
-	rv = vm_page_grab_valid(&page, obj, pindex, VM_ALLOC_NORMAL |
+	rv = vm_page_grab_valid(&m, obj, pindex, VM_ALLOC_NORMAL |
 	    VM_ALLOC_NOBUSY | VM_ALLOC_WIRED);
 	VM_OBJECT_WUNLOCK(obj);
 	if (rv != VM_PAGER_OK)
 		return (ERR_PTR(-EINVAL));
+#ifdef PAGE_IS_LKPI_PAGE
+	page = lkpi_vm_page_to_page(m);
+	lkpi_page_set_vm_page(page, m);
+#else
+	page = m;
+#endif
 	return (page);
 }
 
