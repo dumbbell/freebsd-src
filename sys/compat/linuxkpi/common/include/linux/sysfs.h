@@ -48,8 +48,12 @@ struct bin_attribute {
 	size_t			size;
 	ssize_t (*read)(struct linux_file *, struct kobject *,
 			struct bin_attribute *, char *, loff_t, size_t);
+	ssize_t (*read_new)(struct linux_file *, struct kobject *,
+			    const struct bin_attribute *, char *, loff_t, size_t);
 	ssize_t (*write)(struct linux_file *, struct kobject *,
 			 struct bin_attribute *, char *, loff_t, size_t);
+	ssize_t (*write_new)(struct linux_file *, struct kobject *,
+			     const struct bin_attribute *, char *, loff_t, size_t);
 };
 
 struct attribute_group {
@@ -57,7 +61,10 @@ struct attribute_group {
 	mode_t			(*is_visible)(struct kobject *,
 				    struct attribute *, int);
 	struct attribute	**attrs;
-	struct bin_attribute	**bin_attrs;
+	union {
+		struct bin_attribute		**bin_attrs;
+		const struct bin_attribute	*const *bin_attrs_new;
+	};
 };
 
 #define	__ATTR(_name, _mode, _show, _store) {				\
@@ -85,9 +92,24 @@ struct attribute_group {
 		NULL,							\
 	}
 
+typedef ssize_t __sysfs_bin_rw_handler_new(struct linux_file *, struct kobject *,
+					   const struct bin_attribute *, char *, loff_t, size_t);
+
 #define	__BIN_ATTR(_name, _mode, _read, _write, _size) {		\
 	.attr = { .name = __stringify(_name), .mode = _mode },		\
-	.read = _read, .write  = _write, .size = _size,			\
+	.read = _Generic(_read,						\
+	    __sysfs_bin_rw_handler_new *: NULL,				\
+	    default: _read),						\
+	.read_new = _Generic(_read,					\
+	    __sysfs_bin_rw_handler_new *: _read,			\
+	    default: NULL),						\
+	.write  = _Generic(_write,					\
+	    __sysfs_bin_rw_handler_new *: NULL,				\
+	    default: _write),						\
+	.write_new = _Generic(_write,					\
+	    __sysfs_bin_rw_handler_new *: _write,			\
+	    default: NULL),						\
+	.size = _size,							\
 }
 #define	__BIN_ATTR_RO(_name, _size) {					\
 	.attr = { .name = __stringify(_name), .mode = 0444 },		\
@@ -275,24 +297,45 @@ sysctl_handle_bin_attr(SYSCTL_HANDLER_ARGS)
 	if (buf == NULL)
 		return (ENOMEM);
 
-	if (attr->read) {
+	if ((attr->attr.mode & 0400) != 0 &&
+	    attr->read == NULL && attr->read_new == NULL) {
+		error = EIO;
+		goto out;
+	}
+	if ((attr->attr.mode & 0600) != 0 &&
+	    attr->write == NULL && attr->write_new == NULL) {
+		error = EIO;
+		goto out;
+	}
+
+	if (attr->read_new) {
+		len = attr->read_new(
+		    NULL, /* <-- struct file, unimplemented */
+		    kobj, attr, buf, req->oldidx, PAGE_SIZE);
+	} else {
 		len = attr->read(
 		    NULL, /* <-- struct file, unimplemented */
 		    kobj, attr, buf, req->oldidx, PAGE_SIZE);
-		if (len < 0) {
-			error = -len;
-			if (error != EIO)
-				goto out;
-		}
+	}
+	if (len < 0) {
+		error = -len;
+		if (error != EIO)
+			goto out;
 	}
 
 	error = sysctl_handle_opaque(oidp, buf, PAGE_SIZE, req);
 	if (error != 0 || req->newptr == NULL || attr->write == NULL)
 		goto out;
 
-	len = attr->write(
-	    NULL, /* <-- struct file, unimplemented */
-	    kobj, attr, buf, req->newidx, req->newlen);
+	if (attr->write_new) {
+		len = attr->write_new(
+		    NULL, /* <-- struct file, unimplemented */
+		    kobj, attr, buf, req->newidx, req->newlen);
+	} else {
+		len = attr->write(
+		    NULL, /* <-- struct file, unimplemented */
+		    kobj, attr, buf, req->newidx, req->newlen);
+	}
 	if (len < 0)
 		error = -len;
 out:
