@@ -35,6 +35,34 @@
 
 struct folio_batch;
 
+static inline struct page *
+folio_file_page(struct folio *folio, pgoff_t index)
+{
+	return (folio_page(folio, index & (folio_nr_pages(folio) - 1)));
+}
+
+static inline void
+folio_lock(struct folio *folio)
+{
+#ifdef PAGE_IS_LKPI_PAGE
+	if (!vm_page_tryxbusy(folio->page.vm_page))
+		vm_page_busy_sleep(folio->page.vm_page, __func__, 0);
+#else
+	if (!vm_page_tryxbusy(&folio->page))
+		vm_page_busy_sleep(&folio->page, __func__, 0);
+#endif
+}
+
+static inline void
+folio_unlock(struct folio *folio)
+{
+#ifdef PAGE_IS_LKPI_PAGE
+	vm_page_xunbusy(folio->page.vm_page);
+#else
+	vm_page_xunbusy(&folio->page);
+#endif
+}
+
 #define	invalidate_mapping_pages(...) \
   linux_invalidate_mapping_pages(__VA_ARGS__)
 
