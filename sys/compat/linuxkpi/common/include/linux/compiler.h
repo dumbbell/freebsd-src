@@ -97,6 +97,8 @@
 #define	__struct_size(_s)	__builtin_object_size(_s, 0)
 #endif
 
+#define	OPTIMIZER_HIDE_VAR(var)		__asm__ ("" : "=r" (var) : "0" (var))
+
 #define	____UNIQUE_ID(name, num)	__UNIQUE_ID_##name##_##num
 #define	___UNIQUE_ID(name, num)		____UNIQUE_ID(name, num)
 #define	__UNIQUE_ID(name)		___UNIQUE_ID(name, __COUNTER__)
