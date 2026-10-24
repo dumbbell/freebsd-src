@@ -180,11 +180,18 @@ extern int linuxkpi_debug;
 		if (linuxkpi_debug)				\
 			log(LOG_DEBUG, fmt, ##__VA_ARGS__);	\
 	} while (0)
+#define pr_debug_once(fmt, ...)					\
+	do {							\
+		if (linuxkpi_debug)				\
+			log_once(LOG_DEBUG, fmt, ##__VA_ARGS__);\
+	} while (0)
 #define pr_devel(fmt, ...) \
 	log(LOG_DEBUG, pr_fmt(fmt), ##__VA_ARGS__)
 #else
 #define pr_debug(fmt, ...) \
 	({ if (0) log(LOG_DEBUG, fmt, ##__VA_ARGS__); 0; })
+#define pr_debug_once(fmt, ...) \
+	({ if (0) log_once(LOG_DEBUG, fmt, ##__VA_ARGS__); 0; })
 #define pr_devel(fmt, ...) \
 	({ if (0) log(LOG_DEBUG, pr_fmt(fmt), ##__VA_ARGS__); 0; })
 #endif
