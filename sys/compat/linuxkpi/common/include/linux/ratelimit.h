@@ -21,4 +21,9 @@ struct ratelimit_state {
 	unlikely(__ret_warn_on);			\
 })
 
+static inline void
+ratelimit_state_reset_interval(struct ratelimit_state *rs __unused, int interval_init __unused)
+{
+}
+
 #endif
