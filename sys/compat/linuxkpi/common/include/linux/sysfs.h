@@ -414,18 +414,39 @@ sysfs_remove_files(struct kobject *kobj, const struct attribute * const *attrs)
 }
 
 static inline int
-sysfs_create_group(struct kobject *kobj, const struct attribute_group *grp)
+sysfs_internal_create_group(struct kobject *kobj, int update, const struct attribute_group *grp)
 {
 	struct attribute **attr;
 	struct bin_attribute **bin_attr;
 	struct sysctl_oid *oidp;
 
+	if (kobj == NULL || (!update && kobj->oidp == NULL))
+		return (-EINVAL);
+
+	if (update && kobj->oidp == NULL)
+		return (-EINVAL);
+
+	if (grp->attrs == NULL && grp->bin_attrs == NULL)
+		return (0);
+
 	/* Don't create the group node if grp->name is undefined. */
-	if (grp->name)
+	if (grp->name) {
+		if (update) {
+			/*
+			 * When the caller wants to update a group, we try to
+			 * delete the existing one, if any. If there were no
+			 * groups, we ignore the error. In all cases, the group
+			 * is recreated later.
+			 */
+			sysctl_remove_name(kobj->oidp, grp->name, 1, 1);
+		}
+
 		oidp = SYSCTL_ADD_NODE(NULL, SYSCTL_CHILDREN(kobj->oidp),
 		    OID_AUTO, grp->name, CTLFLAG_RD|CTLFLAG_MPSAFE, NULL, grp->name);
-	else
+	} else {
 		oidp = kobj->oidp;
+	}
+
 	for (attr = grp->attrs; attr != NULL && *attr != NULL; attr++) {
 		SYSCTL_ADD_OID(NULL, SYSCTL_CHILDREN(oidp), OID_AUTO,
 		    (*attr)->name, CTLTYPE_STRING|CTLFLAG_RW|CTLFLAG_MPSAFE,
@@ -441,6 +462,18 @@ sysfs_create_group(struct kobject *kobj, const struct attribute_group *grp)
 	}
 
 	return (0);
+}
+
+static inline int
+sysfs_create_group(struct kobject *kobj, const struct attribute_group *grp)
+{
+	return (sysfs_internal_create_group(kobj, 0, grp));
+}
+
+static inline int
+sysfs_update_group(struct kobject *kobj, const struct attribute_group *grp)
+{
+	return (sysfs_internal_create_group(kobj, 1, grp));
 }
 
 static inline void
