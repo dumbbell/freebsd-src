@@ -99,9 +99,21 @@ div_u64_round_up(uint64_t dividend, uint32_t divisor)
 }
 
 static inline uint64_t
+div_u64_round_closest(uint64_t dividend, uint32_t divisor)
+{
+	return ((dividend + divisor - 1) / divisor + divisor / 2);
+}
+
+static inline uint64_t
 div64_u64_round_up(uint64_t dividend, uint64_t divisor)
 {
 	return ((dividend + divisor - 1) / divisor);
+}
+
+static inline uint64_t
+div64_u64_round_closest(uint64_t dividend, uint64_t divisor)
+{
+	return ((dividend + divisor - 1) / divisor + divisor / 2);
 }
 
 static inline uint64_t
@@ -115,6 +127,12 @@ roundup_u64(uint64_t x1, uint32_t x2)
 
 #define	DIV64_U64_ROUND_UP(...) \
 	div64_u64_round_up(__VA_ARGS__)
+
+#define	DIV_U64_ROUND_CLOSEST(...) \
+	div_u64_round_closest(__VA_ARGS__)
+
+#define	DIV64_U64_ROUND_CLOSEST(...) \
+	div64_u64_round_closest(__VA_ARGS__)
 
 static inline uint64_t
 mul_u64_u32_div(uint64_t x, uint32_t y, uint32_t div)
