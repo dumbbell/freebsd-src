@@ -57,6 +57,14 @@ str_enable_disable(bool value)
 #define	str_disable_enable(_v)		str_enable_disable(!(_v))
 
 static inline const char *
+str_true_false(bool value)
+{
+	return (value ? "true" : "false");
+}
+
+#define	str_false_true(_v)		str_true_false(!(_v))
+
+static inline const char *
 str_read_write(bool value)
 {
 	return (value ? "read" : "write");
