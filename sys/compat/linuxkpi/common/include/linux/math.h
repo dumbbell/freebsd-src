@@ -64,6 +64,20 @@
 })
 #endif
 
+static inline uint64_t
+int_pow(uint64_t base, unsigned int exp)
+{
+	uint64_t result;
+
+	result = 1;
+	while (exp) {
+		result *= base;
+		exp--;
+	}
+
+	return (result);
+}
+
 unsigned long linuxkpi_int_sqrt(unsigned long val);
 #define	int_sqrt(x)	linuxkpi_int_sqrt(x)
 
