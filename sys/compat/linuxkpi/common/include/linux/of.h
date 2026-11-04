@@ -28,6 +28,13 @@
 #ifndef _LINUXKPI_LINUX_OF_H
 #define	_LINUXKPI_LINUX_OF_H
 
+#include <linux/types.h>
+#include <linux/bitops.h>
+#include <linux/cleanup.h>
+#include <linux/errno.h>
 #include <linux/kobject.h>
+#include <linux/mod_devicetable.h>
+#include <linux/property.h>
+#include <linux/list.h>
 
 #endif
