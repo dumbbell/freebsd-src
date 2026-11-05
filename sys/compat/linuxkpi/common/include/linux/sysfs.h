@@ -46,12 +46,22 @@ struct sysfs_ops {
 struct bin_attribute {
 	struct attribute	attr;
 	size_t			size;
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+	ssize_t (*read)(struct linux_file *, struct kobject *,
+			const struct bin_attribute *, char *, loff_t, size_t);
+#else
 	ssize_t (*read)(struct linux_file *, struct kobject *,
 			struct bin_attribute *, char *, loff_t, size_t);
+#endif
 	ssize_t (*read_new)(struct linux_file *, struct kobject *,
 			    const struct bin_attribute *, char *, loff_t, size_t);
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+	ssize_t (*write)(struct linux_file *, struct kobject *,
+			 const struct bin_attribute *, char *, loff_t, size_t);
+#else
 	ssize_t (*write)(struct linux_file *, struct kobject *,
 			 struct bin_attribute *, char *, loff_t, size_t);
+#endif
 	ssize_t (*write_new)(struct linux_file *, struct kobject *,
 			     const struct bin_attribute *, char *, loff_t, size_t);
 };
@@ -61,10 +71,17 @@ struct attribute_group {
 	mode_t			(*is_visible)(struct kobject *,
 				    struct attribute *, int);
 	struct attribute	**attrs;
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+	union {
+		const struct bin_attribute	*const *bin_attrs;
+		const struct bin_attribute	*const *bin_attrs_new;
+	};
+#else
 	union {
 		struct bin_attribute		**bin_attrs;
 		const struct bin_attribute	*const *bin_attrs_new;
 	};
+#endif
 };
 
 #define	__ATTR(_name, _mode, _show, _store) {				\
@@ -92,9 +109,19 @@ struct attribute_group {
 		NULL,							\
 	}
 
+#if defined(LINUXKPI_VERSION) && (LINUXKPI_VERSION < 61700)
 typedef ssize_t __sysfs_bin_rw_handler_new(struct linux_file *, struct kobject *,
 					   const struct bin_attribute *, char *, loff_t, size_t);
+#endif
 
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+#define	__BIN_ATTR(_name, _mode, _read, _write, _size) {		\
+	.attr = { .name = __stringify(_name), .mode = _mode },		\
+	.read = _read,							\
+	.write = _write,						\
+	.size = _size,							\
+}
+#else
 #define	__BIN_ATTR(_name, _mode, _read, _write, _size) {		\
 	.attr = { .name = __stringify(_name), .mode = _mode },		\
 	.read = _Generic(_read,						\
@@ -111,6 +138,7 @@ typedef ssize_t __sysfs_bin_rw_handler_new(struct linux_file *, struct kobject *
 	    default: NULL),						\
 	.size = _size,							\
 }
+#endif
 #define	__BIN_ATTR_RO(_name, _size) {					\
 	.attr = { .name = __stringify(_name), .mode = 0444 },		\
 	.read = _name##_read, .size = _size,				\
@@ -417,7 +445,11 @@ static inline int
 sysfs_internal_create_group(struct kobject *kobj, int update, const struct attribute_group *grp)
 {
 	struct attribute **attr;
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+	const struct bin_attribute *const *bin_attr;
+#else
 	struct bin_attribute **bin_attr;
+#endif
 	struct sysctl_oid *oidp;
 
 	if (kobj == NULL || (!update && kobj->oidp == NULL))
@@ -480,7 +512,11 @@ static inline void
 sysfs_remove_group(struct kobject *kobj, const struct attribute_group *grp)
 {
 	struct attribute **attr;
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+	const struct bin_attribute *const *bin_attr;
+#else
 	struct bin_attribute **bin_attr;
+#endif
 
 	if (kobj->oidp == NULL)
 		return;
@@ -536,7 +572,11 @@ static inline void
 sysfs_unmerge_group(struct kobject *kobj, const struct attribute_group *grp)
 {
 	struct attribute **attr;
+#if !defined(LINUXKPI_VERSION) || (LINUXKPI_VERSION >= 61700)
+	const struct bin_attribute *const *bin_attr;
+#else
 	struct bin_attribute **bin_attr;
+#endif
 	struct sysctl_oid *oidp;
 
 	SYSCTL_FOREACH(oidp, SYSCTL_CHILDREN(kobj->oidp)) {
