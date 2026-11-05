@@ -347,11 +347,14 @@ file_inode(const struct linux_file *file)
 }
 
 static inline int
-call_mmap(struct linux_file *file, struct vm_area_struct *vma)
+vfs_mmap(struct linux_file *file, struct vm_area_struct *vma)
 {
 
 	return (file->f_op->mmap(file, vma));
 }
+
+/* Before Linux 6.17, vfs_mmap() was named call_mmap(). */
+#define	call_mmap(file, vma)	vfs_mmap(file, vma)
 
 static inline void
 i_size_write(struct inode *inode, loff_t i_size)
