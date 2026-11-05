@@ -35,34 +35,74 @@ struct completion {
 	unsigned int done;
 };
 
-#define	INIT_COMPLETION(c) \
-	((c).done = 0)
-#define	init_completion(c) \
-	do { (c)->done = 0; } while (0)
-#define	reinit_completion(c) \
-	do { (c)->done = 0; } while (0)
-#define	complete(c)				\
-	linux_complete_common((c), 0)
-#define	complete_all(c)				\
-	linux_complete_common((c), 1)
-#define	wait_for_completion(c)			\
-	linux_wait_for_common((c), 0)
-#define	wait_for_completion_interruptible(c)	\
-	linux_wait_for_common((c), 1)
-#define	wait_for_completion_timeout(c, timeout)	\
-	linux_wait_for_timeout_common((c), (timeout), 0)
-#define	wait_for_completion_interruptible_timeout(c, timeout)	\
-	linux_wait_for_timeout_common((c), (timeout), 1)
-#define	try_wait_for_completion(c) \
-	linux_try_wait_for_completion(c)
-#define	completion_done(c) \
-	linux_completion_done(c)
-
 extern void linux_complete_common(struct completion *, int);
 extern int linux_wait_for_common(struct completion *, int);
 extern unsigned long linux_wait_for_timeout_common(struct completion *,
     unsigned long, int);
 extern int linux_try_wait_for_completion(struct completion *);
 extern int linux_completion_done(struct completion *);
+
+#define	INIT_COMPLETION(c) \
+	((c).done = 0)
+
+static inline void
+init_completion(struct completion *c)
+{
+	c->done = 0;
+}
+
+static inline void
+reinit_completion(struct completion *c)
+{
+	c->done = 0;
+}
+
+static inline void
+complete(struct completion *c)
+{
+	linux_complete_common(c, 0);
+}
+
+static inline void
+complete_all(struct completion *c)
+{
+	linux_complete_common(c, 1);
+}
+
+static inline int
+wait_for_completion(struct completion *c)
+{
+	return (linux_wait_for_common(c, 0));
+}
+
+static inline int
+wait_for_completion_interruptible(struct completion *c)
+{
+	return (linux_wait_for_common(c, 1));
+}
+
+static inline unsigned long
+wait_for_completion_timeout(struct completion *c, unsigned long timeout)
+{
+	return (linux_wait_for_timeout_common(c, timeout, 0));
+}
+
+static inline unsigned long
+wait_for_completion_interruptible_timeout(struct completion *c, unsigned long timeout)
+{
+	return (linux_wait_for_timeout_common(c, timeout, 1));
+}
+
+static inline int
+try_wait_for_completion(struct completion *c)
+{
+	return (linux_try_wait_for_completion(c));
+}
+
+static inline int
+completion_done(struct completion *c)
+{
+	return (linux_completion_done(c));
+}
 
 #endif					/* _LINUXKPI_LINUX_COMPLETION_H_ */
